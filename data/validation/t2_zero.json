@@ -1,0 +1,45 @@
+{
+  "field_path": "t2_zero.bfld",
+  "detector": {
+    "center_mm": [
+      110.0,
+      0.0,
+      0.0
+    ],
+    "normal": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "width_mm": 500.0,
+    "height_mm": 500.0,
+    "pixels": [
+      512,
+      512
+    ]
+  },
+  "source": {
+    "source_type": "parallel",
+    "n_particles": 50000,
+    "energy_MeV": 14.7,
+    "beam_center": [
+      -0.1,
+      0.0,
+      0.0
+    ],
+    "beam_direction": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "beam_radius_mm": 30.0,
+    "angular_spread_deg": 0.0
+  },
+  "dt_ps": 1.0,
+  "max_steps": 20000
+}

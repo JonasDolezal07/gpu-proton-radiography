@@ -1,0 +1,19 @@
+{
+  "field_path": "magpie_stagnation_strong.bfld",
+  "source": {
+    "source_type": "parallel",
+    "n_protons": 2000000,
+    "energy_MeV": 14.7,
+    "beam_center": [-0.05, 0.0, 0.0],
+    "beam_direction": [1.0, 0.0, 0.0],
+    "beam_radius": 0.04,
+    "angular_spread": 0.0,
+    "point_position": null,
+    "point_target": null,
+    "detector_distance": 0.2,
+    "detector_normal": [1.0, 0.0, 0.0]
+  },
+  "dt": 5e-13,
+  "max_steps": 20000,
+  "detector_bins": [1024, 1024]
+}

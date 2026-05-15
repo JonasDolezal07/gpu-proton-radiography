@@ -1,0 +1,45 @@
+{
+  "field_path": "/Users/Jonas/Developer/plasma/gpu_proton_tracer/data/validation/t8_zero.bfld",
+  "detector": {
+    "center_mm": [
+      110.0,
+      0.0,
+      0.0
+    ],
+    "normal": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "width_mm": 500.0,
+    "height_mm": 500.0,
+    "pixels": [
+      512,
+      512
+    ]
+  },
+  "source": {
+    "source_type": "pencil",
+    "n_particles": 10000,
+    "energy_MeV": 14.7,
+    "energy_spread_percent": 5.0,
+    "seed": 42,
+    "position_mm": [
+      -100.0,
+      0.0,
+      0.0
+    ],
+    "direction": [
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  "dt_ps": 2.0,
+  "max_steps": 20000
+}

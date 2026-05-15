@@ -1,0 +1,44 @@
+{
+  "field_path": "t6_point.bfld",
+  "detector": {
+    "center_mm": [
+      110.0,
+      0.0,
+      0.0
+    ],
+    "normal": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "up": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "width_mm": 500.0,
+    "height_mm": 500.0,
+    "pixels": [
+      512,
+      512
+    ]
+  },
+  "source": {
+    "source_type": "point",
+    "n_particles": 50000,
+    "energy_MeV": 14.7,
+    "position_mm": [
+      -100.0,
+      0.0,
+      0.0
+    ],
+    "direction": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "cone_half_angle_deg": 45.0
+  },
+  "dt_ps": 1.0,
+  "max_steps": 20000
+}

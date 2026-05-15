@@ -1,0 +1,9 @@
+{
+  "name": "Z-pinch",
+  "description": "I=100kA, r=3.0mm, sausage=30.0% [converted to grid]",
+  "units_length": "m",
+  "units_field": "T",
+  "source": "analytical",
+  "timestamp": null,
+  "extra": {}
+}

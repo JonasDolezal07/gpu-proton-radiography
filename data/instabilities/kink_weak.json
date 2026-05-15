@@ -1,0 +1,20 @@
+{
+  "field_path": "kink_weak.bfld",
+  "detector": {
+    "center_mm": [100, 0, 0],
+    "normal": [1, 0, 0],
+    "width_mm": 500,
+    "height_mm": 500,
+    "pixels": [512, 512]
+  },
+  "source": {
+    "source_type": "parallel",
+    "n_particles": 1000000,
+    "energy_MeV": 14.7,
+    "beam_direction": [1, 0, 0],
+    "source_distance_mm": 80,
+    "beam_radius_mm": 40
+  },
+  "dt_ps": 0.2,
+  "max_steps": 12000
+}

@@ -1,0 +1,167 @@
+#version 450
+
+// Boris integrator for charged particle motion in electromagnetic fields
+// Each invocation handles one particle
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Particle state
+struct Particle {
+    vec3 position;
+    float _pad0;
+    vec3 velocity;
+    uint is_active;  // 1 = is_active, 0 = hit detector
+};
+
+// Detector hit record
+struct DetectorHit {
+    vec2 position;  // Position on detector plane
+    float energy;   // Kinetic energy at impact
+    uint particle_id;
+};
+
+// Simulation parameters (push constants)
+layout(push_constant) uniform SimParams {
+    float dt;
+    float q_over_m;      // charge/mass ratio
+    uint n_particles;
+    uint _pad;
+    vec4 field_min;      // Field bounds min (xyz)
+    vec4 field_max;      // Field bounds max (xyz)
+    vec4 detector_pos;   // Point on detector plane
+    vec4 detector_normal;// Detector plane normal
+} params;
+
+// Particle buffer (read-write)
+layout(std430, binding = 0) buffer ParticleBuffer {
+    Particle particles[];
+};
+
+// Magnetic field texture (3D, trilinear interpolation)
+layout(binding = 1) uniform sampler3D field_texture;
+
+// Detector hits buffer
+layout(std430, binding = 2) buffer DetectorBuffer {
+    uint hit_count;
+    uint _pad1;
+    uint _pad2;
+    uint _pad3;
+    DetectorHit hits[];
+};
+
+// Sample magnetic field at position
+vec3 sample_field(vec3 pos) {
+    // Convert world position to texture coordinates [0, 1]
+    vec3 uvw = (pos - params.field_min.xyz) / (params.field_max.xyz - params.field_min.xyz);
+
+    // Clamp to valid range
+    uvw = clamp(uvw, vec3(0.001), vec3(0.999));
+
+    // Sample the field texture
+    return texture(field_texture, uvw).xyz;
+}
+
+// Boris push algorithm
+// Advances velocity by dt in magnetic field B
+vec3 boris_push(vec3 v, vec3 B, float dt, float qm) {
+    // Half rotation angle
+    vec3 t = 0.5 * qm * B * dt;
+    float t_mag_sq = dot(t, t);
+    vec3 s = 2.0 * t / (1.0 + t_mag_sq);
+
+    // Boris rotation
+    vec3 v_minus = v;
+    vec3 v_prime = v_minus + cross(v_minus, t);
+    vec3 v_plus = v_minus + cross(v_prime, s);
+
+    return v_plus;
+}
+
+// Check if particle crossed detector plane
+bool check_detector_crossing(vec3 pos_old, vec3 pos_new, out vec3 hit_pos, out float t_hit) {
+    vec3 n = params.detector_normal.xyz;
+    vec3 p0 = params.detector_pos.xyz;
+
+    // Distance from plane
+    float d_old = dot(pos_old - p0, n);
+    float d_new = dot(pos_new - p0, n);
+
+    // Check for crossing (sign change, moving towards detector)
+    if (d_old > 0.0 && d_new <= 0.0) {
+        // Interpolate to find crossing point
+        t_hit = d_old / (d_old - d_new);
+        hit_pos = mix(pos_old, pos_new, t_hit);
+        return true;
+    }
+
+    return false;
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+
+    if (idx >= params.n_particles) {
+        return;
+    }
+
+    Particle p = particles[idx];
+
+    // Skip inis_active particles
+    if (p.is_active == 0) {
+        return;
+    }
+
+    vec3 pos = p.position;
+    vec3 vel = p.velocity;
+
+    // Sample magnetic field at current position
+    vec3 B = sample_field(pos);
+
+    // Boris push (velocity update)
+    vec3 vel_new = boris_push(vel, B, params.dt, params.q_over_m);
+
+    // Position update (leapfrog)
+    vec3 pos_new = pos + vel_new * params.dt;
+
+    // Check for detector hit
+    vec3 hit_pos;
+    float t_hit;
+    if (check_detector_crossing(pos, pos_new, hit_pos, t_hit)) {
+        // Record hit
+        uint hit_idx = atomicAdd(hit_count, 1);
+
+        if (hit_idx < hits.length()) {
+            // Project hit position onto detector plane coordinates
+            // Using detector_pos as origin, compute local 2D coordinates
+            vec3 local = hit_pos - params.detector_pos.xyz;
+
+            // Create local coordinate system on detector plane
+            vec3 n = normalize(params.detector_normal.xyz);
+            vec3 up = abs(n.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+            vec3 u = normalize(cross(up, n));
+            vec3 v = cross(n, u);
+
+            hits[hit_idx].position = vec2(dot(local, u), dot(local, v));
+            hits[hit_idx].energy = 0.5 * dot(vel_new, vel_new);  // Proportional to KE
+            hits[hit_idx].particle_id = idx;
+        }
+
+        // Deactivate particle
+        particles[idx].is_active = 0;
+        particles[idx].position = hit_pos;
+        particles[idx].velocity = vel_new;
+        return;
+    }
+
+    // Check if particle left the simulation domain
+    vec3 margin = (params.field_max.xyz - params.field_min.xyz) * 0.1;
+    if (any(lessThan(pos_new, params.field_min.xyz - margin)) ||
+        any(greaterThan(pos_new, params.field_max.xyz + margin))) {
+        particles[idx].is_active = 0;
+        return;
+    }
+
+    // Update particle state
+    particles[idx].position = pos_new;
+    particles[idx].velocity = vel_new;
+}
