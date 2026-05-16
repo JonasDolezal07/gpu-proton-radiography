@@ -26,6 +26,12 @@ Three MHD instability geometries, computed in seconds on a laptop GPU:
 Each image is a synthetic proton radiograph — the spatial structure directly reflects the
 path-integrated field topology.
 
+### GUI
+
+![GUI launcher showing sausage instability run complete](docs/images/gui.png)
+
+Deck parameters, run status, and the 3D radiograph — all in one view.
+
 ---
 
 ## Why this tool
