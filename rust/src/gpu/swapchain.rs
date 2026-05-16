@@ -51,19 +51,15 @@ impl Swapchain {
             // Create new swapchain with old as predecessor
             let caps = surface_loader.get_physical_device_surface_capabilities(physical_device, surface)?;
             let formats = surface_loader.get_physical_device_surface_formats(physical_device, surface)?;
-            let present_modes = surface_loader.get_physical_device_surface_present_modes(physical_device, surface)?;
-
             let format = formats
                 .iter()
                 .find(|f| f.format == vk::Format::B8G8R8A8_SRGB && f.color_space == vk::ColorSpaceKHR::SRGB_NONLINEAR)
                 .or_else(|| formats.iter().find(|f| f.format == vk::Format::B8G8R8A8_UNORM))
                 .unwrap_or(&formats[0]);
 
-            let present_mode = present_modes
-                .iter()
-                .copied()
-                .find(|&m| m == vk::PresentModeKHR::MAILBOX)
-                .unwrap_or(vk::PresentModeKHR::FIFO);
+            // FIFO is the most stable present mode on macOS/MoltenVK; MAILBOX's
+            // aggressive pipelining widens the race window during CAMetalLayer resizes.
+            let present_mode = vk::PresentModeKHR::FIFO;
 
             let extent = if caps.current_extent.width != u32::MAX {
                 caps.current_extent
@@ -132,7 +128,15 @@ impl Swapchain {
                 self.image_views.push(device.create_image_view(&view_info, None)?);
             }
 
-            log::info!("Recreated swapchain: {}x{}", extent.width, extent.height);
+            if extent.width != width || extent.height != height {
+                log::warn!(
+                    "Swapchain extent {}x{} != requested {}x{} — \
+                     CAMetalLayer not ready yet, will retry",
+                    extent.width, extent.height, width, height
+                );
+            }
+            log::info!("Recreated swapchain: {}x{} (requested {}x{})",
+                extent.width, extent.height, width, height);
         }
         Ok(())
     }
@@ -151,7 +155,6 @@ impl Swapchain {
         // Query surface capabilities
         let caps = surface_loader.get_physical_device_surface_capabilities(physical_device, surface)?;
         let formats = surface_loader.get_physical_device_surface_formats(physical_device, surface)?;
-        let present_modes = surface_loader.get_physical_device_surface_present_modes(physical_device, surface)?;
 
         // Choose format (prefer BGRA8 SRGB)
         let format = formats
@@ -160,12 +163,8 @@ impl Swapchain {
             .or_else(|| formats.iter().find(|f| f.format == vk::Format::B8G8R8A8_UNORM))
             .unwrap_or(&formats[0]);
 
-        // Choose present mode (prefer mailbox for low latency, fallback to FIFO)
-        let present_mode = present_modes
-            .iter()
-            .copied()
-            .find(|&m| m == vk::PresentModeKHR::MAILBOX)
-            .unwrap_or(vk::PresentModeKHR::FIFO);
+        // FIFO for stability (avoids MAILBOX race during CAMetalLayer resize on macOS)
+        let present_mode = vk::PresentModeKHR::FIFO;
 
         // Choose extent
         let extent = if caps.current_extent.width != u32::MAX {
@@ -290,6 +289,10 @@ impl Swapchain {
 
     pub fn image_view(&self, index: usize) -> vk::ImageView {
         self.image_views[index]
+    }
+
+    pub fn image_views(&self) -> &[vk::ImageView] {
+        &self.image_views
     }
 
     pub fn cleanup(&mut self, device: &ash::Device) {

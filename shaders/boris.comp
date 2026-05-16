@@ -1,7 +1,24 @@
 #version 450
 
-// Boris integrator for charged particle motion in electromagnetic fields
-// Each invocation handles one particle
+// Boris integrator for charged particle motion in electromagnetic fields.
+// Each invocation handles one particle, running MULTIPLE steps to minimize memory traffic.
+// Particle data stays in registers throughout all steps — one read and one write per dispatch.
+//
+// Boris push ordering (per step):
+//   1. Sample B and E at x_n  (current position, before move)
+//   2. v_minus = v_n + (q/m)(E)(dt/2)          half E kick
+//   3. t = (q/m)(B)(dt/2),  s = 2t/(1+|t|²)
+//      v_prime = v_minus + v_minus × t
+//      v_plus  = v_minus + v_prime × s          magnetic rotation
+//   4. v_{n+1} = v_plus + (q/m)(E)(dt/2)       half E kick
+//   5. x_{n+1} = x_n + v_{n+1} dt
+//
+// Units (SI throughout):
+//   E  [V/m], B [T], q_over_m [C/kg], dt [s], v [m/s], x [m]
+//   half E kick units: (C/kg)(V/m)(s) = (C/kg)(kg·m/s²/C)(s) = m/s  ✓
+//
+// Sanity check: if E = 0, reduces exactly to pure-B Boris (unchanged from B-only shader).
+// Sanity check: if B = 0, reduces to two half E kicks with position update = uniform E pusher.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
@@ -10,7 +27,7 @@ struct Particle {
     vec3 position;
     float _pad0;
     vec3 velocity;
-    uint is_active;  // 1 = is_active, 0 = hit detector
+    uint is_active;  // 1 = active, 0 = hit detector or left domain
 };
 
 // Detector hit record
@@ -23,78 +40,118 @@ struct DetectorHit {
 // Simulation parameters (push constants)
 layout(push_constant) uniform SimParams {
     float dt;
-    float q_over_m;      // charge/mass ratio
+    float q_over_m;          // charge/mass ratio
     uint n_particles;
-    uint _pad;
-    vec4 field_min;      // Field bounds min (xyz)
-    vec4 field_max;      // Field bounds max (xyz)
-    vec4 detector_pos;   // Point on detector plane
-    vec4 detector_normal;// Detector plane normal
+    uint steps_per_dispatch; // Number of steps to run per dispatch (batching)
+    vec4 field_min;          // Field bounds min (xyz)
+    vec4 field_max;          // Field bounds max (xyz)
+    vec4 detector_pos;       // Point on detector plane
+    vec4 detector_normal;    // Detector plane normal
+    vec4 detector_extent;    // Half-width (y-axis), half-height (z-axis)
+    vec4 detector_up;        // Detector y-axis in world space (default: [0,1,0])
 } params;
 
-// Particle buffer (read-write)
+// Descriptor set bindings (must match compute.rs ComputePipeline::new):
+//   binding 0 — particle buffer       (STORAGE_BUFFER)
+//   binding 1 — B-field texture       (COMBINED_IMAGE_SAMPLER, sampler3D, R32G32B32A32_SFLOAT)
+//   binding 2 — detector hits buffer  (STORAGE_BUFFER)
+//   binding 3 — detector image        (STORAGE_IMAGE, uimage2D, R32_UINT)
+//   binding 4 — E-field texture       (COMBINED_IMAGE_SAMPLER, sampler3D, R32G32B32A32_SFLOAT)
+
 layout(std430, binding = 0) buffer ParticleBuffer {
     Particle particles[];
 };
 
-// Magnetic field texture (3D, trilinear interpolation)
-layout(binding = 1) uniform sampler3D field_texture;
+layout(binding = 1) uniform sampler3D field_texture;    // Bx,By,Bz in .xyz [T]
+layout(binding = 4) uniform sampler3D e_field_texture;  // Ex,Ey,Ez in .xyz [V/m]
 
-// Detector hits buffer
 layout(std430, binding = 2) buffer DetectorBuffer {
     uint hit_count;
-    uint _pad1;
+    uint exit_count;  // particles that left the domain without hitting
     uint _pad2;
     uint _pad3;
     DetectorHit hits[];
 };
 
-// Sample magnetic field at position
+layout(binding = 3, r32ui) uniform uimage2D detector_image;
+
 vec3 sample_field(vec3 pos) {
-    // Convert world position to texture coordinates [0, 1]
     vec3 uvw = (pos - params.field_min.xyz) / (params.field_max.xyz - params.field_min.xyz);
-
-    // Clamp to valid range
     uvw = clamp(uvw, vec3(0.001), vec3(0.999));
-
-    // Sample the field texture
     return texture(field_texture, uvw).xyz;
 }
 
-// Boris push algorithm
-// Advances velocity by dt in magnetic field B
-vec3 boris_push(vec3 v, vec3 B, float dt, float qm) {
-    // Half rotation angle
-    vec3 t = 0.5 * qm * B * dt;
-    float t_mag_sq = dot(t, t);
-    vec3 s = 2.0 * t / (1.0 + t_mag_sq);
-
-    // Boris rotation
-    vec3 v_minus = v;
-    vec3 v_prime = v_minus + cross(v_minus, t);
-    vec3 v_plus = v_minus + cross(v_prime, s);
-
-    return v_plus;
+vec3 sample_efield(vec3 pos) {
+    vec3 uvw = (pos - params.field_min.xyz) / (params.field_max.xyz - params.field_min.xyz);
+    uvw = clamp(uvw, vec3(0.001), vec3(0.999));
+    return texture(e_field_texture, uvw).xyz;
 }
 
-// Check if particle crossed detector plane
-bool check_detector_crossing(vec3 pos_old, vec3 pos_new, out vec3 hit_pos, out float t_hit) {
-    vec3 n = params.detector_normal.xyz;
-    vec3 p0 = params.detector_pos.xyz;
+// ============================================================================
+// REST OF SHADER (unchanged logic)
+// ============================================================================
 
-    // Distance from plane
-    float d_old = dot(pos_old - p0, n);
-    float d_new = dot(pos_new - p0, n);
+// Get detector basis: u_y = detector y-axis, v_z = detector z-axis.
+//
+// Convention: detector_y_axis = normalize(up projected onto detector plane)
+//             detector_z_axis = cross(normal, detector_y_axis)
+//
+// Defaults: normal=[1,0,0], up=[0,1,0] → u_y=[0,1,0], v_z=[0,0,1].
+// hit.position[0] = dot(local, u_y) → y_mm in CSV
+// hit.position[1] = dot(local, v_z) → z_mm in CSV
+void get_detector_basis(out vec3 u_y, out vec3 v_z, out vec3 n) {
+    n = normalize(params.detector_normal.xyz);
+    vec3 up = normalize(params.detector_up.xyz);
+    u_y = normalize(up - dot(up, n) * n);  // Gram-Schmidt: project up onto detector plane
+    v_z = normalize(cross(n, u_y));        // z-axis = cross(normal, y-axis)
+}
 
-    // Check for crossing (sign change, moving towards detector)
-    if (d_old > 0.0 && d_new <= 0.0) {
-        // Interpolate to find crossing point
-        t_hit = d_old / (d_old - d_new);
-        hit_pos = mix(pos_old, pos_new, t_hit);
-        return true;
+// Write hit to detector texture
+void write_to_detector_texture(vec2 local_pos) {
+    ivec2 img_size = imageSize(detector_image);
+    vec2 half_extent = params.detector_extent.xy;
+    vec2 uv = (local_pos / half_extent) * 0.5 + 0.5;
+
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+        return;
     }
 
-    return false;
+    ivec2 pixel = clamp(ivec2(uv * vec2(img_size)), ivec2(0), img_size - 1);
+    imageAtomicAdd(detector_image, pixel, 1u);
+}
+
+// Record hit to buffer
+void record_hit(uint idx, vec3 hit_pos, vec3 vel) {
+    vec3 local = hit_pos - params.detector_pos.xyz;
+
+    vec3 u_y, v_z, n;
+    get_detector_basis(u_y, v_z, n);
+    vec2 local_2d = vec2(dot(local, u_y), dot(local, v_z));
+
+    write_to_detector_texture(local_2d);
+
+    uint hit_idx = atomicAdd(hit_count, 1);
+    if (hit_idx < hits.length()) {
+        hits[hit_idx].position = local_2d;
+        hits[hit_idx].energy = 0.5 * dot(vel, vel);
+        hits[hit_idx].particle_id = idx;
+    }
+}
+
+// Check if position is outside simulation domain
+// Use detector extent as margin - particles beyond this can't hit the detector anyway
+bool is_outside_domain(vec3 pos) {
+    // Use detector extent for y,z margin (particles beyond this miss the detector)
+    vec3 margin = vec3(
+        0.5 * (params.field_max.x - params.field_min.x),  // x: half field width
+        params.detector_extent.x,  // y: detector half-extent
+        params.detector_extent.y   // z: detector half-extent
+    );
+
+    vec3 domain_min = min(params.field_min.xyz, params.detector_pos.xyz) - margin;
+    vec3 domain_max = max(params.field_max.xyz, params.detector_pos.xyz) + margin;
+
+    return any(lessThan(pos, domain_min)) || any(greaterThan(pos, domain_max));
 }
 
 void main() {
@@ -106,62 +163,59 @@ void main() {
 
     Particle p = particles[idx];
 
-    // Skip inis_active particles
     if (p.is_active == 0) {
         return;
     }
 
     vec3 pos = p.position;
     vec3 vel = p.velocity;
+    bool is_alive = true;
 
-    // Sample magnetic field at current position
-    vec3 B = sample_field(pos);
+    float dt = params.dt;
+    float qm = params.q_over_m;
 
-    // Boris push (velocity update)
-    vec3 vel_new = boris_push(vel, B, params.dt, params.q_over_m);
+    for (uint step = 0; step < params.steps_per_dispatch && is_alive; step++) {
+        vec3 pos_old = pos;
 
-    // Position update (leapfrog)
-    vec3 pos_new = pos + vel_new * params.dt;
+        vec3 B = sample_field(pos);
+        vec3 E = sample_efield(pos);
 
-    // Check for detector hit
-    vec3 hit_pos;
-    float t_hit;
-    if (check_detector_crossing(pos, pos_new, hit_pos, t_hit)) {
-        // Record hit
-        uint hit_idx = atomicAdd(hit_count, 1);
+        // Boris push: half E kick → magnetic rotation → half E kick
+        float half_qm_dt = 0.5 * qm * dt;
+        vel = vel + half_qm_dt * E;
 
-        if (hit_idx < hits.length()) {
-            // Project hit position onto detector plane coordinates
-            // Using detector_pos as origin, compute local 2D coordinates
-            vec3 local = hit_pos - params.detector_pos.xyz;
+        vec3 t = half_qm_dt * B;
+        float t_sq = dot(t, t);
+        vec3 s = (2.0 / (1.0 + t_sq)) * t;
+        vec3 v_prime = vel + cross(vel, t);
+        vel = vel + cross(v_prime, s);
 
-            // Create local coordinate system on detector plane
-            vec3 n = normalize(params.detector_normal.xyz);
-            vec3 up = abs(n.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-            vec3 u = normalize(cross(up, n));
-            vec3 v = cross(n, u);
+        vel = vel + half_qm_dt * E;
 
-            hits[hit_idx].position = vec2(dot(local, u), dot(local, v));
-            hits[hit_idx].energy = 0.5 * dot(vel_new, vel_new);  // Proportional to KE
-            hits[hit_idx].particle_id = idx;
+        pos = pos + vel * dt;
+
+        // Check detector hit
+        {
+            vec3 n = params.detector_normal.xyz;
+            float d_old = dot(pos_old - params.detector_pos.xyz, n);
+            float d_new = dot(pos - params.detector_pos.xyz, n);
+
+            if ((d_old < 0.0) != (d_new < 0.0)) {
+                float t_hit = abs(d_old) / (abs(d_old) + abs(d_new));
+                vec3 hit_pos = mix(pos_old, pos, t_hit);
+                record_hit(idx, hit_pos, vel);
+                pos = hit_pos;
+                is_alive = false;
+            }
+            else if (is_outside_domain(pos)) {
+                atomicAdd(exit_count, 1u);
+                is_alive = false;
+            }
         }
-
-        // Deactivate particle
-        particles[idx].is_active = 0;
-        particles[idx].position = hit_pos;
-        particles[idx].velocity = vel_new;
-        return;
     }
 
-    // Check if particle left the simulation domain
-    vec3 margin = (params.field_max.xyz - params.field_min.xyz) * 0.1;
-    if (any(lessThan(pos_new, params.field_min.xyz - margin)) ||
-        any(greaterThan(pos_new, params.field_max.xyz + margin))) {
-        particles[idx].is_active = 0;
-        return;
-    }
-
-    // Update particle state
-    particles[idx].position = pos_new;
-    particles[idx].velocity = vel_new;
+    // Write particle back
+    particles[idx].position = pos;
+    particles[idx].velocity = vel;
+    particles[idx].is_active = is_alive ? 1 : 0;
 }

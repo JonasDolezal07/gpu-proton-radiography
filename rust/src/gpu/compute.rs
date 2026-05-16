@@ -11,7 +11,7 @@ pub struct SimParams {
     pub dt: f32,
     pub q_over_m: f32,  // charge/mass ratio (for protons: e/m_p)
     pub n_particles: u32,
-    pub _pad: u32,
+    pub steps_per_dispatch: u32,  // Number of integration steps per dispatch (batching)
 
     // Field bounds for texture sampling
     pub field_min: [f32; 4],  // xyz + pad
@@ -19,7 +19,9 @@ pub struct SimParams {
 
     // Detector plane
     pub detector_pos: [f32; 4],    // point on plane
-    pub detector_normal: [f32; 4], // normal vector
+    pub detector_normal: [f32; 4], // normal vector (default: [1,0,0])
+    pub detector_extent: [f32; 4], // half-width (y-axis), half-height (z-axis)
+    pub detector_up: [f32; 4],     // detector y-axis in world space (default: [0,1,0])
 }
 
 /// Compute pipeline for particle integration
@@ -39,8 +41,10 @@ impl ComputePipeline {
 
             // Descriptor set layout:
             // binding 0: particle buffer (storage)
-            // binding 1: field texture (sampled image)
+            // binding 1: B-field texture (sampled image)
             // binding 2: detector hits buffer (storage)
+            // binding 3: detector image (storage image for atomic writes)
+            // binding 4: E-field texture (sampled image)
             let bindings = [
                 vk::DescriptorSetLayoutBinding {
                     binding: 0,
@@ -59,6 +63,20 @@ impl ComputePipeline {
                 vk::DescriptorSetLayoutBinding {
                     binding: 2,
                     descriptor_type: vk::DescriptorType::STORAGE_BUFFER,
+                    descriptor_count: 1,
+                    stage_flags: vk::ShaderStageFlags::COMPUTE,
+                    ..Default::default()
+                },
+                vk::DescriptorSetLayoutBinding {
+                    binding: 3,
+                    descriptor_type: vk::DescriptorType::STORAGE_IMAGE,
+                    descriptor_count: 1,
+                    stage_flags: vk::ShaderStageFlags::COMPUTE,
+                    ..Default::default()
+                },
+                vk::DescriptorSetLayoutBinding {
+                    binding: 4,
+                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                     descriptor_count: 1,
                     stage_flags: vk::ShaderStageFlags::COMPUTE,
                     ..Default::default()
@@ -121,6 +139,10 @@ impl ComputePipeline {
                 },
                 vk::DescriptorPoolSize {
                     ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    descriptor_count: 2,  // B field + E field
+                },
+                vk::DescriptorPoolSize {
+                    ty: vk::DescriptorType::STORAGE_IMAGE,
                     descriptor_count: 1,
                 },
             ];
@@ -178,10 +200,13 @@ impl ComputePipeline {
         device: &ash::Device,
         particle_buffer: vk::Buffer,
         particle_size: vk::DeviceSize,
-        field_view: vk::ImageView,
-        field_sampler: vk::Sampler,
+        b_field_view: vk::ImageView,
+        b_field_sampler: vk::Sampler,
         detector_buffer: vk::Buffer,
         detector_size: vk::DeviceSize,
+        detector_image_view: vk::ImageView,
+        e_field_view: vk::ImageView,
+        e_field_sampler: vk::Sampler,
     ) {
         let particle_info = vk::DescriptorBufferInfo {
             buffer: particle_buffer,
@@ -189,9 +214,9 @@ impl ComputePipeline {
             range: particle_size,
         };
 
-        let field_info = vk::DescriptorImageInfo {
-            sampler: field_sampler,
-            image_view: field_view,
+        let b_field_info = vk::DescriptorImageInfo {
+            sampler: b_field_sampler,
+            image_view: b_field_view,
             image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
         };
 
@@ -199,6 +224,18 @@ impl ComputePipeline {
             buffer: detector_buffer,
             offset: 0,
             range: detector_size,
+        };
+
+        let detector_image_info = vk::DescriptorImageInfo {
+            sampler: vk::Sampler::null(),
+            image_view: detector_image_view,
+            image_layout: vk::ImageLayout::GENERAL,
+        };
+
+        let e_field_info = vk::DescriptorImageInfo {
+            sampler: e_field_sampler,
+            image_view: e_field_view,
+            image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
         };
 
         let writes = [
@@ -215,7 +252,7 @@ impl ComputePipeline {
                 dst_binding: 1,
                 descriptor_count: 1,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                p_image_info: &field_info,
+                p_image_info: &b_field_info,
                 ..Default::default()
             },
             vk::WriteDescriptorSet {
@@ -224,6 +261,22 @@ impl ComputePipeline {
                 descriptor_count: 1,
                 descriptor_type: vk::DescriptorType::STORAGE_BUFFER,
                 p_buffer_info: &detector_info,
+                ..Default::default()
+            },
+            vk::WriteDescriptorSet {
+                dst_set: self.descriptor_set,
+                dst_binding: 3,
+                descriptor_count: 1,
+                descriptor_type: vk::DescriptorType::STORAGE_IMAGE,
+                p_image_info: &detector_image_info,
+                ..Default::default()
+            },
+            vk::WriteDescriptorSet {
+                dst_set: self.descriptor_set,
+                dst_binding: 4,
+                descriptor_count: 1,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                p_image_info: &e_field_info,
                 ..Default::default()
             },
         ];

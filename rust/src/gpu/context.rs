@@ -148,6 +148,12 @@ impl VulkanContext {
             let layer: cocoa_id = msg_send![class!(CAMetalLayer), layer];
             let _: () = msg_send![view, setWantsLayer: YES];
             let _: () = msg_send![view, setLayer: layer];
+            // Match contentsScale to the window backing scale so MoltenVK
+            // reports physical pixels in vkGetPhysicalDeviceSurfaceCapabilitiesKHR.
+            // Without this, currentExtent is always the logical size (e.g. 1280×720)
+            // and we get a low-res swapchain that the OS upscales 2× (blurry).
+            let scale: f64 = window.scale_factor();
+            let _: () = msg_send![layer, setContentsScale: scale];
 
             let info = vk::MetalSurfaceCreateInfoEXT {
                 p_layer: layer as *const c_void,
@@ -305,6 +311,16 @@ impl VulkanContext {
         &self.device_name
     }
 
+    pub fn vulkan_api_version(&self) -> String {
+        unsafe {
+            let props = self.instance.get_physical_device_properties(self.physical_device);
+            let major = vk::api_version_major(props.api_version);
+            let minor = vk::api_version_minor(props.api_version);
+            let patch = vk::api_version_patch(props.api_version);
+            format!("{}.{}.{}", major, minor, patch)
+        }
+    }
+
     pub fn device(&self) -> &ash::Device {
         &self.device
     }
@@ -343,6 +359,26 @@ impl VulkanContext {
 
     pub fn compute_queue_family(&self) -> u32 {
         self.compute_queue_family
+    }
+
+    /// Get timestamp period in nanoseconds per tick
+    pub fn timestamp_period(&self) -> f32 {
+        unsafe {
+            let props = self.instance.get_physical_device_properties(self.physical_device);
+            props.limits.timestamp_period
+        }
+    }
+
+    /// Check if timestamps are supported on compute queue
+    pub fn timestamps_supported(&self) -> bool {
+        unsafe {
+            let families = self.instance.get_physical_device_queue_family_properties(self.physical_device);
+            if let Some(family) = families.get(self.compute_queue_family as usize) {
+                family.timestamp_valid_bits > 0
+            } else {
+                false
+            }
+        }
     }
 }
 

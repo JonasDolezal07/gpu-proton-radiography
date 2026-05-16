@@ -201,12 +201,111 @@ impl FieldTexture {
     }
 }
 
+/// 2D texture for detector hit accumulation
+pub struct DetectorTexture {
+    pub image: vk::Image,
+    pub view: vk::ImageView,
+    pub storage_view: vk::ImageView,  // For compute shader writes
+    allocation: Option<Allocation>,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl DetectorTexture {
+    pub fn new(
+        device: &ash::Device,
+        allocator: &Arc<Mutex<Allocator>>,
+        width: u32,
+        height: u32,
+    ) -> Result<Self> {
+        unsafe {
+            // Create 2D image for hit counts (R32_UINT for atomic operations)
+            let image_info = vk::ImageCreateInfo {
+                image_type: vk::ImageType::TYPE_2D,
+                format: vk::Format::R32_UINT,
+                extent: vk::Extent3D { width, height, depth: 1 },
+                mip_levels: 1,
+                array_layers: 1,
+                samples: vk::SampleCountFlags::TYPE_1,
+                tiling: vk::ImageTiling::OPTIMAL,
+                usage: vk::ImageUsageFlags::STORAGE
+                    | vk::ImageUsageFlags::SAMPLED
+                    | vk::ImageUsageFlags::TRANSFER_DST,  // For clearing
+                sharing_mode: vk::SharingMode::EXCLUSIVE,
+                initial_layout: vk::ImageLayout::UNDEFINED,
+                ..Default::default()
+            };
+
+            let image = device.create_image(&image_info, None)
+                .context("Failed to create detector image")?;
+
+            let requirements = device.get_image_memory_requirements(image);
+
+            let allocation = allocator.lock().unwrap().allocate(&AllocationCreateDesc {
+                name: "detector_texture",
+                requirements,
+                location: MemoryLocation::GpuOnly,
+                linear: false,
+                allocation_scheme: AllocationScheme::GpuAllocatorManaged,
+            }).context("Failed to allocate detector image memory")?;
+
+            device.bind_image_memory(image, allocation.memory(), allocation.offset())
+                .context("Failed to bind detector image memory")?;
+
+            // Create image view for sampling (fragment shader)
+            let view_info = vk::ImageViewCreateInfo {
+                image,
+                view_type: vk::ImageViewType::TYPE_2D,
+                format: vk::Format::R32_UINT,
+                subresource_range: vk::ImageSubresourceRange {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                },
+                ..Default::default()
+            };
+
+            let view = device.create_image_view(&view_info, None)
+                .context("Failed to create detector image view")?;
+
+            // Create storage view for compute shader writes
+            let storage_view = device.create_image_view(&view_info, None)
+                .context("Failed to create detector storage view")?;
+
+            log::info!("Created detector texture: {}x{}", width, height);
+
+            Ok(Self {
+                image,
+                view,
+                storage_view,
+                allocation: Some(allocation),
+                width,
+                height,
+            })
+        }
+    }
+
+    pub fn cleanup(&mut self, device: &ash::Device, allocator: &Arc<Mutex<Allocator>>) {
+        unsafe {
+            device.destroy_image_view(self.storage_view, None);
+            device.destroy_image_view(self.view, None);
+            device.destroy_image(self.image, None);
+        }
+        if let Some(allocation) = self.allocation.take() {
+            allocator.lock().unwrap().free(allocation).ok();
+        }
+    }
+}
+
 /// Staging buffer for uploads
 pub struct StagingBuffer {
     buffer: GpuBuffer,
 }
 
 impl StagingBuffer {
+    /// Create staging buffer for CPU-to-GPU uploads
     pub fn new(
         device: &ash::Device,
         allocator: &Arc<Mutex<Allocator>>,
@@ -216,15 +315,36 @@ impl StagingBuffer {
             device,
             allocator,
             size,
-            vk::BufferUsageFlags::TRANSFER_SRC,
+            vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST,
             MemoryLocation::CpuToGpu,
             "staging",
         )?;
         Ok(Self { buffer })
     }
 
+    /// Create staging buffer for GPU-to-CPU readback
+    pub fn new_readback(
+        device: &ash::Device,
+        allocator: &Arc<Mutex<Allocator>>,
+        size: vk::DeviceSize,
+    ) -> Result<Self> {
+        let buffer = GpuBuffer::new(
+            device,
+            allocator,
+            size,
+            vk::BufferUsageFlags::TRANSFER_DST,
+            MemoryLocation::GpuToCpu,
+            "readback",
+        )?;
+        Ok(Self { buffer })
+    }
+
     pub fn write<T: Copy>(&self, data: &[T]) -> Result<()> {
         self.buffer.write(data)
+    }
+
+    pub fn read<T: Copy>(&self, data: &mut [T]) -> Result<()> {
+        self.buffer.read(data)
     }
 
     pub fn buffer(&self) -> vk::Buffer {
