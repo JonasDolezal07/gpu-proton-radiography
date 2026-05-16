@@ -75,15 +75,24 @@ layout(std430, binding = 2) buffer DetectorBuffer {
 
 layout(binding = 3, r32ui) uniform uimage2D detector_image;
 
+// Return zero field outside the declared domain. Inside, sample with trilinear
+// interpolation. The texture sampler uses CLAMP_TO_EDGE, but we never reach the
+// hardware clamp because we gate on the domain check first.
 vec3 sample_field(vec3 pos) {
+    if (any(lessThan(pos, params.field_min.xyz)) || any(greaterThan(pos, params.field_max.xyz))) {
+        return vec3(0.0);
+    }
     vec3 uvw = (pos - params.field_min.xyz) / (params.field_max.xyz - params.field_min.xyz);
-    uvw = clamp(uvw, vec3(0.001), vec3(0.999));
+    uvw = clamp(uvw, vec3(0.0), vec3(1.0));
     return texture(field_texture, uvw).xyz;
 }
 
 vec3 sample_efield(vec3 pos) {
+    if (any(lessThan(pos, params.field_min.xyz)) || any(greaterThan(pos, params.field_max.xyz))) {
+        return vec3(0.0);
+    }
     vec3 uvw = (pos - params.field_min.xyz) / (params.field_max.xyz - params.field_min.xyz);
-    uvw = clamp(uvw, vec3(0.001), vec3(0.999));
+    uvw = clamp(uvw, vec3(0.0), vec3(1.0));
     return texture(e_field_texture, uvw).xyz;
 }
 

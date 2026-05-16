@@ -317,6 +317,18 @@ impl App {
             log::info!("  E-field merged");
         }
 
+        // Apply scale factors to field data (CPU-side, before GPU upload)
+        let sb = config.scale_b as f32;
+        let se = config.scale_e as f32;
+        if (sb - 1.0).abs() > f32::EPSILON {
+            for v in field.data.iter_mut() { *v *= sb; }
+            log::info!("  Applied scale_B = {}", sb);
+        }
+        if (se - 1.0).abs() > f32::EPSILON {
+            for v in field.e_data.iter_mut() { *v *= se; }
+            log::info!("  Applied scale_E = {}", se);
+        }
+
         // Both B and E are fully resolved — log diagnostics
         field.log_diagnostics();
 

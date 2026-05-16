@@ -77,7 +77,7 @@ Data: B-field nx×ny×nz×3 f32, C-contiguous (x outermost, z innermost, compone
       [version 2 only] E-field, same layout
 ```
 
-Version 1 = B-only. Version 2 = B+E. Field sampling in the shader clamps UVW to `[0.001, 0.999]`, so particles outside the field volume see boundary field values (not zero).
+Version 1 = B-only. Version 2 = B+E. Field sampling in the shader returns **zero** for any particle position outside the declared `field_min`/`field_max` bounds. Inside the domain, trilinear interpolation is used; the hardware sampler is `CLAMP_TO_EDGE` but is never reached because of the explicit domain check.
 
 ### Coordinate convention
 

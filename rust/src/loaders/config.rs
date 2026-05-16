@@ -293,6 +293,10 @@ pub struct SimDetectorConfig {
 pub struct SimConfig {
     pub field_path: String,
     pub e_field_path: Option<String>,
+    #[serde(default = "one_f64")]
+    pub scale_b: f64,
+    #[serde(default)]
+    pub scale_e: f64,
     pub source: SimSourceConfig,
     pub detector: SimDetectorConfig,
     pub dt_s: f64,
@@ -657,6 +661,8 @@ impl TryFrom<RawConfig> for SimConfig {
         Ok(SimConfig {
             field_path: raw.field_path,
             e_field_path: raw.e_field_path,
+            scale_b: 1.0,
+            scale_e: 1.0,
             source,
             detector,
             dt_s,
@@ -759,6 +765,7 @@ pub struct DeckOutput {
 }
 
 fn deck_one() -> f64 { 1.0 }
+fn one_f64()  -> f64 { 1.0 }
 fn deck_default_normal() -> [f64; 3] { [1.0, 0.0, 0.0] }
 fn deck_default_up()     -> [f64; 3] { [0.0, 1.0, 0.0] }
 fn deck_default_pixels() -> [u32; 2] { [512, 512] }
@@ -852,6 +859,8 @@ impl TryFrom<DeckConfig> for SimConfig {
         Ok(SimConfig {
             field_path: deck.field.path,
             e_field_path: deck.field.e_path,
+            scale_b: deck.field.scale_b,
+            scale_e: deck.field.scale_e,
             source,
             detector,
             dt_s,

@@ -22,6 +22,10 @@ output/
 runs/
 sweeps/
 
+# ── Benchmark outputs (data heavy, regenerate with run_perf.py / run_physics.py)
+benchmarks/results/
+benchmarks/fields/
+
 # ── Large data files — not in git ─────────────────────────────────────────────
 # Gorgon: 422 MB HDF5 — store separately (e.g. cloud storage / Git LFS)
 data/gorgon/

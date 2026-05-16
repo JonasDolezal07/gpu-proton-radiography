@@ -1,0 +1,35 @@
+[field]
+path = "../../data/instabilities/sausage_strong.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[source]
+type = "parallel"
+direction = [1.0, 0.0, 0.0]
+beam_radius_mm = 40.0
+source_distance_mm = 80.0
+energy_MeV = 14.7
+n_particles = 100000
+
+[detector]
+center_mm = [100.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [512, 512]
+
+[numerics]
+dt_ps = 0.2
+max_steps = 25000
+
+[render]
+scale = "log"
+colormap = "rcf"
+exposure = 1.0
+
+[output]
+write_raw_counts = true
+write_processed_counts = false
+write_png = false
+write_metadata = true
