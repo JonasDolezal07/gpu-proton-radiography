@@ -143,12 +143,14 @@ class GridField(Field):
     def __init__(self,
                  data: np.ndarray,
                  bounds: FieldBounds,
-                 metadata: FieldMetadata):
+                 metadata: FieldMetadata,
+                 e_data: Optional[np.ndarray] = None):
         """
         Args:
-            data: (nx, ny, nz, 3) array of B-field vectors
+            data:   (nx, ny, nz, 3) array of B-field vectors [T]
             bounds: Spatial bounds
             metadata: Field metadata
+            e_data: (nx, ny, nz, 3) array of E-field vectors [V/m], optional
         """
         assert data.ndim == 4 and data.shape[3] == 3
         self.data = data.astype(np.float32)
@@ -159,6 +161,12 @@ class GridField(Field):
         self.dx = (bounds.x_max - bounds.x_min) / (self.nx - 1)
         self.dy = (bounds.y_max - bounds.y_min) / (self.ny - 1)
         self.dz = (bounds.z_max - bounds.z_min) / (self.nz - 1)
+
+        if e_data is not None:
+            assert e_data.shape == data.shape, "E-field must have same shape as B-field"
+            self.e_data: Optional[np.ndarray] = e_data.astype(np.float32)
+        else:
+            self.e_data = None
 
     def sample(self, positions: np.ndarray) -> np.ndarray:
         """Trilinear interpolation sampling."""
@@ -206,69 +214,76 @@ class GridField(Field):
 
     def export_binary(self, filepath: str):
         """
-        Export to binary format for Rust/GPU consumption.
+        Export to .bfld binary format (little-endian).
 
-        Format:
-        - Header (64 bytes):
-          - magic: 4 bytes "BFLD"
-          - version: u32
-          - nx, ny, nz: 3x u32
-          - bounds: 6x f32
-          - reserved: padding to 64 bytes
-        - Data: nx*ny*nz*3 float32 values (contiguous)
+        Header layout (64 bytes, fixed):
+          [0:4]   magic    = b"BFLD"
+          [4:8]   version  = 1 (B only) or 2 (B + E)  — u32
+          [8:12]  nx       — u32
+          [12:16] ny       — u32
+          [16:20] nz       — u32
+          [20:44] bounds   = x_min, x_max, y_min, y_max, z_min, z_max  — 6 × f32 [metres]
+          [44:64] reserved = zeros
+
+        Data layout (both versions, C-contiguous / row-major):
+          Vector components interleaved per voxel: Fx, Fy, Fz  (3 × f32)
+          Voxel order: x outermost, z innermost
+            i.e. flat_index = (ix * ny * nz + iy * nz + iz) * 3
+
+        Version 1: B block only     (nx·ny·nz·3 floats, [T])
+        Version 2: B block then E block  (each nx·ny·nz·3 floats; E in [V/m])
         """
+        version = 2 if self.e_data is not None else 1
         with open(filepath, 'wb') as f:
-            # Magic
             f.write(b'BFLD')
-            # Version
-            f.write(struct.pack('I', 1))
-            # Grid dimensions
+            f.write(struct.pack('I', version))
             f.write(struct.pack('III', self.nx, self.ny, self.nz))
-            # Bounds
             f.write(struct.pack('6f',
                 self.bounds.x_min, self.bounds.x_max,
                 self.bounds.y_min, self.bounds.y_max,
                 self.bounds.z_min, self.bounds.z_max))
-            # Padding to 64 bytes
-            f.write(b'\x00' * (64 - 4 - 4 - 12 - 24))
-            # Data
+            f.write(b'\x00' * (64 - 4 - 4 - 12 - 24))  # padding to 64 bytes
             f.write(self.data.tobytes())
+            if self.e_data is not None:
+                f.write(self.e_data.tobytes())
 
-        # Also write metadata as JSON sidecar
         meta_path = filepath.replace('.bin', '_meta.json')
         with open(meta_path, 'w') as f:
             json.dump(self.metadata.to_dict(), f, indent=2)
 
     @classmethod
     def from_binary(cls, filepath: str) -> 'GridField':
-        """Load from binary format."""
+        """Load from binary format (version 1: B only; version 2: B + E)."""
         with open(filepath, 'rb') as f:
             magic = f.read(4)
             assert magic == b'BFLD', f"Invalid magic: {magic}"
 
             version = struct.unpack('I', f.read(4))[0]
-            assert version == 1
+            assert version in (1, 2), f"Unsupported version: {version}"
 
             nx, ny, nz = struct.unpack('III', f.read(12))
             bounds_arr = struct.unpack('6f', f.read(24))
-
             f.read(64 - 4 - 4 - 12 - 24)  # skip padding
 
-            data = np.frombuffer(f.read(), dtype=np.float32)
-            data = data.reshape((nx, ny, nz, 3))
+            n = nx * ny * nz * 3
+            b_bytes = np.frombuffer(f.read(n * 4), dtype=np.float32).reshape((nx, ny, nz, 3)).copy()
+
+            e_data = None
+            if version == 2:
+                e_bytes = np.frombuffer(f.read(n * 4), dtype=np.float32).reshape((nx, ny, nz, 3)).copy()
+                e_data = e_bytes
 
         bounds = FieldBounds(*bounds_arr)
 
-        # Try to load metadata
         meta_path = filepath.replace('.bin', '_meta.json')
         try:
             with open(meta_path, 'r') as f:
                 meta_dict = json.load(f)
             metadata = FieldMetadata(**meta_dict)
-        except:
+        except Exception:
             metadata = FieldMetadata(name="imported", source="binary")
 
-        return cls(data, bounds, metadata)
+        return cls(b_bytes, bounds, metadata, e_data=e_data)
 
 
 class AnalyticalField(Field):
