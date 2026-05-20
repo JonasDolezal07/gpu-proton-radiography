@@ -1,32 +1,42 @@
 #version 450
 
-// Boris integrator for charged particle motion in electromagnetic fields.
-// Each invocation handles one particle, running MULTIPLE steps to minimize memory traffic.
+// Relativistic Boris integrator for charged particle motion in electromagnetic fields.
+// Each invocation handles one particle, running MULTIPLE steps to minimise memory traffic.
 // Particle data stays in registers throughout all steps — one read and one write per dispatch.
 //
-// Boris push ordering (per step):
-//   1. Sample B and E at x_n  (current position, before move)
-//   2. v_minus = v_n + (q/m)(E)(dt/2)          half E kick
-//   3. t = (q/m)(B)(dt/2),  s = 2t/(1+|t|²)
-//      v_prime = v_minus + v_minus × t
-//      v_plus  = v_minus + v_prime × s          magnetic rotation
-//   4. v_{n+1} = v_plus + (q/m)(E)(dt/2)       half E kick
-//   5. x_{n+1} = x_n + v_{n+1} dt
+// Particles store u = γv (specific relativistic momentum) in the velocity field.
+// γ = sqrt(1 + |u|²/c²),  v = u/γ  (recovered for position update only).
+//
+// Relativistic Boris push ordering (per step):
+//   1. Sample B and E at x_n
+//   2. u_minus = u_n + (q/m)(E)(dt/2)              half E kick on momentum
+//   3. γ_minus = sqrt(1 + |u_minus|²/c²)
+//      t = (q/m)(B)(dt/2) / γ_minus
+//      s = 2t/(1+|t|²)
+//      u_prime = u_minus + u_minus × t
+//      u_plus  = u_minus + u_prime × s              magnetic rotation (energy-conserving)
+//   4. u_{n+1} = u_plus + (q/m)(E)(dt/2)            half E kick
+//   5. γ_{n+1} = sqrt(1 + |u_{n+1}|²/c²)
+//      x_{n+1} = x_n + (u_{n+1}/γ_{n+1}) dt        position update with physical velocity
 //
 // Units (SI throughout):
-//   E  [V/m], B [T], q_over_m [C/kg], dt [s], v [m/s], x [m]
-//   half E kick units: (C/kg)(V/m)(s) = (C/kg)(kg·m/s²/C)(s) = m/s  ✓
+//   E [V/m], B [T], q_over_m [C/kg], dt [s], u [m/s], x [m]
+//   half E kick: (C/kg)(V/m)(s) = m/s  ✓  (same dimensional check as classical Boris)
 //
-// Sanity check: if E = 0, reduces exactly to pure-B Boris (unchanged from B-only shader).
-// Sanity check: if B = 0, reduces to two half E kicks with position update = uniform E pusher.
+// Energy conservation: with E = 0 the rotation is exact → |u| is conserved to machine precision.
+// Non-relativistic limit: γ → 1 ⟹ u → v, recovers classical Boris exactly.
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Physical constants
+const float C_M_S    = 299792458.0;             // speed of light [m/s]
+const float INV_C_SQ = 1.0 / (C_M_S * C_M_S);  // 1/c² [s²/m²]
 
 // Particle state
 struct Particle {
     vec3 position;
     float _pad0;
-    vec3 velocity;
+    vec3 velocity;   // u = γv (specific relativistic momentum) [m/s]
     uint is_active;  // 1 = active, 0 = hit detector or left domain
 };
 
@@ -142,7 +152,9 @@ void record_hit(uint idx, vec3 hit_pos, vec3 vel) {
     uint hit_idx = atomicAdd(hit_count, 1);
     if (hit_idx < hits.length()) {
         hits[hit_idx].position = local_2d;
-        hits[hit_idx].energy = 0.5 * dot(vel, vel);
+        // vel = u = γv; KE per unit mass = (γ-1)c²  [m²/s²]
+        float gamma = sqrt(1.0 + dot(vel, vel) * INV_C_SQ);
+        hits[hit_idx].energy = (gamma - 1.0) * C_M_S * C_M_S;
         hits[hit_idx].particle_id = idx;
     }
 }
@@ -189,19 +201,23 @@ void main() {
         vec3 B = sample_field(pos);
         vec3 E = sample_efield(pos);
 
-        // Boris push: half E kick → magnetic rotation → half E kick
+        // Relativistic Boris push (vel stores u = γv throughout)
         float half_qm_dt = 0.5 * qm * dt;
-        vel = vel + half_qm_dt * E;
 
-        vec3 t = half_qm_dt * B;
+        vec3 u_minus = vel + half_qm_dt * E;
+
+        float gamma_minus = sqrt(1.0 + dot(u_minus, u_minus) * INV_C_SQ);
+
+        vec3 t = (half_qm_dt / gamma_minus) * B;
         float t_sq = dot(t, t);
         vec3 s = (2.0 / (1.0 + t_sq)) * t;
-        vec3 v_prime = vel + cross(vel, t);
-        vel = vel + cross(v_prime, s);
+        vec3 u_prime = u_minus + cross(u_minus, t);
+        vec3 u_plus  = u_minus + cross(u_prime, s);
 
-        vel = vel + half_qm_dt * E;
+        vel = u_plus + half_qm_dt * E;
 
-        pos = pos + vel * dt;
+        float gamma_new = sqrt(1.0 + dot(vel, vel) * INV_C_SQ);
+        pos = pos + (vel / gamma_new) * dt;
 
         // Check detector hit
         {

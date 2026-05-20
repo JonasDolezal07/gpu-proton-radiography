@@ -6,7 +6,7 @@ use rand::SeedableRng;
 use rand_distr::Distribution;
 
 use super::{SimSourceConfig, SimSourceGeometry};
-use crate::units::proton_speed_from_mev;
+use crate::units::{proton_speed_from_mev, proton_momentum_per_mass_from_mev};
 
 /// Particle state for GPU
 #[repr(C)]
@@ -14,8 +14,8 @@ use crate::units::proton_speed_from_mev;
 pub struct Particle {
     pub position: [f32; 3],
     pub _pad0: f32,
-    pub velocity: [f32; 3],
-    pub is_active: u32,  // 1 = is_active, 0 = hit detector
+    pub velocity: [f32; 3],  // u = γv (specific relativistic momentum) [m/s]
+    pub is_active: u32,       // 1 = active, 0 = hit detector or exited domain
 }
 
 /// Particle data on CPU
@@ -44,7 +44,8 @@ impl ParticleData {
             None
         };
 
-        let mono_speed = config.particle_speed_m_s as f32;
+        // Store u = γv (specific relativistic momentum), not v.
+        let mono_u = proton_momentum_per_mass_from_mev(config.particle_energy_mev) as f32;
 
         let mut particles = Vec::with_capacity(n);
 
@@ -67,7 +68,7 @@ impl ParticleData {
                 let cos_spread = spread.cos();
 
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_speed);
+                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
                     // Position: uniform disk
                     let phi = rand_f32() * std::f32::consts::TAU;
                     let r   = radius * rand_f32().sqrt();
@@ -100,7 +101,7 @@ impl ParticleData {
                 let pos = Vec3::from(*position_m);
                 let dir = Vec3::from(*direction).normalize();
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_speed);
+                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
                     particles.push(Particle {
                         position:  pos.to_array(),
                         _pad0:     0.0,
@@ -125,7 +126,7 @@ impl ParticleData {
                 let perp2 = dir.cross(perp1);
 
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_speed);
+                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
                     // Position: uniform disk in the plane perpendicular to dir.
                     let phi = rand_f32() * std::f32::consts::TAU;
                     let r   = radius * rand_f32().sqrt();
@@ -166,7 +167,7 @@ impl ParticleData {
                 let perp2 = dir.cross(perp1);
 
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_speed);
+                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
                     let az      = rand_f32() * std::f32::consts::TAU;
                     let cos_psi = if half > 0.0 {
                         1.0 - rand_f32() * (1.0 - cos_half)
@@ -197,10 +198,10 @@ impl ParticleData {
             for i in [0, 1, 2, particles.len() / 2, particles.len() - 1] {
                 if i < particles.len() {
                     let p = &particles[i];
-                    let spd = (p.velocity[0].powi(2) + p.velocity[1].powi(2) + p.velocity[2].powi(2)).sqrt();
+                    let u_mag = (p.velocity[0].powi(2) + p.velocity[1].powi(2) + p.velocity[2].powi(2)).sqrt();
                     log::info!(
-                        "  [{}] pos=({:.4}, {:.4}, {:.4}) |v|={:.3e} m/s",
-                        i, p.position[0], p.position[1], p.position[2], spd
+                        "  [{}] pos=({:.4}, {:.4}, {:.4}) |u|={:.3e} m/s",
+                        i, p.position[0], p.position[1], p.position[2], u_mag
                     );
                 }
             }
@@ -214,21 +215,22 @@ impl ParticleData {
     }
 }
 
-/// Sample per-particle speed: if energy_dist is Some, draw a positive energy
-/// (MeV) via rejection sampling and convert to SI speed; otherwise return mono_speed.
+/// Sample per-particle specific relativistic momentum |u| = γv [m/s].
+/// Returns mono_u for monoenergetic beams, or samples from the energy distribution
+/// and converts to |u| via the relativistic formula.
 fn sample_speed(
     energy_dist: &Option<rand_distr::Normal<f64>>,
     rng: &mut rand::rngs::StdRng,
-    mono_speed: f32,
+    mono_u: f32,
 ) -> f32 {
     match energy_dist {
-        None => mono_speed,
+        None => mono_u,
         Some(dist) => {
             let e_mev = loop {
                 let e = dist.sample(rng);
                 if e > 0.0 { break e; }
             };
-            proton_speed_from_mev(e_mev) as f32
+            proton_momentum_per_mass_from_mev(e_mev) as f32
         }
     }
 }

@@ -399,9 +399,9 @@ def test4_B_energy_conservation():
         "energy_rel_std": float(f"{rel_std:.3e}"),
         "tolerance": tol,
         "note": (
-            "Reports classical KE = 0.5*m_p*v² from the non-relativistic Boris integrator. "
-            "The relativistic input energy is 14.7 MeV; the ~2% difference is expected "
-            "and not a bug (beta ≈ 17.5% at this energy)."
+            "Uses relativistic Boris integrator. Particles store u = γv; "
+            "KE at detector = (γ-1)m_p c². Energy is conserved exactly (std/mean → 0) "
+            "because the Boris rotation preserves |u| to machine precision."
         ),
         **png_info,
     }

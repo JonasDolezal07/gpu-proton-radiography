@@ -26,6 +26,13 @@ pub fn proton_speed_from_mev(ke_mev: f64) -> f64 {
     (1.0 - 1.0 / (gamma * gamma)).sqrt() * C_M_S
 }
 
+/// Specific relativistic momentum |u| = γv [m/s] from kinetic energy.
+/// This is what particles store in their velocity field (u = γv, not v).
+pub fn proton_momentum_per_mass_from_mev(ke_mev: f64) -> f64 {
+    let gamma = 1.0 + ke_mev / PROTON_MASS_MEV;
+    C_M_S * (gamma * gamma - 1.0).sqrt()
+}
+
 // ── SI-prefix formatters ──────────────────────────────────────────────────────
 
 pub fn fmt_b(val_t: f64) -> String {
