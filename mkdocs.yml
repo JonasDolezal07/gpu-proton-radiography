@@ -7,12 +7,8 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
-  # ── Logo ─────────────────────────────────────────────────────────────────────
-  # Replace docs/images/logo.svg (or logo.png) with your own artwork.
-  # Recommended: SVG or PNG, square, ≥ 48 × 48 px.
-  logo: images/logo.svg
-  favicon: images/logo.svg
-  # ─────────────────────────────────────────────────────────────────────────────
+  logo: images/logo.png
+  favicon: images/logo.png
   palette:
     - scheme: slate
       primary: indigo

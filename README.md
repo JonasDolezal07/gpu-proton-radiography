@@ -1,4 +1,6 @@
-# GPU Proton Radiography Tracer
+<p align="center">
+  <img src="docs/images/logo_text.png" alt="prad — GPU Proton Radiography" width="420" />
+</p>
 
 GPU-accelerated forward modelling of proton radiographs from magnetised plasma.
 

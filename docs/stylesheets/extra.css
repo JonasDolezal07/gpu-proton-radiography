@@ -47,6 +47,18 @@
   margin-top: 0;
 }
 
+/* ── Hero logo on home page ───────────────────────────────────────────────── */
+.hero-logo {
+  text-align: center;
+  margin: 1rem 0 2rem;
+}
+
+.hero-logo img {
+  max-width: 420px;
+  width: 100%;
+  height: auto;
+}
+
 /* ── Full-width hero on home page ─────────────────────────────────────────── */
 .md-typeset h1.hero-title {
   font-size: 2.4rem;

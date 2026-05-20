@@ -3,7 +3,9 @@ hide:
   - toc
 ---
 
-# GPU Proton Radiography
+<div class="hero-logo">
+  <img src="images/logo_text.png" alt="prad — GPU Proton Radiography" />
+</div>
 
 **Forward-model proton radiographs from measured or simulated plasma fields.**
 
