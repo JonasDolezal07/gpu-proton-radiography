@@ -117,7 +117,7 @@ Top-level structure:
   "output_files": { ... },
   "counts_format": { ... },
   "diagnostics": { ... },
-  "perf": { ... },
+  "performance": { ... },
   "render_provenance": { ... }
 }
 ```

@@ -57,9 +57,8 @@ Provenance record. Key fields:
     "hit_count": 87432,
     "exit_count": 12568
   },
-  "perf": {
-    "wall_time_s": 4.2,
-    "particles_per_second": 23800
+  "performance": {
+    "total_runtime_s": 4.2
   }
 }
 ```

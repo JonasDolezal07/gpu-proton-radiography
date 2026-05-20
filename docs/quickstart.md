@@ -124,7 +124,7 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # build first, then validate
 ```
 
-10 physics tests — all should pass. See [validation.md](validation.md) for what each test checks.
+12 physics tests — all should pass. See [validation.md](validation.md) for what each test checks.
 
 ## Common macOS MoltenVK issue
 

@@ -42,7 +42,7 @@ All source types share the same table, discriminated by `type`.
 type = "parallel"           # parallel | disk | point | pencil
 n_particles = 100000
 energy_MeV = 14.7
-energy_spread_percent = 0.0   # Gaussian FWHM energy spread (default 0)
+energy_spread_percent = 0.0   # Gaussian σ = energy_MeV × energy_spread_percent / 100 (default 0)
 seed = 42                     # optional RNG seed for reproducibility
 
 # parallel-specific

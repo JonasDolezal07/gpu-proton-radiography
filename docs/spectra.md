@@ -145,10 +145,14 @@ the finite cutoff.
     n_particles     = 200000
     ```
 
+!!! note "Key casing: TOML vs Python API"
+    TOML keys are case-sensitive. Use `cutoff_mev` in deck files.
+    The Python API uses `cutoff_MeV` as the keyword argument name.
+
 !!! tip "dt and max_steps for broad spectra"
     The high-energy tail of a TNSA spectrum moves faster than the nominal energy.
     Use a smaller `dt_ps` (e.g. `0.1`) and more `max_steps` (e.g. `50_000`) when
-    `cutoff_MeV` is much larger than the typical 14.7 MeV mono case.
+    the cutoff energy is much larger than the typical 14.7 MeV mono case.
     Run `proton_tracer explain deck.toml` to see the recommended dt for your config.
 
 ### Typical TNSA parameters

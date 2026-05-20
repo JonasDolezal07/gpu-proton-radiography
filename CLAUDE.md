@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build release binary (also recompiles any changed GLSL shaders)
 cd rust && cargo build --release
 
-# Run validation suite (10 physics tests — all should pass)
+# Run validation suite (12 physics tests — all should pass)
 python3 validate.py
 python3 validate.py --build     # cargo build --release first
 

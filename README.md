@@ -145,11 +145,11 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # build first, then validate
 ```
 
-11 physics tests: B-only regression, zero-field straight-line projection, uniform E-field
+12 physics tests: B-only regression, zero-field straight-line projection, uniform E-field
 deflection (sign and magnitude), relativistic Boris energy conservation (14.7000 MeV
 recovered to sub-eV accuracy), pencil/point/disk source geometry, Gaussian energy spread,
 exponential/TNSA spectrum (mean KE ≈ T, hard cutoff enforced), Gaussian blur, Poisson noise
-reproducibility.
+reproducibility, and 60 MeV relativistic momentum initialisation (γ ≈ 1.064).
 
 ---
 
