@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder logo — replace this file with your own artwork.
+       Recommended: square SVG or PNG, ≥ 48 × 48 px.
+       Drop the replacement at docs/images/logo.svg (or update mkdocs.yml). -->
+  <circle cx="50" cy="50" r="47" fill="#3f51b5"/>
+  <text x="50" y="68"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="54" font-weight="700"
+        fill="white" text-anchor="middle">p</text>
+</svg>

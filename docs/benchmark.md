@@ -23,7 +23,8 @@ All hits should cluster within 2 mm of the detector centre.
 | Std z  | 20.0 mm |
 | Centring (< 2 mm) | **pass** |
 
-![Case A — zero field hit distribution](../benchmarks/plots/physics_A.png)
+!!! note "Plot"
+    Run `python3 benchmarks/run_physics.py && python3 benchmarks/plot.py` to regenerate this figure.
 
 ### Case B — Uniform Bz: cyclotron deflection
 
@@ -46,7 +47,8 @@ distance from field exit to detector.  The small-angle (paraxial) limit is also 
 | 1.0 | -18.48 | -18.28 | -18.05 | -1.1% |
 | 2.0 | -38.38 | -38.04 | -36.10 | -0.9% |
 
-![Case B — cyclotron deflection](../benchmarks/plots/physics_B.png)
+!!! note "Plot"
+    Run `python3 benchmarks/run_physics.py && python3 benchmarks/plot.py` to regenerate this figure.
 
 ---
 
@@ -66,7 +68,8 @@ strong field: 95th-percentile |θ| ≈ 10°, so paraxial agreement is only moder
 
 95th-percentile deflection angle |θ|: 10.66°
 
-![Case C — weak z-pinch](../benchmarks/plots/physics_C.png)
+!!! note "Plot"
+    Run `python3 benchmarks/run_physics.py && python3 benchmarks/plot.py` to regenerate this figure.
 
 ### Case D — Strong z-pinch (scale\_B = 1.0×)
 
@@ -78,7 +81,8 @@ arcs visible in the full-orbit radiograph.
 
 95th-percentile deflection angle |θ|: 106.59°
 
-![Case D — strong z-pinch](../benchmarks/plots/physics_D.png)
+!!! note "Plot"
+    Run `python3 benchmarks/run_physics.py && python3 benchmarks/plot.py` to regenerate this figure.
 
 ---
 
@@ -86,7 +90,8 @@ arcs visible in the full-orbit radiograph.
 
 Hardware: **Apple M4**
 
-![Performance plots](../benchmarks/plots/perf.png)
+!!! note "Plot"
+    Run `python3 benchmarks/run_perf.py && python3 benchmarks/plot.py` to regenerate this figure.
 
 ### Timing table
 
