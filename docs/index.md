@@ -47,8 +47,8 @@ hide:
 
     ---
 
-    Vulkan compute shader pushes 10⁶ particles in under a second.
-    macOS Apple Silicon and Linux x86\_64 pre-built wheels.
+    ~9 billion relativistic Boris steps per second on Apple M4.
+    1M particles traced end-to-end in under 2 s on a laptop GPU.
 
     [:octicons-arrow-right-24: Benchmarks](benchmark.md)
 

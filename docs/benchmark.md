@@ -31,9 +31,10 @@ GPU wall time and step throughput across four field types.
 | kink | 0.35 s | 1.92 s |
 | sausage | 0.32 s | 1.91 s |
 
-Wall time in seconds.
+End-to-end wall time in seconds. Includes GPU init, field upload, particle generation, all dispatch frames, hit readback, count export, and metadata write.
 
-Peak throughput: **0.53 Mparticles/s** (Apple M4)
+Peak step throughput: **9.0 B steps/s** (Apple M4)
+&emsp;(*0.53 Mparticles/s × ~16,960 steps/particle*)
 
 ---
 

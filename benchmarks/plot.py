@@ -42,7 +42,7 @@ def load(path):
 
 # ── 1. Throughput / performance ───────────────────────────────────────────────
 
-def plot_perf(records):
+def plot_perf(records, spp=None):
     by_field = defaultdict(list)
     for r in records:
         by_field[r["field_label"]].append(r)
@@ -61,22 +61,34 @@ def plot_perf(records):
                 label=lbl, lw=2, ms=7)
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlabel("Particle count", fontsize=12)
-    ax.set_ylabel("Wall time (s)", fontsize=12)
+    ax.set_ylabel("End-to-end wall time (s)", fontsize=12)
     ax.set_title("Runtime vs particle count", fontsize=13)
     ax.legend(fontsize=10); ax.grid(True, which="both", alpha=0.3)
     ax.text(0.98, 0.04, gpu, transform=ax.transAxes,
             fontsize=8, ha="right", va="bottom", color="#666")
 
     ax = axes[1]
-    for lbl, recs in by_field.items():
-        ns = [r["n_particles"]            for r in recs]
-        tp = [r["particles_per_s"] / 1e6 for r in recs]
-        ax.plot(ns, tp, "o-", color=FIELD_COLORS.get(lbl, "#888"),
-                label=lbl, lw=2, ms=7)
+    if spp:
+        for lbl, recs in by_field.items():
+            ns   = [r["n_particles"] for r in recs]
+            bsps = [r["n_particles"] * spp / r["runtime_s"] / 1e9 for r in recs]
+            ax.plot(ns, bsps, "o-", color=FIELD_COLORS.get(lbl, "#888"),
+                    label=lbl, lw=2, ms=7)
+        ax.set_ylabel("Boris step throughput (B steps / s)", fontsize=12)
+        ax.set_title("GPU step throughput vs particle count", fontsize=13)
+        note = f"~{spp:,} steps/particle (14.7 MeV, dt = 0.2 ps, 180 mm path)"
+        ax.text(0.98, 0.04, note, transform=ax.transAxes,
+                fontsize=7.5, ha="right", va="bottom", color="#555")
+    else:
+        for lbl, recs in by_field.items():
+            ns = [r["n_particles"]            for r in recs]
+            tp = [r["particles_per_s"] / 1e6 for r in recs]
+            ax.plot(ns, tp, "o-", color=FIELD_COLORS.get(lbl, "#888"),
+                    label=lbl, lw=2, ms=7)
+        ax.set_ylabel("Throughput (Mparticles / s)", fontsize=12)
+        ax.set_title("GPU throughput vs particle count", fontsize=13)
     ax.set_xscale("log")
     ax.set_xlabel("Particle count", fontsize=12)
-    ax.set_ylabel("Throughput (Mparticles / s)", fontsize=12)
-    ax.set_title("GPU throughput vs particle count", fontsize=13)
     ax.legend(fontsize=10); ax.grid(True, which="both", alpha=0.3)
 
     fig.tight_layout()
@@ -367,9 +379,19 @@ def write_md(perf, phys, pp_data):
             r = by_field[lbl].get(n)
             row += f" {r['runtime_s']:.2f} s |" if r else " — |"
         L.append(row)
-    L += ["", "Wall time in seconds.", ""]
+    L += ["", "End-to-end wall time in seconds. Includes GPU init, field upload, particle generation, "
+          "all dispatch frames, hit readback, count export, and metadata write.", ""]
 
-    if perf:
+    if perf and pp_data:
+        spp = pp_data["steps_per_particle"]
+        best_sps  = max(r["n_particles"] * spp / r["runtime_s"] for r in perf) / 1e9
+        best_tput = max(r["particles_per_s"] for r in perf) / 1e6
+        L += [
+            f"Peak step throughput: **{best_sps:.1f} B steps/s** ({gpu})",
+            f"&emsp;(*{best_tput:.2f} Mparticles/s × ~{spp:,} steps/particle*)",
+            "",
+        ]
+    elif perf:
         best_tput = max(r["particles_per_s"] for r in perf) / 1e6
         L += [f"Peak throughput: **{best_tput:.2f} Mparticles/s** ({gpu})", ""]
 
@@ -567,9 +589,11 @@ def main():
     phys    = load(RESULTS / "physics_results.json") or {}
     pp_data = load(utils.BENCH_DIR / "plasmapy" / "comparison.json")
 
+    spp = pp_data["steps_per_particle"] if pp_data else None
+
     print("Throughput plots:")
     if perf:
-        plot_perf(perf)
+        plot_perf(perf, spp=spp)
     else:
         print("  perf_results.json missing — run run_perf.py first")
 
