@@ -7,7 +7,7 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # cargo build --release first, then validate
 ```
 
-Current status: **11/11 passing**.
+Current status: **12/12 passing**.
 
 Output: `output/validation/` (per-test run directories) and `output/validation_report.json`.
 
@@ -83,6 +83,16 @@ Checks:
 - Significant energy spread (std/mean > 0.3, confirming non-monoenergetic sampling)
 
 Verifies the inverse-CDF exponential sampler and that the cutoff is respected exactly.
+
+### Test 12 — Relativistic energy conservation at 60 MeV
+
+A pencil source at 60 MeV in zero field. At this energy γ ≈ 1.064, a 6.4% relativistic
+correction over the non-relativistic approximation. Wrong momentum initialisation
+(e.g. using KE = ½mv²) would give an impact KE of ~58.17 MeV, a ~1.8 MeV shortfall. Checks:
+- mean(KE) = 60.000 ± 0.1 MeV (within 0.17%)
+- std / mean < 10⁻⁴ (monoenergetic — no spread introduced in zero field)
+
+Verifies that the u = γv momentum initialisation is correct in the fully relativistic regime.
 
 ### Test 9 — Gaussian blur, count conservation and spot widening
 

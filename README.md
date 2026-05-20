@@ -9,7 +9,7 @@ fields — not a paraxial approximation — and produces synthetic radiographs t
 directly compared to experimental RCF film data.
 
 ```
-✓ 11/11 physics validation tests passing
+✓ 12/12 physics validation tests passing
 ✓ Reproducible, self-documenting run directories
 ✓ CLI + GUI workflows
 ✓ Re-render without re-tracing particles

@@ -1074,6 +1074,96 @@ def test11_exponential_spectrum():
     return ok
 
 
+# ── test 12: relativistic energy conservation at 60 MeV ──────────────────────
+
+def test12_relativistic_60mev():
+    """
+    Pencil source, 60 MeV, zero B and E field.
+
+    At 60 MeV γ ≈ 1.064 (6.4% relativistic correction). Wrong kinetic energy
+    initialisation (e.g. using classical KE = ½mv²) would give γ ≈ 1.032 and
+    an impact KE ≈ 58.17 MeV — a detectable ~1.8 MeV shift.
+
+    Checks:
+      1. mean(KE) = 60.000 ± 0.1 MeV  (within 0.17%)
+      2. std / mean < 1e-4             (monoenergetic — no spread introduced)
+    """
+    print("Test 12: Relativistic 60 MeV energy conservation  (γ ≈ 1.064)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    E_MEV = 60.0
+    N     = 10_000
+
+    bfld = VALDATA / "t12_zero.bfld"
+    if not bfld.exists():
+        B = np.zeros((2, 2, 2, 3), dtype=np.float32)
+        E = np.zeros_like(B)
+        write_bfld(bfld, B, E, (-0.05, 0.05, -0.05, 0.05, -0.05, 0.05))
+
+    cfg = {
+        "field_path": str(bfld.resolve()),
+        "detector": {
+            "center_mm": [110.0, 0.0, 0.0],
+            "normal":    [1.0, 0.0, 0.0],
+            "up":        [0.0, 1.0, 0.0],
+            "width_mm":  500.0,
+            "height_mm": 500.0,
+            "pixels":    [512, 512],
+        },
+        "source": {
+            "source_type": "pencil",
+            "n_particles": N,
+            "energy_MeV":  E_MEV,
+            "position_mm": [-100.0, 0.0, 0.0],
+            "direction":   [1.0, 0.0, 0.0],
+        },
+        "dt_ps":     1.0,
+        "max_steps": 5_000,
+    }
+    cfg_path = VALDATA / "t12_relat.json"
+    with open(cfg_path, "w") as f:
+        json.dump(cfg, f, indent=2)
+
+    out = VALOUT / "t12_relat"
+    if not run_batch(cfg_path, out):
+        REPORT["test12_relativistic_60mev"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    hits = read_hits(out)
+    if not hits:
+        print("   no hits recorded")
+        REPORT["test12_relativistic_60mev"] = {"pass": False, "error": "no hits"}
+        return False
+
+    ke_vals  = [h[2] for h in hits]
+    mean_ke  = _mean(ke_vals)
+    std_ke   = _std(ke_vals, mean_ke)
+    rel_std  = std_ke / mean_ke
+
+    mean_ok  = abs(mean_ke - E_MEV) < 0.1     # within 0.1 MeV of 60
+    spread_ok = rel_std < 1e-4                 # monoenergetic
+
+    ok = mean_ok and spread_ok
+    print(f"   hits={len(ke_vals)}  mean={mean_ke:.4f} MeV  std={std_ke:.4f} MeV  rel_std={rel_std:.2e}")
+    if not mean_ok:
+        print(f"   FAIL: mean {mean_ke:.4f} MeV not within 0.1 MeV of {E_MEV} (non-relativistic init would give ~58.17 MeV)")
+    if not spread_ok:
+        print(f"   FAIL: rel_std {rel_std:.2e} >= 1e-4 (monoenergetic source should not spread)")
+
+    png_ok, png_info = check_png_output(out)
+    ok = ok and png_ok
+    REPORT["test12_relativistic_60mev"] = {
+        "pass":         ok,
+        "n_hits":       len(ke_vals),
+        "mean_ke_MeV":  round(mean_ke, 4),
+        "std_ke_MeV":   round(std_ke, 6),
+        "rel_std":      round(rel_std, 8),
+        "target_MeV":   E_MEV,
+        **png_info,
+    }
+    return ok
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1095,6 +1185,7 @@ if __name__ == "__main__":
         test9_blur_conservation,
         test10_poisson_reproducibility,
         test11_exponential_spectrum,
+        test12_relativistic_60mev,
     ]
 
     results = {}

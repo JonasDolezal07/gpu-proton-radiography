@@ -10,8 +10,8 @@
 | | |
 |---|---|
 | Hardware | **Apple M4** |
-| prad version | **0.2.0** |
-| Validation | **11 / 11 tests passing** |
+| prad version | **0.3.0** |
+| Validation | **12 / 12 tests passing** |
 | Integrator | Relativistic Boris (u = γv) |
 
 ---

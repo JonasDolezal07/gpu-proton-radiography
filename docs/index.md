@@ -34,7 +34,7 @@ hide:
 
     [:octicons-arrow-right-24: Energy spectra](spectra.md)
 
--   :material-check-all:{ .lg .middle } **11/11 Validation Tests**
+-   :material-check-all:{ .lg .middle } **12/12 Validation Tests**
 
     ---
 

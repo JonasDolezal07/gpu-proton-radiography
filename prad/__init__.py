@@ -28,7 +28,7 @@ from ._result import RunResult
 Field = GridField  # convenient alias
 
 __all__ = ["run", "Field", "GridField", "RunResult"]
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 def run(
