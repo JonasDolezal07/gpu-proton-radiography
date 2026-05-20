@@ -42,37 +42,6 @@ jobs:
           name: wheel-macos-arm64
           path: dist/*.whl
 
-  # ── macOS x86_64 (Intel) ────────────────────────────────────────────────────
-  build-macos-x86:
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install MoltenVK
-        run: brew install molten-vk
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install build tools
-        run: pip install build wheel
-
-      - name: Build wheel
-        env:
-          VK_ICD_FILENAMES: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
-          DYLD_LIBRARY_PATH: /opt/homebrew/lib
-        run: python -m build --wheel
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheel-macos-x86
-          path: dist/*.whl
-
   # ── Linux x86_64 (manylinux) ────────────────────────────────────────────────
   build-linux-x86:
     runs-on: ubuntu-latest
@@ -101,7 +70,7 @@ jobs:
 
   # ── Publish to PyPI ──────────────────────────────────────────────────────────
   publish:
-    needs: [build-macos-arm64, build-macos-x86, build-linux-x86]
+    needs: [build-macos-arm64, build-linux-x86]
     runs-on: ubuntu-latest
     environment: pypi
     steps:
