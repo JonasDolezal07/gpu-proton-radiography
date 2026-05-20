@@ -29,6 +29,9 @@ def build_deck(
     colormap: str = "rcf",
     exposure: float = 1.0,
     write_processed_counts: bool = False,
+    energy_spread_percent: float = 0.0,
+    temperature_MeV: Optional[float] = None,
+    cutoff_MeV: Optional[float] = None,
 ) -> str:
     """Return a TOML deck string ready to write to disk."""
 
@@ -36,6 +39,15 @@ def build_deck(
     det_cx = beam_direction[0] * detector_distance_mm
     det_cy = beam_direction[1] * detector_distance_mm
     det_cz = beam_direction[2] * detector_distance_mm
+
+    # Build energy spectrum lines for the [source] block.
+    _energy_lines = ""
+    if temperature_MeV is not None:
+        _energy_lines += f"temperature_MeV = {temperature_MeV}\n"
+        if cutoff_MeV is not None:
+            _energy_lines += f"cutoff_mev = {cutoff_MeV}\n"
+    elif energy_spread_percent > 0.0:
+        _energy_lines += f"energy_spread_percent = {energy_spread_percent}\n"
 
     source_section = f"""[source]
 type = "{source}"
@@ -45,7 +57,7 @@ source_distance_mm = {source_distance_mm}
 angular_spread_deg = {angular_spread_deg}
 energy_MeV = {energy_MeV}
 n_particles = {n_particles}
-"""
+{_energy_lines}"""
 
     deck = f"""[field]
 path = "{field_path}"

@@ -48,6 +48,9 @@ def run(
     max_steps: int = 25_000,
     scale_B: float = 1.0,
     scale_E: float = 0.0,
+    energy_spread_percent: float = 0.0,
+    temperature_MeV: Optional[float] = None,
+    cutoff_MeV: Optional[float] = None,
     output_dir: Optional[Union[str, Path]] = None,
     overwrite: bool = True,
     binary: Optional[str] = None,
@@ -86,6 +89,15 @@ def run(
         Maximum integration steps per particle.
     scale_B / scale_E
         Scale factors applied to B / E field after loading.
+    energy_spread_percent
+        Gaussian σ as a percentage of ``energy_MeV`` (e.g. ``5.0`` → 5 % FWHM/2.35).
+        Ignored when ``temperature_MeV`` is set.
+    temperature_MeV
+        Exponential/TNSA spectrum temperature [MeV]: dN/dE ∝ exp(−E / T).
+        When set, overrides ``energy_spread_percent``.
+    cutoff_MeV
+        Hard cutoff energy [MeV] for the exponential spectrum.
+        Default: 100 × temperature_MeV.
     output_dir
         Where to write the run directory. If None a temp directory is used;
         files persist until you delete ``result.run_dir`` manually.
@@ -134,6 +146,9 @@ def run(
             max_steps=max_steps,
             scale_B=scale_B,
             scale_E=scale_E,
+            energy_spread_percent=energy_spread_percent,
+            temperature_MeV=temperature_MeV,
+            cutoff_MeV=cutoff_MeV,
         )
         deck_path = tmp / "deck.toml"
         deck_path.write_text(deck_toml)

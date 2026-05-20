@@ -978,6 +978,102 @@ def test10_poisson_reproducibility():
     return ok
 
 
+# ── test 11: exponential / TNSA energy spectrum ──────────────────────────────
+
+def test11_exponential_spectrum():
+    """
+    Pencil source, B = E = 0, exponential spectrum T = 3 MeV, cutoff = 40 MeV.
+
+    For dN/dE ∝ exp(−E/T) with cutoff ≫ T the mean is close to T.
+    Checks:
+      1. All ke_MeV ≤ cutoff + 0.05 MeV (hard cutoff enforced)
+      2. mean(ke_MeV) within 20 % of T (correct distribution shape)
+      3. std(ke_MeV) / mean(ke_MeV) > 0.3  (not monoenergetic)
+    """
+    print("Test 11: Exponential / TNSA spectrum  (T=3 MeV, cutoff=40 MeV)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    T_MEV     = 3.0
+    CUTOFF    = 40.0
+    N         = 20_000
+
+    bfld = VALDATA / "t11_zero.bfld"
+    if not bfld.exists():
+        B = np.zeros((2, 2, 2, 3), dtype=np.float32)
+        E = np.zeros_like(B)
+        write_bfld(bfld, B, E, (-0.05, 0.05, -0.05, 0.05, -0.05, 0.05))
+
+    cfg = {
+        "field_path": str(bfld.resolve()),
+        "detector": {
+            "center_mm": [110.0, 0.0, 0.0],
+            "normal":    [1.0, 0.0, 0.0],
+            "up":        [0.0, 1.0, 0.0],
+            "width_mm":  500.0,
+            "height_mm": 500.0,
+            "pixels":    [512, 512],
+        },
+        "source": {
+            "source_type":    "pencil",
+            "n_particles":    N,
+            "energy_MeV":     14.7,  # nominal; overridden by spectrum
+            "temperature_MeV": T_MEV,
+            "cutoff_MeV":     CUTOFF,
+            "position_mm":    [-100.0, 0.0, 0.0],
+            "direction":      [1.0, 0.0, 0.0],
+        },
+        "dt_ps":     1.0,
+        "max_steps": 20_000,
+    }
+    cfg_path = VALDATA / "t11_tnsa.json"
+    with open(cfg_path, "w") as f:
+        json.dump(cfg, f, indent=2)
+
+    out = VALOUT / "t11_tnsa"
+    if not run_batch(cfg_path, out):
+        REPORT["test11_exponential_spectrum"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    hits = read_hits(out)
+    if not hits:
+        print("   no hits recorded")
+        REPORT["test11_exponential_spectrum"] = {"pass": False, "error": "no hits"}
+        return False
+
+    ke_vals = [h[2] for h in hits]
+    mean_ke = _mean(ke_vals)
+    std_ke  = _std(ke_vals, mean_ke)
+    max_ke  = max(ke_vals)
+
+    cutoff_ok = max_ke <= CUTOFF + 0.05
+    mean_ok   = abs(mean_ke - T_MEV) / T_MEV < 0.20   # within 20 % of T
+    spread_ok = (std_ke / mean_ke) > 0.3               # not monoenergetic
+
+    ok = cutoff_ok and mean_ok and spread_ok
+    print(f"   hits={len(ke_vals)}  mean={mean_ke:.4f} MeV  std={std_ke:.4f} MeV  max={max_ke:.4f} MeV")
+    print(f"   (T={T_MEV} MeV, cutoff={CUTOFF} MeV)")
+    if not cutoff_ok:
+        print(f"   FAIL: max_ke {max_ke:.4f} > cutoff {CUTOFF} + 0.05 MeV")
+    if not mean_ok:
+        print(f"   FAIL: mean {mean_ke:.4f} not within 20% of T={T_MEV}")
+    if not spread_ok:
+        print(f"   FAIL: std/mean {std_ke/mean_ke:.3f} < 0.3 (should be spread, not mono)")
+
+    png_ok, png_info = check_png_output(out)
+    ok = ok and png_ok
+    REPORT["test11_exponential_spectrum"] = {
+        "pass":           ok,
+        "n_hits":         len(ke_vals),
+        "mean_ke_MeV":    round(mean_ke, 4),
+        "std_ke_MeV":     round(std_ke, 4),
+        "max_ke_MeV":     round(max_ke, 4),
+        "temperature_MeV": T_MEV,
+        "cutoff_MeV":     CUTOFF,
+        **png_info,
+    }
+    return ok
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -998,6 +1094,7 @@ if __name__ == "__main__":
         test8_energy_spread,
         test9_blur_conservation,
         test10_poisson_reproducibility,
+        test11_exponential_spectrum,
     ]
 
     results = {}

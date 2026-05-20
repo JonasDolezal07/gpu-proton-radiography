@@ -102,6 +102,11 @@ pub struct RawCommonSource {
     #[allow(non_snake_case)]
     pub energy_MeV: f64,
     pub energy_spread_percent: Option<f64>,
+    /// Exponential/TNSA spectrum: temperature parameter [MeV].  If set, overrides energy_spread_percent.
+    #[serde(alias = "temperature_MeV")]
+    pub temperature_mev: Option<f64>,
+    /// Exponential spectrum: maximum cutoff energy [MeV].  Default: 100 × temperature_MeV.
+    pub cutoff_mev: Option<f64>,
     pub seed: Option<u64>,
 }
 
@@ -249,8 +254,13 @@ pub struct SimSourceConfig {
     pub energy_j: f64,
     pub particle_speed_m_s: f64,
     /// Gaussian energy spread: σ = mean_MeV × energy_spread_percent / 100.
-    /// 0.0 = monoenergetic (all particles use particle_speed_m_s).
+    /// 0.0 = monoenergetic.  Ignored when temperature_mev is Some.
     pub energy_spread_percent: f64,
+    /// Exponential/TNSA spectrum temperature [MeV].  When Some, the spectrum is
+    /// dN/dE ∝ exp(−E/T) with a hard cutoff at cutoff_mev.
+    pub temperature_mev: Option<f64>,
+    /// Hard cutoff energy [MeV] for the exponential spectrum.  Default: 100 × temperature_mev.
+    pub cutoff_mev: Option<f64>,
     /// RNG seed for energy sampling. None = non-deterministic (from_entropy).
     pub seed: Option<u64>,
     pub geometry: SimSourceGeometry,
@@ -357,6 +367,8 @@ fn apply_overrides_to_deck(
             "source.beam_radius_mm"        => deck.source.beam_radius_mm       = Some(parse_f64(k, v)?),
             "source.angular_spread_deg"    => deck.source.angular_spread_deg   = parse_f64(k, v)?,
             "source.energy_spread_percent" => deck.source.energy_spread_percent = parse_f64(k, v)?,
+            "source.temperature_MeV"       => deck.source.temperature_mev = Some(parse_f64(k, v)?),
+            "source.cutoff_mev"            => deck.source.cutoff_mev = Some(parse_f64(k, v)?),
             "numerics.dt_ps"               => deck.numerics.dt_ps              = Some(parse_f64(k, v)?),
             "numerics.max_steps"           => deck.numerics.max_steps           = Some(parse_u32(k, v)?),
             "detector.width_mm"            => deck.detector.width_mm            = parse_f64(k, v)?,
@@ -445,6 +457,8 @@ impl TryFrom<RawConfig> for SimConfig {
                     energy_j,
                     particle_speed_m_s,
                     energy_spread_percent: pb.common.energy_spread_percent.unwrap_or(0.0),
+                    temperature_mev: pb.common.temperature_mev,
+                    cutoff_mev: pb.common.cutoff_mev,
                     seed: pb.common.seed,
                     geometry: SimSourceGeometry::ParallelBeam {
                         center_m,
@@ -502,6 +516,8 @@ impl TryFrom<RawConfig> for SimConfig {
                     energy_j,
                     particle_speed_m_s,
                     energy_spread_percent: p.common.energy_spread_percent.unwrap_or(0.0),
+                    temperature_mev: p.common.temperature_mev,
+                    cutoff_mev: p.common.cutoff_mev,
                     seed: p.common.seed,
                     geometry: SimSourceGeometry::Pencil { position_m, direction },
                     source_distance_m: None,
@@ -553,6 +569,8 @@ impl TryFrom<RawConfig> for SimConfig {
                     energy_j,
                     particle_speed_m_s,
                     energy_spread_percent: p.common.energy_spread_percent.unwrap_or(0.0),
+                    temperature_mev: p.common.temperature_mev,
+                    cutoff_mev: p.common.cutoff_mev,
                     seed: p.common.seed,
                     geometry: SimSourceGeometry::Point { position_m, direction, half_angle_rad },
                     source_distance_m: None,
@@ -608,6 +626,8 @@ impl TryFrom<RawConfig> for SimConfig {
                     energy_j,
                     particle_speed_m_s,
                     energy_spread_percent: d.common.energy_spread_percent.unwrap_or(0.0),
+                    temperature_mev: d.common.temperature_mev,
+                    cutoff_mev: d.common.cutoff_mev,
                     seed: d.common.seed,
                     geometry: SimSourceGeometry::Disk {
                         center_m, direction, radius_m, half_angle_rad,
@@ -712,6 +732,11 @@ pub struct DeckSourceBlock {
     pub energy_mev: f64,
     #[serde(default)]
     pub energy_spread_percent: f64,
+    /// Exponential/TNSA spectrum temperature [MeV].  Overrides energy_spread_percent when set.
+    #[serde(rename = "temperature_MeV")]
+    pub temperature_mev: Option<f64>,
+    /// Hard cutoff energy [MeV] for the exponential spectrum.
+    pub cutoff_mev: Option<f64>,
     pub seed: Option<u64>,
     // parallel
     pub direction: Option<[f64; 3]>,
@@ -836,6 +861,8 @@ impl TryFrom<DeckConfig> for SimConfig {
             energy_j,
             particle_speed_m_s,
             energy_spread_percent: s.energy_spread_percent,
+            temperature_mev: s.temperature_mev,
+            cutoff_mev: s.cutoff_mev,
             seed: s.seed,
             geometry,
             source_distance_m,

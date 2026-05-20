@@ -74,7 +74,7 @@ Parses and resolves the deck, reports any schema errors, exits 0 on success.
 ./rust/target/release/proton_tracer run my_run.toml -o runs/first_run
 ```
 
-Runs the GPU Boris integrator and writes a self-contained run directory:
+Runs the GPU relativistic Boris integrator and writes a self-contained run directory:
 
 ```
 runs/first_run/

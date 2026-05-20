@@ -2,11 +2,11 @@
 
 use anyhow::{Context, Result};
 use glam::Vec3;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_distr::Distribution;
 
 use super::{SimSourceConfig, SimSourceGeometry};
-use crate::units::{proton_speed_from_mev, proton_momentum_per_mass_from_mev};
+use crate::units::proton_momentum_per_mass_from_mev;
 
 /// Particle state for GPU
 #[repr(C)]
@@ -31,17 +31,22 @@ impl ParticleData {
         let n = config.n_particles as usize;
 
         // Seeded RNG for energy sampling. Spatial/angular still uses rand_f32() (non-seeded).
-        // TODO: unify all particle sampling under the same seeded RNG in a future pass.
         let mut energy_rng: rand::rngs::StdRng = match config.seed {
             Some(s) => rand::rngs::StdRng::seed_from_u64(s),
             None    => rand::rngs::StdRng::from_entropy(),
         };
-        let energy_dist: Option<rand_distr::Normal<f64>> = if config.energy_spread_percent > 0.0 {
+
+        // Build energy spectrum. Priority: exponential > gaussian > mono.
+        let energy_spec = if let Some(temp) = config.temperature_mev {
+            let cutoff = config.cutoff_mev.unwrap_or(100.0 * temp);
+            EnergySpec::Exponential { temperature_mev: temp, cutoff_mev: cutoff }
+        } else if config.energy_spread_percent > 0.0 {
             let sigma = config.particle_energy_mev * config.energy_spread_percent / 100.0;
-            Some(rand_distr::Normal::new(config.particle_energy_mev, sigma)
-                .map_err(|e| anyhow::anyhow!("Invalid energy distribution: {}", e))?)
+            let dist = rand_distr::Normal::new(config.particle_energy_mev, sigma)
+                .map_err(|e| anyhow::anyhow!("Invalid Gaussian energy distribution: {}", e))?;
+            EnergySpec::Gaussian(dist)
         } else {
-            None
+            EnergySpec::Mono
         };
 
         // Store u = γv (specific relativistic momentum), not v.
@@ -68,7 +73,7 @@ impl ParticleData {
                 let cos_spread = spread.cos();
 
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
+                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
                     // Position: uniform disk
                     let phi = rand_f32() * std::f32::consts::TAU;
                     let r   = radius * rand_f32().sqrt();
@@ -101,7 +106,7 @@ impl ParticleData {
                 let pos = Vec3::from(*position_m);
                 let dir = Vec3::from(*direction).normalize();
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
+                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
                     particles.push(Particle {
                         position:  pos.to_array(),
                         _pad0:     0.0,
@@ -126,7 +131,7 @@ impl ParticleData {
                 let perp2 = dir.cross(perp1);
 
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
+                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
                     // Position: uniform disk in the plane perpendicular to dir.
                     let phi = rand_f32() * std::f32::consts::TAU;
                     let r   = radius * rand_f32().sqrt();
@@ -167,7 +172,7 @@ impl ParticleData {
                 let perp2 = dir.cross(perp1);
 
                 for _ in 0..n {
-                    let spd = sample_speed(&energy_dist, &mut energy_rng, mono_u);
+                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
                     let az      = rand_f32() * std::f32::consts::TAU;
                     let cos_psi = if half > 0.0 {
                         1.0 - rand_f32() * (1.0 - cos_half)
@@ -215,24 +220,37 @@ impl ParticleData {
     }
 }
 
-/// Sample per-particle specific relativistic momentum |u| = γv [m/s].
-/// Returns mono_u for monoenergetic beams, or samples from the energy distribution
-/// and converts to |u| via the relativistic formula.
-fn sample_speed(
-    energy_dist: &Option<rand_distr::Normal<f64>>,
+/// Energy spectrum for particle initialisation.
+enum EnergySpec {
+    /// All particles share one energy.
+    Mono,
+    /// Gaussian spread: σ = mean × spread_percent/100.
+    Gaussian(rand_distr::Normal<f64>),
+    /// Exponential (TNSA-like): dN/dE ∝ exp(−E/T), hard cutoff at cutoff_mev.
+    Exponential { temperature_mev: f64, cutoff_mev: f64 },
+}
+
+/// Sample |u| = γv [m/s] for one particle.
+fn sample_u(
+    spec: &EnergySpec,
     rng: &mut rand::rngs::StdRng,
     mono_u: f32,
 ) -> f32 {
-    match energy_dist {
-        None => mono_u,
-        Some(dist) => {
-            let e_mev = loop {
-                let e = dist.sample(rng);
-                if e > 0.0 { break e; }
-            };
-            proton_momentum_per_mass_from_mev(e_mev) as f32
+    let e_mev = match spec {
+        EnergySpec::Mono => return mono_u,
+        EnergySpec::Gaussian(dist) => loop {
+            let e = dist.sample(rng);
+            if e > 0.0 { break e; }
+        },
+        EnergySpec::Exponential { temperature_mev: t, cutoff_mev: e_cut } => {
+            // Inverse-CDF sampling: F(E) = (1 − exp(−E/T)) / (1 − exp(−E_cut/T))
+            let u: f64 = rng.gen();
+            let exp_cut = (-e_cut / t).exp();
+            let e = -t * (1.0 - u * (1.0 - exp_cut)).ln();
+            e.min(*e_cut)  // clamp against floating-point overshoot
         }
-    }
+    };
+    proton_momentum_per_mass_from_mev(e_mev) as f32
 }
 
 fn rand_f32() -> f32 {

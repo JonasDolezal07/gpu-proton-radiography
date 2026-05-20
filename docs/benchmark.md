@@ -7,7 +7,7 @@
 
 ## 1. Validation cases
 
-These cases verify that the Boris integrator agrees with analytical predictions
+These cases verify that the relativistic Boris integrator agrees with analytical predictions
 in regimes where those predictions are known to be accurate.
 
 ### Case A — Zero field: straight-line projection

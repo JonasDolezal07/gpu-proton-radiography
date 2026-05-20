@@ -12,10 +12,9 @@ through the field independently.
 
 **Single species.** Only protons are supported. No multi-species or ion mixture support.
 
-**Non-relativistic Boris integrator.** The Boris algorithm is used in its standard
-non-relativistic form. This is accurate for proton energies up to ~50 MeV (γ ≈ 1.05) and
-approximately valid up to ~100 MeV. For higher energies, the relativistic Boris correction
-would be needed.
+**Relativistic Boris integrator (implemented).** Particles are pushed in
+specific-momentum space (`u = γv`) with γ recomputed each step. This is exact at all
+energies — there is no non-relativistic approximation in the integrator.
 
 **Uniform time step.** `dt_ps` is fixed for all particles throughout the simulation. There
 is no adaptive step size control.
@@ -55,5 +54,6 @@ system matures. See `rust/src/loaders/config.rs` for the authoritative configura
 **JSON configs are legacy.** The JSON config format is accepted but not recommended. TOML
 decks are the canonical format.
 
-**No Python API.** Python interop is currently limited to `python/field_format.py` (field
-reader/writer) and the validation suite. A Python package for programmatic access is planned.
+**`prad` Python package.** `pip install prad` gives a subprocess-based Python API
+(`prad.run()`, `prad.Field`) wrapping the Rust CLI. Full pyo3/native bindings are not
+implemented.

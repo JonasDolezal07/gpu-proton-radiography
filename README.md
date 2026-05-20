@@ -2,12 +2,12 @@
 
 GPU-accelerated forward modelling of proton radiographs from magnetised plasma.
 
-Runs the full Boris orbit through measured or simulated electromagnetic fields — not a
-paraxial approximation — and produces synthetic radiographs that can be directly compared to
-experimental RCF film data.
+Runs the full **relativistic Boris** orbit through measured or simulated electromagnetic
+fields — not a paraxial approximation — and produces synthetic radiographs that can be
+directly compared to experimental RCF film data.
 
 ```
-✓ 10/10 physics validation tests passing
+✓ 11/11 physics validation tests passing
 ✓ Reproducible, self-documenting run directories
 ✓ CLI + GUI workflows
 ✓ Re-render without re-tracing particles
@@ -41,7 +41,7 @@ The mapping from field structure to film pattern is nonlinear and depends on geo
 magnification, detector distance, source divergence. Paraxial approximations fail in the
 strong-field, large-deflection regimes common in modern pulsed-power experiments.
 
-This tool runs the **full Boris orbit**, so you can:
+This tool runs the **full relativistic Boris orbit**, so you can:
 
 - See where paraxial approximations break down and by how much
 - Forward-model field topologies and compare directly to experimental films
@@ -143,9 +143,11 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # build first, then validate
 ```
 
-10 physics tests: B-only regression, zero-field straight-line projection, uniform E-field
-deflection (sign and magnitude), Boris energy conservation, pencil/point/disk source geometry,
-energy spread, Gaussian blur, Poisson noise reproducibility.
+11 physics tests: B-only regression, zero-field straight-line projection, uniform E-field
+deflection (sign and magnitude), relativistic Boris energy conservation (14.7000 MeV
+recovered to sub-eV accuracy), pencil/point/disk source geometry, Gaussian energy spread,
+exponential/TNSA spectrum (mean KE ≈ T, hard cutoff enforced), Gaussian blur, Poisson noise
+reproducibility.
 
 ---
 

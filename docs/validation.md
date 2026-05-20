@@ -7,7 +7,7 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # cargo build --release first, then validate
 ```
 
-Current status: **10/10 passing**.
+Current status: **11/11 passing**.
 
 Output: `output/validation/` (per-test run directories) and `output/validation_report.json`.
 
@@ -17,8 +17,8 @@ Output: `output/validation/` (per-test run directories) and `output/validation_r
 
 Runs the zpinch preset (`data/instabilities/zpinch.json`) and asserts ≥ 10,000 detector hits.
 
-Verifies that the core Boris + B-field path has not regressed. Also checks that PNG,
-raw\_counts.bin, and processed\_counts.bin are produced with correct sizes.
+Verifies that the core relativistic Boris + B-field path has not regressed. Also checks
+that PNG, raw\_counts.bin, and processed\_counts.bin are produced with correct sizes.
 
 ### Test 2 — Zero fields, straight-line projection
 
@@ -38,9 +38,13 @@ Verifies that the E-field force term has the correct sign and is in the right or
 
 ### Test 4 — Uniform B only, energy conservation
 
-B = Bz everywhere, E = 0. The Boris integrator must conserve kinetic energy exactly in a
-pure magnetic field (magnetic force does no work). Asserts that the RMS fractional energy
-deviation across all particles is < 0.01%.
+B = Bz everywhere, E = 0. The relativistic Boris integrator must conserve kinetic energy
+exactly in a pure magnetic field (magnetic force does no work — the rotation preserves `|u|`
+to machine precision). Asserts that the RMS fractional energy deviation across all particles
+is < 0.01%.
+
+This test validates relativistic magnetic-only energy conservation. With the relativistic
+Boris, reported impact KE equals the input energy (14.7000 MeV) to sub-eV accuracy.
 
 ### Test 5 — Pencil source, 2° tilt, zero field
 
@@ -70,6 +74,16 @@ energies matches a Gaussian with the expected standard deviation.
 
 Verifies that the energy spread sampling is applied correctly.
 
+### Test 11 — Exponential / TNSA energy spectrum
+
+A pencil source with `temperature_MeV = 3.0` and `cutoff_MeV = 40.0` in zero field.
+Checks:
+- All impact energies ≤ cutoff (hard cutoff enforced)
+- Mean KE within 20 % of T (correct exponential shape — mean ≈ T when cutoff ≫ T)
+- Significant energy spread (std/mean > 0.3, confirming non-monoenergetic sampling)
+
+Verifies the inverse-CDF exponential sampler and that the cutoff is respected exactly.
+
 ### Test 9 — Gaussian blur, count conservation and spot widening
 
 Applies detector blur (`blur_sigma_um`) to a pencil-like source. Asserts:
@@ -97,7 +111,6 @@ Tests use physically motivated tolerances rather than arbitrary percentages:
 ## What is not validated
 
 - GPU numerical precision differences across hardware
-- Relativistic accuracy at energies above ~100 MeV
 - Multi-species or non-proton particles
 - Collisional or radiative processes (the integrator is collisionless)
 - Comparison against experimental shot data
