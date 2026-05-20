@@ -11,6 +11,10 @@ rust/output/
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+dist/
+build/
+prad/bin/proton_tracer
 
 # ── Editor / tool metadata ────────────────────────────────────────────────────
 .aider*

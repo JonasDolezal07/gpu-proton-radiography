@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write   # required for PyPI trusted publishing
+
+jobs:
+
+  # ── macOS arm64 (Apple Silicon) ─────────────────────────────────────────────
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install MoltenVK
+        run: brew install molten-vk
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build wheel
+
+      - name: Build wheel
+        env:
+          VK_ICD_FILENAMES: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+          DYLD_LIBRARY_PATH: /opt/homebrew/lib
+        run: python -m build --wheel
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-macos-arm64
+          path: dist/*.whl
+
+  # ── macOS x86_64 (Intel) ────────────────────────────────────────────────────
+  build-macos-x86:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install MoltenVK
+        run: brew install molten-vk
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build wheel
+
+      - name: Build wheel
+        env:
+          VK_ICD_FILENAMES: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+          DYLD_LIBRARY_PATH: /opt/homebrew/lib
+        run: python -m build --wheel
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-macos-x86
+          path: dist/*.whl
+
+  # ── Linux x86_64 (manylinux) ────────────────────────────────────────────────
+  build-linux-x86:
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux_2_28_x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain stable --no-modify-path
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install Python build tools
+        run: /opt/python/cp312-cp312/bin/pip install build wheel
+
+      - name: Build wheel
+        run: /opt/python/cp312-cp312/bin/python -m build --wheel
+
+      - name: Repair wheel (auditwheel)
+        run: |
+          pip install auditwheel
+          auditwheel repair dist/*.whl --plat manylinux_2_28_x86_64 -w dist/repaired/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-linux-x86
+          path: dist/repaired/*.whl
+
+  # ── Publish to PyPI ──────────────────────────────────────────────────────────
+  publish:
+    needs: [build-macos-arm64, build-macos-x86, build-linux-x86]
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Show wheels
+        run: ls -lh dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

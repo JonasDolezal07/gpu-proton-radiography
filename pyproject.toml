@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prad"
+version = "0.1.0"
+description = "GPU-accelerated proton radiography"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.21",
+    "Pillow>=9.0",
+    "matplotlib>=3.5",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "h5py"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["prad*"]
+
+[tool.setuptools.package-data]
+prad = ["py.typed", "bin/*"]
