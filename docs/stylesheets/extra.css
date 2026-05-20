@@ -50,13 +50,19 @@
 /* ── Hero logo on home page ───────────────────────────────────────────────── */
 .hero-logo {
   text-align: center;
-  margin: 1rem 0 2rem;
+  margin: 1.5rem 0 2rem;
 }
 
 .hero-logo img {
-  max-width: 420px;
-  width: 100%;
+  max-width: 300px;
+  width: 60%;
   height: auto;
+}
+
+/* ── Nav bar logo: circular crop suits the icon design ───────────────────── */
+.md-header__button.md-logo img {
+  border-radius: 50%;
+  background: white;
 }
 
 /* ── Full-width hero on home page ─────────────────────────────────────────── */
