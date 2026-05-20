@@ -19,8 +19,14 @@ fn main() {
     println!("cargo:rerun-if-changed=../shaders/egui.vert");
     println!("cargo:rerun-if-changed=../shaders/egui.frag");
 
-    // Find glslangValidator
-    let glslang = find_glslang().expect("glslangValidator not found. Install Vulkan SDK.");
+    // Find glslangValidator — skip shader recompilation if not present (uses committed .spv files)
+    let glslang = match find_glslang() {
+        Some(g) => g,
+        None => {
+            println!("cargo:warning=glslangValidator not found — using pre-compiled .spv files");
+            return;
+        }
+    };
 
     // Compile all shaders
     let shaders = [
