@@ -3,15 +3,14 @@ hide:
   - toc
 ---
 
-<div class="hero-logo">
-  <img src="images/logo_text.png" alt="prad — GPU Proton Radiography" />
+<div class="hero-header">
+  <img src="images/logo_text.png" alt="prad" class="hero-logo-side" />
+  <div class="hero-text">
+    <p><strong>Forward-model proton radiographs from measured or simulated plasma fields.</strong></p>
+    <p>Full relativistic Boris orbit — not a paraxial approximation. Runs on the GPU in seconds.</p>
+    <div class="install-block">pip install prad</div>
+  </div>
 </div>
-
-**Forward-model proton radiographs from measured or simulated plasma fields.**
-
-Full relativistic Boris orbit — not a paraxial approximation. Runs on the GPU in seconds.
-
-<div class="install-block">pip install prad</div>
 
 ---
 
