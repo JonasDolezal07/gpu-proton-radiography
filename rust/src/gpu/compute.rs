@@ -12,6 +12,10 @@ pub struct SimParams {
     pub q_over_m: f32,  // charge/mass ratio (for protons: e/m_p)
     pub n_particles: u32,
     pub steps_per_dispatch: u32,  // Number of integration steps per dispatch (batching)
+    pub max_steps: u32,           // Hard per-particle step budget (exits when exhausted)
+    pub _pad_a: u32,              // explicit alignment pads to reach 32 bytes before
+    pub _pad_b: u32,              //   field_min vec4 (GLSL std430 aligns vec4 to 16)
+    pub _pad_c: u32,
 
     // Field bounds for texture sampling
     pub field_min: [f32; 4],  // xyz + pad

@@ -467,6 +467,7 @@ impl App {
             [(config.detector.width_m  / 2.0) as f32,
              (config.detector.height_m / 2.0) as f32],
         );
+        renderer.sim_params.max_steps = config.max_steps;
 
         let source_pos = match &config.source.geometry {
             SimSourceGeometry::Pencil { position_m, .. } |

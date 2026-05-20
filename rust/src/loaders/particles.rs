@@ -13,7 +13,7 @@ use crate::units::proton_momentum_per_mass_from_mev;
 #[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Particle {
     pub position: [f32; 3],
-    pub _pad0: f32,
+    pub step_count: u32,      // cumulative steps taken (used by shader for max_steps check)
     pub velocity: [f32; 3],  // u = γv (specific relativistic momentum) [m/s]
     pub is_active: u32,       // 1 = active, 0 = hit detector or exited domain
 }
@@ -95,7 +95,7 @@ impl ParticleData {
 
                     particles.push(Particle {
                         position:  pos.to_array(),
-                        _pad0:     0.0,
+                        step_count: 0,
                         velocity:  vel.to_array(),
                         is_active: 1,
                     });
@@ -109,7 +109,7 @@ impl ParticleData {
                     let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
                     particles.push(Particle {
                         position:  pos.to_array(),
-                        _pad0:     0.0,
+                        step_count: 0,
                         velocity:  (dir * spd).to_array(),
                         is_active: 1,
                     });
@@ -151,7 +151,7 @@ impl ParticleData {
 
                     particles.push(Particle {
                         position:  pos.to_array(),
-                        _pad0:     0.0,
+                        step_count: 0,
                         velocity:  (v_dir * spd).to_array(),
                         is_active: 1,
                     });
@@ -185,7 +185,7 @@ impl ParticleData {
                         + perp2 * sin_psi * az.sin();
                     particles.push(Particle {
                         position:  pos.to_array(),
-                        _pad0:     0.0,
+                        step_count: 0,
                         velocity:  (v_dir * spd).to_array(),
                         is_active: 1,
                     });

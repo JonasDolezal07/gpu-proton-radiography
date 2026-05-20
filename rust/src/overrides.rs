@@ -13,6 +13,7 @@ const SUPPORTED_KEYS: &str = "\
   source.energy_MeV           source.n_particles\n\
   source.beam_radius_mm       source.angular_spread_deg\n\
   source.energy_spread_percent\n\
+  source.temperature_MeV      source.cutoff_mev\n\
   numerics.dt_ps              numerics.max_steps\n\
   detector.width_mm           detector.height_mm\n\
   field.scale_B               field.scale_E";
@@ -41,6 +42,8 @@ pub(crate) fn canonicalize_key(key: &str) -> Result<&'static str> {
         "source.beam_radius_mm"                      => Ok("source.beam_radius_mm"),
         "source.angular_spread_deg"                  => Ok("source.angular_spread_deg"),
         "source.energy_spread_percent"               => Ok("source.energy_spread_percent"),
+        "source.temperature_MeV" | "source.temperature_mev" => Ok("source.temperature_MeV"),
+        "source.cutoff_mev" | "source.cutoff_MeV"   => Ok("source.cutoff_mev"),
         "numerics.dt_ps" | "dt_ps"                  => Ok("numerics.dt_ps"),
         "numerics.max_steps" | "max_steps"           => Ok("numerics.max_steps"),
         "detector.width_mm"                          => Ok("detector.width_mm"),

@@ -367,7 +367,7 @@ pub struct Renderer {
     detector_buffer: Option<GpuBuffer>,
 
     // Simulation state
-    sim_params: SimParams,
+    pub sim_params: SimParams,
     particle_count: u32,
     is_running: bool,
     total_hits: u32,
@@ -458,6 +458,10 @@ impl Renderer {
             q_over_m: 9.58e7,  // Proton: e/m_p
             n_particles: 0,
             steps_per_dispatch: STEPS_PER_DISPATCH,
+            max_steps: 25_000,
+            _pad_a: 0,
+            _pad_b: 0,
+            _pad_c: 0,
             field_min: [0.0; 4],
             field_max: [1.0, 1.0, 1.0, 0.0],
             detector_pos:    [0.0, 0.0, 1.0, 0.0],

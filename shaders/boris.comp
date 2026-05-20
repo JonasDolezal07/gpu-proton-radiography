@@ -35,7 +35,7 @@ const float INV_C_SQ = 1.0 / (C_M_S * C_M_S);  // 1/c² [s²/m²]
 // Particle state
 struct Particle {
     vec3 position;
-    float _pad0;
+    uint step_count; // cumulative steps taken so far
     vec3 velocity;   // u = γv (specific relativistic momentum) [m/s]
     uint is_active;  // 1 = active, 0 = hit detector or left domain
 };
@@ -53,6 +53,10 @@ layout(push_constant) uniform SimParams {
     float q_over_m;          // charge/mass ratio
     uint n_particles;
     uint steps_per_dispatch; // Number of steps to run per dispatch (batching)
+    uint max_steps;          // Hard per-particle step budget (exits when exhausted)
+    uint _pad_a;             // explicit pads to reach 32-byte boundary before field_min
+    uint _pad_b;
+    uint _pad_c;
     vec4 field_min;          // Field bounds min (xyz)
     vec4 field_max;          // Field bounds max (xyz)
     vec4 detector_pos;       // Point on detector plane
@@ -195,7 +199,17 @@ void main() {
     float dt = params.dt;
     float qm = params.q_over_m;
 
+    uint step_count = p.step_count;
+
     for (uint step = 0; step < params.steps_per_dispatch && is_alive; step++) {
+        // Hard per-particle budget: count as an exit when exhausted
+        if (step_count >= params.max_steps) {
+            atomicAdd(exit_count, 1u);
+            is_alive = false;
+            break;
+        }
+        step_count++;
+
         vec3 pos_old = pos;
 
         vec3 B = sample_field(pos);
@@ -242,5 +256,6 @@ void main() {
     // Write particle back
     particles[idx].position = pos;
     particles[idx].velocity = vel;
+    particles[idx].step_count = step_count;
     particles[idx].is_active = is_alive ? 1 : 0;
 }

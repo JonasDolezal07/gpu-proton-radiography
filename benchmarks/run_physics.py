@@ -245,6 +245,42 @@ def case_CD(verbose=False):
     return results
 
 
+# ── Case E ───────────────────────────────────────────────────────────────────
+
+def case_E(verbose=False):
+    print("Case E: mono 14.7 MeV vs TNSA-like spectrum (T=3 MeV, cutoff=40 MeV) — z-pinch")
+
+    common_overrides = {"source.n_particles": "500000"}
+
+    out_mono = RESULTS / "runs" / "phys_E_mono"
+    utils.run_tracer(DECKS / "zpinch.toml", out_mono,
+                     overrides=common_overrides, verbose=verbose)
+    mono = utils.read_raw_counts(out_mono).astype(np.float32)
+
+    out_tnsa = RESULTS / "runs" / "phys_E_tnsa"
+    utils.run_tracer(DECKS / "zpinch.toml", out_tnsa,
+                     overrides={**common_overrides,
+                                "source.temperature_MeV": "3.0",
+                                "source.cutoff_mev": "40.0"},
+                     verbose=verbose)
+    tnsa = utils.read_raw_counts(out_tnsa).astype(np.float32)
+
+    corr = float(np.corrcoef(mono.ravel(), tnsa.ravel())[0, 1])
+    print(f"  Mono hits: {int(mono.sum()):,}   TNSA hits: {int(tnsa.sum()):,}")
+    print(f"  Image correlation mono vs TNSA: {corr:.4f}")
+
+    np.save(RESULTS / "counts_mono_E.npy", mono)
+    np.save(RESULTS / "counts_tnsa_E.npy", tnsa)
+
+    return dict(
+        case="E",
+        description="Monoenergetic 14.7 MeV vs TNSA T=3 MeV cutoff=40 MeV on z-pinch",
+        mono_hits=int(mono.sum()), tnsa_hits=int(tnsa.sum()),
+        correlation=corr,
+        mono_energy_MeV=14.7, tnsa_temperature_MeV=3.0, tnsa_cutoff_MeV=40.0,
+    )
+
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -269,6 +305,9 @@ def main():
     if not args.quick:
         for r in case_CD(verbose=args.verbose):
             all_results[f"case_{r['case']}"] = r
+
+        res = case_E(verbose=args.verbose)
+        all_results["case_E"] = res
 
     out = RESULTS / "physics_results.json"
     with open(out, "w") as f:
