@@ -20,8 +20,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install MoltenVK
-        run: brew install molten-vk
+      - name: Install MoltenVK + glslang
+        run: brew install molten-vk glslang
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,10 +31,16 @@ jobs:
       - name: Install build tools
         run: pip install build wheel
 
-      - name: Build wheel
+      - name: Build Rust binary
         env:
           VK_ICD_FILENAMES: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
           DYLD_LIBRARY_PATH: /opt/homebrew/lib
+        run: cd rust && cargo build --release
+
+      - name: Stage binary into wheel package
+        run: cp rust/target/release/proton_tracer prad/bin/proton_tracer
+
+      - name: Build wheel
         run: python -m build --wheel
 
       - uses: actions/upload-artifact@v4
@@ -49,11 +55,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install system dependencies (winit X11/Wayland build deps + glslang)
+        run: |
+          dnf install -y \
+            wayland-devel \
+            libxkbcommon-devel \
+            libX11-devel \
+            libxcb-devel \
+            glslang
+
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
             | sh -s -- -y --default-toolchain stable --no-modify-path
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Build Rust binary (Linux x86_64)
+        run: $HOME/.cargo/bin/cargo build --release --manifest-path rust/Cargo.toml
+
+      - name: Stage binary into wheel package
+        run: cp rust/target/release/proton_tracer prad/bin/proton_tracer
 
       - name: Install Python build tools
         run: /opt/python/cp312-cp312/bin/pip install build wheel
