@@ -5,8 +5,9 @@
 GPU-accelerated forward modelling of proton radiographs from magnetised plasma.
 
 Runs the full **relativistic Boris** orbit through measured or simulated electromagnetic
-fields — not a paraxial approximation — and produces synthetic radiographs that can be
-directly compared to experimental RCF film data.
+fields — not a paraxial approximation — and produces synthetic radiographs in
+detector/film coordinates for comparison with experimental RCF data, subject to
+detector-response and experimental-geometry modelling.
 
 ```
 ✓ 12/12 physics validation tests passing
@@ -228,7 +229,11 @@ Measured on Apple M4 (prad v0.3.0):
 
 Peak step throughput: **9.0 B steps/s**.
 
-**vs PlasmaPy** (10,000 particles, uniform Bz = 1 T, matched conditions):
+**vs PlasmaPy** — in a matched simplified uniform-field particle-tracing benchmark
+(10,000 particles, uniform Bz = 1 T, same geometry), prad's GPU backend is substantially
+faster than a single-core PlasmaPy CPU Boris workflow. This comparison isolates the
+forward particle-tracing step only; PlasmaPy is a broader plasma-physics ecosystem and
+is not being replaced by prad.
 
 | | PlasmaPy (CPU) | prad (GPU) |
 |---|---|---|
