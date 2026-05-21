@@ -3,42 +3,62 @@ prad Linux / NVIDIA Validation Record
 
 Date:           2026-05-21
 prad version:   0.3.0
-Commit:         966e757
+Commit:         e677b33
 
 Hardware
 --------
 GPU:            NVIDIA GeForce RTX 4090 (24 GB VRAM)
 NVIDIA driver:  550.127.05
 CUDA version:   12.4
+Vulkan:         1.3.277
 
 Software
 --------
 OS:             Ubuntu 22.04.5 LTS
 Kernel:         Linux 6.8.0-59-generic x86_64
 Rust:           1.95.0 (2026-04-14)
-Python:         3.11 (system)
+Python:         3.11.10
+
+Environment setup (RunPod / headless Docker)
+--------------------------------------------
+NVIDIA's libGLX_nvidia.so.0 requires an X11 connection to initialise
+even for compute-only Vulkan. On headless servers, use Xvfb:
+
+  apt-get install -y xvfb
+  Xvfb :99 -screen 0 800x600x16 &
+  export DISPLAY=:99
+  export VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json
+
+These two env vars must be set before running validate.py or any
+proton_tracer invocation. prad's batch compute path does not create
+a window or surface; Xvfb merely satisfies the GLX init requirement.
 
 Validation
 ----------
-Command:        python3 validate.py --build
+Command:        python3 validate.py   (binary already built)
 Result:         12 / 12 tests passing
 
-  test1_regression              PASS   (B-only regression, z-pinch)
-  test2_zero_fields             PASS   (straight-line projection)
+  test1_regression              PASS   (1M particles, z-pinch, 0.50 s GPU)
+  test2_zero_fields             PASS   (straight-line projection, 0.02 s)
   test3_uniform_E               PASS   (parabolic deflection, sign + magnitude)
   test4_B_energy_conservation   PASS   (14.7000 MeV recovered, std/mean = 7.5e-13)
   test5_pencil_tilted           PASS   (2° tilt, rel_err = 0.000)
   test6_point_full_cone         PASS   (hit fraction = 1.000)
-  test7_disk_spatial_spread     PASS   (std = 15.01 mm, expected 15.00 mm)
+  test7_disk_spatial_spread     PASS   (std = 15.006 mm, expected 15.000 mm)
   test8_energy_spread           PASS   (5.00% Gaussian spread reproduced)
   test9_blur_conservation       PASS   (count conservation + spot widening)
   test10_poisson_reproducibility PASS  (same seed → identical, diff seed → different)
-  test11_exponential_spectrum   PASS   (mean = 3.587 MeV ≈ T = 3.0 MeV)
+  test11_exponential_spectrum   PASS   (mean = 3.599 MeV ≈ T = 3.0 MeV)
   test12_relativistic_60mev     PASS   (60.0000 MeV, rel_std = 1.7e-13)
+
+Performance (test 1: 1M particles, z-pinch field)
+--------------------------------------------------
+GPU compute time:   0.50 s
+Step throughput:    ~34 B steps/s   (1M × ~16,960 steps / 0.50 s)
+vs Apple M4:        ~9 B steps/s    (3.8× faster on RTX 4090)
 
 Notes
 -----
-This run used the headless Vulkan compute path (no display server required).
-Batch mode bypasses winit entirely; VulkanContext::new_headless() creates a
-compute-capable Vulkan instance without surface or swapchain extensions.
-The GUI subcommand is not validated here (requires a display).
+The GUI subcommand is not validated here (requires a physical display).
+Batch mode (run / --batch) is fully headless once DISPLAY and
+VK_ICD_FILENAMES are set as described above.
