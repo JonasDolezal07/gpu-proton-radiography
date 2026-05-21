@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-check:
+    name: Build + schema checks (Linux / Mesa software Vulkan)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            glslang-tools \
+            libvulkan1 \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            python3-numpy
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build release binary
+        working-directory: rust
+        run: cargo build --release
+
+      - name: Smoke — version + help
+        run: ./rust/target/release/proton_tracer --help
+
+      - name: Smoke — init + explain (no GPU)
+        run: |
+          ./rust/target/release/proton_tracer init zpinch -o /tmp/smoke.toml
+          ./rust/target/release/proton_tracer explain /tmp/smoke.toml
+          ./rust/target/release/proton_tracer validate /tmp/smoke.toml
+
+      - name: GPU physics tests (Mesa llvmpipe — correctness, not speed)
+        env:
+          # Mesa software Vulkan ICD — no real GPU needed
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+          # Suppress the expected llvmpipe warning in CI output
+          PRAD_CI: "1"
+        run: python3 validate.py

@@ -34,14 +34,15 @@ implemented.
 correctness and source geometry, but no comparison against real radiograph film data
 has been performed.
 
-**GPU hardware coverage is limited.** The validation suite runs on Apple Silicon via MoltenVK.
-Behaviour on NVIDIA/AMD hardware has not been systematically tested, though the Vulkan compute
-code uses standard features with no vendor-specific extensions.
+**GPU hardware coverage.** The validation suite passes on Apple Silicon (MoltenVK) and
+NVIDIA RTX 4090 (Ubuntu 22.04, driver 550, Vulkan 1.3.277). AMD hardware has not been
+tested. The Vulkan compute path uses standard features with no vendor-specific extensions.
 
 ## Platform
 
-**macOS / MoltenVK is the primary development platform.** Linux with a native Vulkan driver
-should work but has not been tested in CI.
+**macOS / MoltenVK is the primary development platform.** Linux with NVIDIA Vulkan is
+validated (see `benchmarks/validation/`). CI runs a build + schema-check pass on Linux
+via Mesa software Vulkan; GPU compute tests require real hardware.
 
 **Single GPU.** No multi-GPU or distributed simulation.
 
