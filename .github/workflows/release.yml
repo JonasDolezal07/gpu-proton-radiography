@@ -31,6 +31,15 @@ jobs:
       - name: Install build tools
         run: pip install build wheel
 
+      - name: Set version from git tag
+        run: python3 -c "
+import re
+tag = '${{ github.ref_name }}'.lstrip('v').replace('-rc', 'rc')
+s = open('pyproject.toml').read()
+open('pyproject.toml', 'w').write(re.sub(r'(?m)^version = .*', f'version = \"{tag}\"', s))
+print('version set to', tag)
+"
+
       - name: Build Rust binary
         env:
           VK_ICD_FILENAMES: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
@@ -78,6 +87,13 @@ jobs:
 
       - name: Install Python build tools
         run: /opt/python/cp312-cp312/bin/pip install build wheel
+
+      - name: Set version from git tag
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          VER=$(echo "$VER" | sed 's/-rc/rc/g')
+          sed -i "s/^version = .*/version = \"$VER\"/" pyproject.toml
+          echo "Version → $VER"
 
       - name: Build wheel
         run: |
