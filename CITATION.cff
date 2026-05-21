@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use prad in published work, please cite it using the metadata below."
+type: software
+title: "prad: GPU-accelerated relativistic proton radiography"
+version: 0.3.0
+date-released: "2026-05-21"
+license: MIT
+repository-code: https://github.com/JonasDolezal07/gpu-proton-radiography
+url: https://jonasdolezal07.github.io/gpu-proton-radiography/
+abstract: >-
+  GPU-accelerated forward modelling of proton radiographs from magnetised plasma.
+  Runs the full relativistic Boris orbit (u = γv) through measured or simulated
+  electromagnetic fields — not a paraxial approximation — and produces synthetic
+  radiographs for direct comparison to experimental RCF film data. Supports
+  monoenergetic, Gaussian, and TNSA exponential proton source spectra; CLI, GUI,
+  and Python (prad) interfaces; and self-documenting run directories with
+  reproducible re-rendering.
+authors:
+  - family-names: Dolezal
+    given-names: Jonas
+    email: jonas@jonasdolezal.com
+keywords:
+  - proton radiography
+  - plasma physics
+  - GPU computing
+  - Vulkan
+  - Boris integrator
+  - MHD instabilities
+  - pulsed power
+  - TNSA
+  - synthetic diagnostics

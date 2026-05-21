@@ -12,6 +12,7 @@ directly compared to experimental RCF film data.
 ✓ 12/12 physics validation tests passing
 ✓ Reproducible, self-documenting run directories
 ✓ CLI + GUI workflows
+✓ Python API (pip install prad)
 ✓ Re-render without re-tracing particles
 ```
 
@@ -51,6 +52,17 @@ This tool runs the **full relativistic Boris orbit**, so you can:
 
 ---
 
+## Prerequisites
+
+| Dependency | Purpose | Install |
+|---|---|---|
+| Rust (stable) | Build the engine | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
+| `glslangValidator` | GLSL → SPIR-V shader compilation | `brew install glslang` |
+| MoltenVK (macOS) | Vulkan over Metal | `brew install molten-vk` |
+| Python 3.9+ | Validation suite, Python API | system or `pyenv` |
+
+---
+
 ## Quick start
 
 ```bash
@@ -77,6 +89,48 @@ export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
 ```
 
 See [docs/quickstart.md](docs/quickstart.md) for the full install walkthrough.
+
+---
+
+## Python API
+
+`prad` is a Python wrapper around the engine. Install it with pip:
+
+```bash
+pip install prad
+```
+
+Run a simulation and get results as numpy arrays in three lines:
+
+```python
+import prad
+
+result = prad.run(
+    "data/zpinch.bfld",
+    energy_MeV=14.7,
+    n_particles=200_000,
+    source_distance_mm=80.0,
+    detector_distance_mm=100.0,
+)
+
+counts = result.raw_counts          # numpy uint32, 1024×1024
+print(result.diagnostics)           # hit_fraction, n_hits, …
+result.show()                       # display inline (Jupyter / matplotlib)
+```
+
+You can also pass a field constructed from a numpy array directly:
+
+```python
+import numpy as np, prad
+
+B = np.zeros((64, 64, 64, 3), dtype=np.float32)
+B[:, :, :, 2] = 5.0                # 5 T uniform Bz
+
+field = prad.Field.from_array(B, bounds_m=(-0.05, 0.05, -0.05, 0.05, -0.05, 0.05))
+result = prad.run(field, n_particles=100_000)
+```
+
+See [docs/python_api.md](docs/python_api.md) for the full API reference.
 
 ---
 
@@ -117,6 +171,29 @@ runs/zpinch_01/
 
 ---
 
+## Energy spectra
+
+Three proton source spectra are supported:
+
+| Mode | Deck field | Typical use |
+|---|---|---|
+| Monoenergetic | `energy_MeV` | D–T fusion protons (14.7 MeV), accelerator beams |
+| Gaussian spread | `energy_spread_percent` | Slightly impure mono sources, calibration |
+| Exponential / TNSA | `temperature_MeV`, `cutoff_mev` | Laser-accelerated proton sources |
+
+```toml
+# TNSA example
+[source]
+temperature_MeV = 3.0
+cutoff_mev      = 40.0
+n_particles     = 200000
+```
+
+All three modes feed into the same relativistic Boris integrator — `u = γv` is computed
+exactly regardless of the drawn energy. See [docs/spectra.md](docs/spectra.md) for details.
+
+---
+
 ## Parameter sweeps
 
 ```bash
@@ -135,6 +212,30 @@ proton_tracer sweep zpinch.toml \
 ```
 
 Output: `runs/sweep_001/` with one run directory per point and a live `sweep_manifest.json`.
+
+---
+
+## Performance
+
+Measured on Apple M4 (prad v0.3.0):
+
+| Field | 100,000 particles | 1,000,000 particles |
+|---|---|---|
+| zero field | 0.34 s | 1.87 s |
+| z-pinch | 0.31 s | 1.88 s |
+| kink | 0.35 s | 1.92 s |
+| sausage | 0.32 s | 1.91 s |
+
+Peak step throughput: **9.0 B steps/s**.
+
+**vs PlasmaPy** (10,000 particles, uniform Bz = 1 T, matched conditions):
+
+| | PlasmaPy (CPU) | prad (GPU) |
+|---|---|---|
+| Wall time | 42.8 s | 0.20 s |
+| At-scale speedup (1 M particles) | — | ≈ 2280× |
+
+See [docs/benchmark.md](docs/benchmark.md) to reproduce these numbers.
 
 ---
 
@@ -158,12 +259,15 @@ reproducibility, and 60 MeV relativistic momentum initialisation (γ ≈ 1.064).
 | Doc | Contents |
 |---|---|
 | [docs/quickstart.md](docs/quickstart.md) | Full install → first run walkthrough |
+| [docs/python_api.md](docs/python_api.md) | Python API reference (`prad.run`, `Field`, `RunResult`) |
 | [docs/geometry.md](docs/geometry.md) | Coordinate system, detector geometry, source types |
+| [docs/spectra.md](docs/spectra.md) | Mono, Gaussian, and TNSA energy spectra |
 | [docs/input_decks.md](docs/input_decks.md) | TOML schema, all fields, `--set` overrides |
 | [docs/run_artifacts.md](docs/run_artifacts.md) | Run directory anatomy and reproducibility |
 | [docs/file_formats.md](docs/file_formats.md) | `.bfld`, binary count formats, metadata schema |
 | [docs/rendering.md](docs/rendering.md) | Counts → PNG pipeline, re-render without GPU |
 | [docs/sweeps.md](docs/sweeps.md) | Parameter sweeps, syntax, sweep manifest |
+| [docs/benchmark.md](docs/benchmark.md) | Throughput scaling, physics sanity cases, PlasmaPy comparison |
 | [docs/validation.md](docs/validation.md) | Physics test descriptions and tolerances |
 | [docs/gui.md](docs/gui.md) | Deck launcher workflow |
 | [docs/limitations.md](docs/limitations.md) | Honest constraints and known gaps |
@@ -172,4 +276,23 @@ reproducibility, and 60 MeV relativistic momentum initialisation (γ ≈ 1.064).
 
 ## License
 
-See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## Citation
+
+If you use prad in published work, please cite:
+
+```bibtex
+@software{dolezal2026prad,
+  author       = {Dolezal, Jonas},
+  title        = {{prad}: {GPU}-accelerated relativistic proton radiography},
+  year         = {2026},
+  version      = {0.3.0},
+  url          = {https://github.com/JonasDolezal07/gpu-proton-radiography},
+  license      = {MIT},
+}
+```
+
+A `CITATION.cff` file is also provided for automated citation tooling (GitHub "Cite this repository").
