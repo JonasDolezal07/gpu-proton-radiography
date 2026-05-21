@@ -2245,6 +2245,87 @@ write_png = true
 write_metadata = true
 "#;
 
+/// Headless batch run: bypasses winit entirely (no EventLoop, no display server required).
+/// Used on Linux servers or any environment without a display.
+fn run_batch_headless(
+    args: CliArgs,
+    run_dir: Option<run_dir::RunDir>,
+    run_meta: Option<run_dir::RunMetadata>,
+    argv: Vec<String>,
+) -> Result<()> {
+    let vulkan = Arc::new(VulkanContext::new_headless()?);
+    log::info!("Vulkan initialized (headless): {}", vulkan.device_name());
+
+    let renderer = Renderer::new_headless(vulkan.clone())?;
+    log::info!("Renderer created (headless)");
+
+    let mut app = App::new(args, run_dir, run_meta, argv);
+    app.vulkan = Some(vulkan.clone());
+    app.renderer = Some(renderer);
+
+    // Update metadata with GPU info
+    if let Some(meta) = &mut app.run_metadata {
+        meta.hardware.gpu = Some(vulkan.device_name().to_string());
+        meta.hardware.vulkan_api_version = Some(vulkan.vulkan_api_version());
+        if let Some(rd) = &app.run_dir {
+            let _ = rd.write_metadata(meta);
+        }
+    }
+
+    app.load_simulation().map_err(|e| {
+        log::error!("Failed to load simulation: {}", e);
+        e
+    })?;
+
+    app.renderer.as_mut().unwrap().start_simulation();
+    log::info!("Simulation started");
+
+    loop {
+        match app.renderer.as_mut().unwrap().run_compute_step() {
+            Ok(true)  => break,
+            Ok(false) => {}
+            Err(e)    => return Err(e),
+        }
+    }
+
+    let wall_s = app.run_start.map(|t| t.elapsed().as_secs_f64()).unwrap_or(0.0);
+    log::info!("Simulation complete in {:.2}s", wall_s);
+
+    if app.run_dir.is_some() {
+        if let (Some(renderer), Some(run_dir), Some(run_meta)) =
+            (&app.renderer, &app.run_dir, &mut app.run_metadata)
+        {
+            finalize_run_dir_export(renderer, run_dir, run_meta, &app.png_cfg, wall_s);
+            run_dir.write_metadata(run_meta)?;
+        }
+    } else {
+        // Legacy flat export (no run directory): CSV + PNG into output_dir
+        let config_name = app.config_path.as_ref()
+            .and_then(|p| std::path::Path::new(p).file_stem())
+            .and_then(|s| s.to_str())
+            .unwrap_or("output");
+
+        match app.export_to_output_dir(config_name) {
+            Ok(path) => log::info!("Exported to: {:?}", path),
+            Err(e)   => log::error!("Export failed: {}", e),
+        }
+        if let Some(renderer) = &app.renderer {
+            match renderer.export_detector_png(&app.output_dir, &app.png_cfg) {
+                Ok(p)  => log::info!("PNG exported to: {:?}", p),
+                Err(e) => log::error!("Failed to export PNG: {}", e),
+            }
+        }
+    }
+
+    // Cleanup GPU resources before drop
+    if let Some(renderer) = &mut app.renderer {
+        renderer.cleanup();
+    }
+
+    log::info!("Headless batch run complete");
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let argv: Vec<String> = std::env::args().collect();
     let subcommand = argv.get(1).map(|s| s.as_str());
@@ -2316,6 +2397,14 @@ fn main() -> Result<()> {
     }
     if args.batch_mode && run_dir.is_none() {
         log::info!("Batch mode — output: {:?}", args.output_dir);
+    }
+
+    // Headless batch: bypass winit entirely (no display server needed).
+    // The `run` subcommand always sets batch_mode = true; legacy `--batch` flag also qualifies.
+    if args.batch_mode {
+        let result = run_batch_headless(args, run_dir, run_meta, argv);
+        if let Err(e) = &result { log::error!("Batch run failed: {}", e); }
+        return result;
     }
 
     let event_loop = EventLoop::new()?;

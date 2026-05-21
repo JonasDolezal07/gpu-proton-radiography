@@ -344,10 +344,10 @@ struct FrameData {
 
 pub struct Renderer {
     allocator: Arc<Mutex<Allocator>>,
-    swapchain: Swapchain,
+    swapchain: Option<Swapchain>,
 
     // Graphics resources
-    detector_pipeline: DetectorPipeline,
+    detector_pipeline: Option<DetectorPipeline>,
     detector_texture: DetectorTexture,
     display_params: DisplayParams,
     detector_3d_params: Detector3DParams,
@@ -490,8 +490,8 @@ impl Renderer {
 
         Ok(Self {
             allocator,
-            swapchain,
-            detector_pipeline,
+            swapchain: Some(swapchain),
+            detector_pipeline: Some(detector_pipeline),
             detector_texture,
             display_params,
             detector_3d_params,
@@ -500,6 +500,101 @@ impl Renderer {
             marker_pipeline: None,  // Created when field is uploaded
             source_marker_params: MarkerParams::default(),
             egui_renderer: None,  // Created on demand
+            compute_pipeline: None,
+            particle_buffer: None,
+            field_texture: None,
+            e_field_texture: None,
+            detector_buffer: None,
+            sim_params,
+            particle_count: 0,
+            is_running: false,
+            total_hits: 0,
+            frame_count: 0,
+            is_shutting_down: false,
+            diagnostics_logged: false,
+            benchmark_reported: false,
+            source_type: String::new(),
+            particle_energy_mev: 0.0,
+            png_cfg: PngExportConfig::default(),
+            detector_response: DetectorResponseConfig::default(),
+            gpu_timing,
+            frames,
+            current_frame: 0,
+            ctx,
+        })
+    }
+
+    /// Create a renderer suitable for headless batch runs (no swapchain, no graphics pipeline).
+    pub fn new_headless(ctx: Arc<VulkanContext>) -> Result<Self> {
+        let allocator = Allocator::new(&AllocatorCreateDesc {
+            instance: ctx.instance().clone(),
+            device: ctx.device().clone(),
+            physical_device: ctx.physical_device(),
+            debug_settings: Default::default(),
+            buffer_device_address: false,
+            allocation_sizes: Default::default(),
+        }).context("Failed to create GPU allocator (headless)")?;
+
+        let allocator = Arc::new(Mutex::new(allocator));
+
+        // Create detector texture — compute shader writes hit counts into it as a storage image.
+        let detector_texture = DetectorTexture::new(
+            ctx.device(),
+            &allocator,
+            DETECTOR_RESOLUTION,
+            DETECTOR_RESOLUTION,
+        )?;
+
+        // Clear and transition to SHADER_READ_ONLY_OPTIMAL (the compute barrier expects this as
+        // the initial layout before transitioning to GENERAL for writes).
+        Self::init_detector_texture(&ctx, &detector_texture)?;
+
+        // Frame synchronisation objects (needed by run_compute_step)
+        let frames = Self::create_frame_data(ctx.device(), ctx.command_pool())?;
+
+        let sim_params = SimParams {
+            dt: 1e-12,
+            q_over_m: 9.58e7,
+            n_particles: 0,
+            steps_per_dispatch: STEPS_PER_DISPATCH,
+            max_steps: 25_000,
+            _pad_a: 0,
+            _pad_b: 0,
+            _pad_c: 0,
+            field_min: [0.0; 4],
+            field_max: [1.0, 1.0, 1.0, 0.0],
+            detector_pos:    [0.0, 0.0, 1.0, 0.0],
+            detector_normal: [1.0, 0.0, 0.0, 0.0],
+            detector_extent: [0.25, 0.25, 0.0, 0.0],
+            detector_up:     [0.0, 1.0, 0.0, 0.0],
+        };
+
+        let display_params = DisplayParams {
+            max_count: 100.0,
+            gamma: 0.5,
+            exposure: 1.0,
+            use_log_scale: 1,
+            colormap_mode: 0,
+        };
+
+        let gpu_timing = GpuTiming::new(
+            ctx.device(),
+            ctx.timestamp_period(),
+            ctx.timestamps_supported(),
+        )?;
+
+        Ok(Self {
+            allocator,
+            swapchain: None,
+            detector_pipeline: None,
+            detector_texture,
+            display_params,
+            detector_3d_params: Detector3DParams::default(),
+            volume_pipeline: None,
+            volume_params: VolumeParams::default(),
+            marker_pipeline: None,
+            source_marker_params: MarkerParams::default(),
+            egui_renderer: None,
             compute_pipeline: None,
             particle_buffer: None,
             field_texture: None,
@@ -715,37 +810,41 @@ impl Renderer {
         self.volume_params.volume_min = self.sim_params.field_min;
         self.volume_params.volume_max = self.sim_params.field_max;
 
-        // Create volume pipeline if not already created
+        // Create volume pipeline if not already created (only in windowed mode)
         if self.volume_pipeline.is_none() {
-            const VERT_SHADER: &[u8] = include_bytes!("../../../shaders/fullscreen.vert.spv");
-            const VOLUME_FRAG: &[u8] = include_bytes!("../../../shaders/volume.frag.spv");
+            if let Some(dp) = &self.detector_pipeline {
+                const VERT_SHADER: &[u8] = include_bytes!("../../../shaders/fullscreen.vert.spv");
+                const VOLUME_FRAG: &[u8] = include_bytes!("../../../shaders/volume.frag.spv");
 
-            let volume_pipeline = VolumePipeline::new(
-                device,
-                self.detector_pipeline.render_pass(),
-                VERT_SHADER,
-                VOLUME_FRAG,
-            )?;
+                let volume_pipeline = VolumePipeline::new(
+                    device,
+                    dp.render_pass(),
+                    VERT_SHADER,
+                    VOLUME_FRAG,
+                )?;
 
-            // Update descriptor with field texture view
-            volume_pipeline.update_descriptor(device, self.field_texture.as_ref().unwrap().view);
+                // Update descriptor with field texture view
+                volume_pipeline.update_descriptor(device, self.field_texture.as_ref().unwrap().view);
 
-            self.volume_pipeline = Some(volume_pipeline);
+                self.volume_pipeline = Some(volume_pipeline);
+            }
         }
 
-        // Create marker pipeline if not already created
+        // Create marker pipeline if not already created (only in windowed mode)
         if self.marker_pipeline.is_none() {
-            const MARKER_VERT: &[u8] = include_bytes!("../../../shaders/marker.vert.spv");
-            const MARKER_FRAG: &[u8] = include_bytes!("../../../shaders/marker.frag.spv");
+            if let Some(dp) = &self.detector_pipeline {
+                const MARKER_VERT: &[u8] = include_bytes!("../../../shaders/marker.vert.spv");
+                const MARKER_FRAG: &[u8] = include_bytes!("../../../shaders/marker.frag.spv");
 
-            let marker_pipeline = MarkerPipeline::new(
-                device,
-                self.detector_pipeline.render_pass(),
-                MARKER_VERT,
-                MARKER_FRAG,
-            )?;
+                let marker_pipeline = MarkerPipeline::new(
+                    device,
+                    dp.render_pass(),
+                    MARKER_VERT,
+                    MARKER_FRAG,
+                )?;
 
-            self.marker_pipeline = Some(marker_pipeline);
+                self.marker_pipeline = Some(marker_pipeline);
+            }
         }
 
         if self.volume_pipeline.is_some() {
@@ -1000,7 +1099,10 @@ impl Renderer {
         }
 
         let device = self.ctx.device();
-        let render_pass = self.detector_pipeline.render_pass();
+        let render_pass = match &self.detector_pipeline {
+            Some(dp) => dp.render_pass(),
+            None => return Ok(()), // headless — no GUI
+        };
 
         const EGUI_VERT: &[u8] = include_bytes!("../../../shaders/egui.vert.spv");
         const EGUI_FRAG: &[u8] = include_bytes!("../../../shaders/egui.frag.spv");
@@ -1140,7 +1242,10 @@ impl Renderer {
         let view = Mat4::look_at_rh(camera_pos, vol_center, Vec3::Y);
 
         // Create projection matrix
-        let aspect = self.swapchain.extent.width as f32 / self.swapchain.extent.height as f32;
+        let (sw, sh) = self.swapchain.as_ref()
+            .map(|sc| (sc.extent.width, sc.extent.height))
+            .unwrap_or((1280, 720));
+        let aspect = sw as f32 / sh as f32;
         let proj = Mat4::perspective_rh(
             45.0_f32.to_radians(),
             aspect,
@@ -1297,8 +1402,8 @@ impl Renderer {
         let frame = &self.frames[self.current_frame];
 
         unsafe {
-            // Acquire next swapchain image
-            let (image_index, suboptimal) = match self.swapchain.acquire_next_image(frame.image_available) {
+            // Acquire next swapchain image (panics if called headlessly — programmer error)
+            let (image_index, suboptimal) = match self.swapchain.as_mut().unwrap().acquire_next_image(frame.image_available) {
                 Ok(result) => result,
                 Err(_) => return Ok(true), // Need resize
             };
@@ -1330,20 +1435,22 @@ impl Renderer {
                 self.gpu_timing.end_compute(device, cmd);
             }
 
+            let swapchain_extent = self.swapchain.as_ref().unwrap().extent;
+
             // Begin render pass
             self.gpu_timing.begin_render(device, cmd);
-            self.detector_pipeline.begin_render_pass(
+            self.detector_pipeline.as_ref().unwrap().begin_render_pass(
                 device,
                 cmd,
                 image_index as usize,
-                self.swapchain.extent,
+                swapchain_extent,
             );
 
             // Render detector first (opaque, writes depth)
-            self.detector_pipeline.draw(
+            self.detector_pipeline.as_ref().unwrap().draw(
                 device,
                 cmd,
-                self.swapchain.extent,
+                swapchain_extent,
                 &self.detector_3d_params,
             );
 
@@ -1355,7 +1462,7 @@ impl Renderer {
                     volume_pipeline.record_commands(
                         device,
                         cmd,
-                        self.swapchain.extent,
+                        swapchain_extent,
                         &self.volume_params,
                     );
                 }
@@ -1365,7 +1472,7 @@ impl Renderer {
                     marker_pipeline.draw(
                         device,
                         cmd,
-                        self.swapchain.extent,
+                        swapchain_extent,
                         &self.source_marker_params,
                     );
                 }
@@ -1381,7 +1488,7 @@ impl Renderer {
             }
 
             // End render pass
-            self.detector_pipeline.end_render_pass(device, cmd);
+            self.detector_pipeline.as_ref().unwrap().end_render_pass(device, cmd);
             self.gpu_timing.end_render(device, cmd);
 
             device.end_command_buffer(cmd)?;
@@ -1406,7 +1513,7 @@ impl Renderer {
             )?;
 
             // Present
-            let suboptimal = self.swapchain.present(
+            let suboptimal = self.swapchain.as_mut().unwrap().present(
                 self.ctx.graphics_queue(),
                 image_index,
                 frame.render_finished,
@@ -1583,7 +1690,7 @@ impl Renderer {
             self.ctx.device().device_wait_idle()?;
         }
 
-        self.swapchain.recreate(
+        self.swapchain.as_mut().unwrap().recreate(
             self.ctx.instance(),
             self.ctx.device(),
             self.ctx.physical_device(),
@@ -1595,14 +1702,14 @@ impl Renderer {
         )?;
 
         // Recreate framebuffers for new swapchain (includes depth buffer)
-        self.detector_pipeline.recreate_framebuffers(
+        self.detector_pipeline.as_mut().unwrap().recreate_framebuffers(
             self.ctx.device(),
             &self.allocator,
-            self.swapchain.image_views(),
-            self.swapchain.extent,
+            self.swapchain.as_ref().unwrap().image_views(),
+            self.swapchain.as_ref().unwrap().extent,
         )?;
 
-        let actual = self.swapchain.extent;
+        let actual = self.swapchain.as_ref().unwrap().extent;
         let extent_mismatch = actual.width != width || actual.height != height;
         log::info!("Swapchain resized to {}x{}", actual.width, actual.height);
         Ok(extent_mismatch)
@@ -2179,7 +2286,9 @@ impl Renderer {
         }
 
         // Clean up graphics pipeline (includes depth buffer)
-        self.detector_pipeline.cleanup(device, &self.allocator);
+        if let Some(mut dp) = self.detector_pipeline.take() {
+            dp.cleanup(device, &self.allocator);
+        }
 
         // Clean up GPU timing
         self.gpu_timing.cleanup(device);
@@ -2193,6 +2302,8 @@ impl Renderer {
             }
         }
 
-        self.swapchain.cleanup(device);
+        if let Some(mut sc) = self.swapchain.take() {
+            sc.cleanup(device);
+        }
     }
 }

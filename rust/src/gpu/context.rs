@@ -29,6 +29,160 @@ impl VulkanContext {
         unsafe { Self::init(window) }
     }
 
+    /// Create a Vulkan context without any surface or display server.
+    /// Safe to call on headless Linux servers (no DISPLAY/WAYLAND_DISPLAY needed).
+    pub fn new_headless() -> Result<Self> {
+        unsafe { Self::init_headless() }
+    }
+
+    unsafe fn init_headless() -> Result<Self> {
+        let entry = Entry::load()
+            .context("Failed to load Vulkan. Is the Vulkan SDK installed?")?;
+
+        let app_info = vk::ApplicationInfo {
+            api_version: vk::make_api_version(0, 1, 3, 0),
+            ..Default::default()
+        };
+
+        let layer_names: Vec<CString> = vec![];
+        let layer_ptrs: Vec<*const i8> = layer_names.iter().map(|n| n.as_ptr()).collect();
+
+        // Headless: no surface extensions needed
+        let extension_names: Vec<*const i8> = vec![];
+
+        // No portability enumeration flags for headless
+        let create_flags = vk::InstanceCreateFlags::empty();
+
+        let instance_info = vk::InstanceCreateInfo {
+            p_application_info: &app_info,
+            enabled_layer_count: layer_ptrs.len() as u32,
+            pp_enabled_layer_names: layer_ptrs.as_ptr(),
+            enabled_extension_count: extension_names.len() as u32,
+            pp_enabled_extension_names: extension_names.as_ptr(),
+            flags: create_flags,
+            ..Default::default()
+        };
+
+        let instance = entry
+            .create_instance(&instance_info, None)
+            .context("Failed to create Vulkan instance (headless)")?;
+
+        // Create surface_loader even though surface is null — callers may use the loader
+        let surface_loader = khr::surface::Instance::new(&entry, &instance);
+        let surface = vk::SurfaceKHR::null();
+
+        let (physical_device, device_name) = Self::pick_physical_device(&instance)?;
+        log::info!("Selected GPU (headless): {}", device_name);
+
+        let (graphics_family, compute_family) =
+            Self::find_queue_families_headless(&instance, physical_device)?;
+
+        let (device, graphics_queue, compute_queue) =
+            Self::create_device_headless(&instance, physical_device, graphics_family, compute_family)?;
+
+        let pool_info = vk::CommandPoolCreateInfo {
+            queue_family_index: compute_family,
+            flags: vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER,
+            ..Default::default()
+        };
+        let command_pool = device.create_command_pool(&pool_info, None)?;
+
+        Ok(Self {
+            _entry: entry,
+            instance,
+            surface_loader,
+            surface,
+            physical_device,
+            device,
+            compute_queue,
+            graphics_queue,
+            compute_queue_family: compute_family,
+            graphics_queue_family: graphics_family,
+            device_name,
+            command_pool,
+        })
+    }
+
+    unsafe fn find_queue_families_headless(
+        instance: &ash::Instance,
+        device: vk::PhysicalDevice,
+    ) -> Result<(u32, u32)> {
+        let families = instance.get_physical_device_queue_family_properties(device);
+
+        let mut graphics: Option<u32> = None;
+        let mut compute:  Option<u32> = None;
+
+        for (i, family) in families.iter().enumerate() {
+            let i = i as u32;
+            if family.queue_flags.contains(vk::QueueFlags::GRAPHICS) {
+                graphics = Some(i);
+            }
+            if family.queue_flags.contains(vk::QueueFlags::COMPUTE) {
+                compute = Some(i);
+            }
+        }
+
+        let compute = compute.context("No compute queue family found")?;
+        // Use compute queue for both if no graphics queue is available
+        let graphics = graphics.unwrap_or(compute);
+
+        Ok((graphics, compute))
+    }
+
+    unsafe fn create_device_headless(
+        instance: &ash::Instance,
+        physical_device: vk::PhysicalDevice,
+        graphics_family: u32,
+        compute_family: u32,
+    ) -> Result<(ash::Device, vk::Queue, vk::Queue)> {
+        let priorities = [1.0f32];
+
+        let mut queue_infos = vec![vk::DeviceQueueCreateInfo {
+            queue_family_index: compute_family,
+            queue_count: 1,
+            p_queue_priorities: priorities.as_ptr(),
+            ..Default::default()
+        }];
+
+        // Add graphics queue if it is a different family
+        if graphics_family != compute_family {
+            queue_infos.push(vk::DeviceQueueCreateInfo {
+                queue_family_index: graphics_family,
+                queue_count: 1,
+                p_queue_priorities: priorities.as_ptr(),
+                ..Default::default()
+            });
+        }
+
+        // Headless: no VK_KHR_swapchain needed.
+        // On macOS MoltenVK, portability_subset is still required; on Linux it is not.
+        let device_extensions: Vec<*const i8> = {
+            #[cfg(target_os = "macos")]
+            { vec![ash::khr::portability_subset::NAME.as_ptr()] }
+            #[cfg(not(target_os = "macos"))]
+            { vec![] }
+        };
+
+        let device_info = vk::DeviceCreateInfo {
+            queue_create_info_count: queue_infos.len() as u32,
+            p_queue_create_infos: queue_infos.as_ptr(),
+            enabled_extension_count: device_extensions.len() as u32,
+            pp_enabled_extension_names: if device_extensions.is_empty() {
+                std::ptr::null()
+            } else {
+                device_extensions.as_ptr()
+            },
+            ..Default::default()
+        };
+
+        let device = instance.create_device(physical_device, &device_info, None)?;
+
+        let graphics_queue = device.get_device_queue(graphics_family, 0);
+        let compute_queue  = device.get_device_queue(compute_family, 0);
+
+        Ok((device, graphics_queue, compute_queue))
+    }
+
     unsafe fn init(window: &Arc<Window>) -> Result<Self> {
         // Load Vulkan dynamically
         let entry = Entry::load()
@@ -388,7 +542,11 @@ impl Drop for VulkanContext {
             self.device.device_wait_idle().ok();
             self.device.destroy_command_pool(self.command_pool, None);
             self.device.destroy_device(None);
-            self.surface_loader.destroy_surface(self.surface, None);
+            // Only destroy the surface when it is non-null (windowed mode).
+            // Headless mode stores vk::SurfaceKHR::null().
+            if self.surface != vk::SurfaceKHR::null() {
+                self.surface_loader.destroy_surface(self.surface, None);
+            }
             self.instance.destroy_instance(None);
         }
     }
