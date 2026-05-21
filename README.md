@@ -17,6 +17,8 @@ detector-response and experimental-geometry modelling.
 ✓ Re-render without re-tracing particles
 ```
 
+**Validated on:** macOS Apple Silicon / MoltenVK · Ubuntu 22.04 / NVIDIA RTX 4090 (driver 550, headless)
+
 ---
 
 ## Example radiographs

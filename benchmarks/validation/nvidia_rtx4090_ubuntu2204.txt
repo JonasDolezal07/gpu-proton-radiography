@@ -1,0 +1,44 @@
+prad Linux / NVIDIA Validation Record
+======================================
+
+Date:           2026-05-21
+prad version:   0.3.0
+Commit:         966e757
+
+Hardware
+--------
+GPU:            NVIDIA GeForce RTX 4090 (24 GB VRAM)
+NVIDIA driver:  550.127.05
+CUDA version:   12.4
+
+Software
+--------
+OS:             Ubuntu 22.04.5 LTS
+Kernel:         Linux 6.8.0-59-generic x86_64
+Rust:           1.95.0 (2026-04-14)
+Python:         3.11 (system)
+
+Validation
+----------
+Command:        python3 validate.py --build
+Result:         12 / 12 tests passing
+
+  test1_regression              PASS   (B-only regression, z-pinch)
+  test2_zero_fields             PASS   (straight-line projection)
+  test3_uniform_E               PASS   (parabolic deflection, sign + magnitude)
+  test4_B_energy_conservation   PASS   (14.7000 MeV recovered, std/mean = 7.5e-13)
+  test5_pencil_tilted           PASS   (2° tilt, rel_err = 0.000)
+  test6_point_full_cone         PASS   (hit fraction = 1.000)
+  test7_disk_spatial_spread     PASS   (std = 15.01 mm, expected 15.00 mm)
+  test8_energy_spread           PASS   (5.00% Gaussian spread reproduced)
+  test9_blur_conservation       PASS   (count conservation + spot widening)
+  test10_poisson_reproducibility PASS  (same seed → identical, diff seed → different)
+  test11_exponential_spectrum   PASS   (mean = 3.587 MeV ≈ T = 3.0 MeV)
+  test12_relativistic_60mev     PASS   (60.0000 MeV, rel_std = 1.7e-13)
+
+Notes
+-----
+This run used the headless Vulkan compute path (no display server required).
+Batch mode bypasses winit entirely; VulkanContext::new_headless() creates a
+compute-capable Vulkan instance without surface or swapchain extensions.
+The GUI subcommand is not validated here (requires a display).
