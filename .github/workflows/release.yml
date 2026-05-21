@@ -32,13 +32,12 @@ jobs:
         run: pip install build wheel
 
       - name: Set version from git tag
-        run: python3 -c "
-import re
-tag = '${{ github.ref_name }}'.lstrip('v').replace('-rc', 'rc')
-s = open('pyproject.toml').read()
-open('pyproject.toml', 'w').write(re.sub(r'(?m)^version = .*', f'version = \"{tag}\"', s))
-print('version set to', tag)
-"
+        run: |
+          VER="${{ github.ref_name }}"
+          VER="${VER#v}"
+          VER="${VER//-rc/rc}"
+          sed -i '' "s/^version = .*/version = \"$VER\"/" pyproject.toml
+          echo "Version → $VER"
 
       - name: Build Rust binary
         env:
