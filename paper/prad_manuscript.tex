@@ -470,25 +470,45 @@ step; PlasmaPy is a broader plasma-physics toolkit and is not being replaced by
   \centering
   % PLACEHOLDER — generate with scripts/fig_paraxial_breakdown.py
   \includegraphics[width=\linewidth]{figures/paraxial_breakdown}
-  \caption{Paraxial vs full-orbit radiographs as field amplitude is increased.
-  (a--c) Paraxial deflection map. (d--f) Full-orbit \texttt{prad} result.
-  Rows: $B_0 = 1, 5, 20$\,T. At $20$\,T the paraxial model misplaces caustics
-  by [X]\% and over-predicts peak fluence by [Y]\%.
+  \caption{Paraxial path-integral model (top row, a--c) vs full-orbit Boris
+  integrator (bottom row, d--f) for the kink instability field at three amplitude
+  fractions (5\%, 20\%, 50\% of $B_\mathrm{max} = 40$\,T).
+  Labels give the maximum paraxial deflection angle $\theta_\mathrm{max}$.
+  The ratio ``par/full peak'' compares the peak counts in the paraxial and
+  full-orbit images using a shared colour normalisation.
+  At 5\% ($\theta_\mathrm{max} \approx 0.2$\,rad) the paraxial model already
+  over-predicts the peak fluence by $2.1\times$ and produces caustic patterns
+  absent from the full-orbit solution.
+  At 20\% and 50\% the paraxial prediction is qualitatively incorrect, with
+  unphysical streaks spanning the entire detector while the full-orbit result
+  shows the true helical kink signature.
   }
   \label{fig:paraxial}
 \end{figure}
 
 A central motivation for full-orbit modelling is that paraxial approximations
 fail in strong-field regimes common in pulsed-power and high-intensity laser experiments.
-Figure~\ref{fig:paraxial} compares a paraxial deflection-map calculation to
-\texttt{prad}'s full-orbit result for a z-pinch field at three field amplitudes
-(1\,T, 5\,T, 20\,T; $B_0$ scaled uniformly). At low amplitude the two methods agree.
-At $20$\,T the paraxial model misplaces the central caustic by [X]\% and
-over-predicts the peak fluence by [Y]\%, demonstrating the regime where full-orbit
-modelling is required.
-
-\emph{[This section will be completed with computed figures from
-\texttt{scripts/fig\_paraxial\_breakdown.py}.]}
+Figure~\ref{fig:paraxial} compares a straight-line path-integral (paraxial) model to
+\texttt{prad}'s full-orbit Boris result for the kink instability field at three
+amplitude fractions. The paraxial model integrates the Lorentz force along unperturbed
+straight-line trajectories:
+\begin{equation}
+\delta y = -\frac{q}{p_0}\int B_z(x, y_0, z_0)\,(x_\mathrm{det}-x)\,\mathrm{d}x, \quad
+\delta z = \frac{q}{p_0}\int B_y(x, y_0, z_0)\,(x_\mathrm{det}-x)\,\mathrm{d}x.
+\label{eq:paraxial}
+\end{equation}
+Even at $\theta_\mathrm{max} \approx 0.2$\,rad (5\% amplitude), the paraxial model
+over-predicts the peak count density by $2.1\times$ and predicts a star-shaped
+caustic structure that is absent in the full-orbit result. The kink field is helical:
+the true particle trajectory curves through the helical field and experiences
+cancelling forces that the straight-line approximation cannot capture.
+At $\theta_\mathrm{max} \approx 0.9$\,rad (20\%), the paraxial prediction is
+qualitatively wrong, with streaks spanning $\pm250$\,mm while the full-orbit shows
+the emerging kink pattern. The paraxial peak-to-full-orbit ratio falls to 0.31 at
+20\% and 0.05 at 50\% amplitude, confirming complete breakdown.
+This demonstrates that full-orbit integration is necessary not only in the
+classically strong-field regime ($\theta \sim 1$\,rad) but already at moderate
+deflection angles for fields with complex helical topology.
 
 %% ============================================================
 \section{Energy spectra and parameter sweeps}
@@ -498,33 +518,47 @@ modelling is required.
   \centering
   % PLACEHOLDER — generate with scripts/fig_spectra.py
   \includegraphics[width=\linewidth]{figures/spectra_comparison}
-  \caption{Synthetic radiographs for (a) monoenergetic 14.7\,MeV,
-           (b) Gaussian 14.7\,MeV $\pm 5\%$,
-           (c) TNSA exponential $T = 3$\,MeV, $E_\mathrm{cut} = 40$\,MeV.
-           Same z-pinch field and geometry. TNSA broadens the caustic due to
-           chromatic path-length differences.}
+  \caption{Synthetic radiographs of the z-pinch field
+           ($B_\mathrm{max} = 37$\,T, parallel beam, 500\,k particles)
+           for three proton source spectra: (a) monoenergetic 14.7\,MeV;
+           (b) Gaussian 14.7\,MeV $\pm 5\%$; (c) TNSA exponential
+           $T = 3$\,MeV, $E_\mathrm{cut} = 40$\,MeV.
+           The TNSA spectrum produces a more compact, intense central pattern
+           because its lower mean energy ($\langle E\rangle \approx T = 3$\,MeV)
+           corresponds to higher magnetic rigidity sensitivity and stronger
+           inward deflection. The monoenergetic and Gaussian images are nearly
+           identical at $\pm5\%$ spread; the difference becomes visible only
+           at larger spreads.}
   \label{fig:spectra}
 \end{figure}
 
 Figure~\ref{fig:spectra} illustrates how the three supported energy distributions
-affect the radiograph of a z-pinch field. The monoenergetic and Gaussian cases
-produce sharp caustics; the TNSA exponential spectrum introduces chromatic blurring
-proportional to the energy spread. This effect is physically significant in
-laser-plasma experiments where source energy spread is large.
+affect the radiograph of the z-pinch field. The monoenergetic and Gaussian (5\%)
+cases produce nearly identical caustic patterns, demonstrating that moderate energy
+spread has minor effect on the radiograph morphology for fusion-proton sources.
+The TNSA exponential spectrum ($T = 3$\,MeV, mean $\langle E\rangle \approx T$)
+produces a qualitatively different pattern: the lower mean energy corresponds to
+lower magnetic rigidity ($p_0 \propto \sqrt{E(E + 2m_pc^2)}$) and hence stronger
+deflection, pulling more particles into the central caustic.
 
-Parameter sweeps make it straightforward to study how the radiograph evolves with
-a continuously varying parameter. Figure~\ref{fig:sweep} shows a 10-point sweep
-over proton energy from 5\,MeV to 50\,MeV through the same field, illustrating
-the transition from non-relativistic ($\gamma \approx 1.005$ at 5\,MeV) to
-mildly relativistic ($\gamma \approx 1.053$ at 50\,MeV) dynamics.
+Figure~\ref{fig:sweep} shows a six-point energy sweep from 3\,MeV to 60\,MeV
+through the same z-pinch field. The beam pattern evolves from a diffuse halo with
+tangential jets at 3\,MeV (strong deflection, particles partially trapped near the
+field axis) through the characteristic D--T fusion-proton caustic at 14.7\,MeV,
+to a small, nearly undistorted disk at 60\,MeV where the proton magnetic rigidity
+is sufficient to pass nearly undeflected. The 1/p momentum scaling is evident across
+the sweep. At 60\,MeV ($\gamma = 1.064$) the $6\%$ relativistic mass correction is
+non-negligible; a non-relativistic code would systematically over-deflect these
+particles.
 
 \begin{figure}[h!]
   \centering
-  % PLACEHOLDER — generate with scripts/fig_energy_sweep.py
   \includegraphics[width=\linewidth]{figures/energy_sweep}
-  \caption{Energy sweep: radiographs at $E = 5, 10, 20, 30, 40, 50$\,MeV
-           through the same z-pinch field. Peak deflection decreases as $1/p$
-           with increasing momentum; the caustic sharpens.}
+  \caption{Energy sweep: z-pinch field, 300\,k particles, six proton kinetic energies.
+           Panel titles give $\gamma$ and $\beta$ for each energy.
+           Deflection decreases with increasing momentum ($\propto 1/p_0$).
+           At 3\,MeV the low-rigidity protons form tangential jets along the
+           field-axis direction; at 60\,MeV the beam passes nearly undistorted.}
   \label{fig:sweep}
 \end{figure}
 

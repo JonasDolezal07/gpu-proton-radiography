@@ -47,11 +47,20 @@ impl VulkanContext {
         let layer_names: Vec<CString> = vec![];
         let layer_ptrs: Vec<*const i8> = layer_names.iter().map(|n| n.as_ptr()).collect();
 
-        // Headless: no surface extensions needed
-        let extension_names: Vec<*const i8> = vec![];
+        // Headless: no surface extensions. On macOS/MoltenVK, portability
+        // enumeration is still required or vkCreateInstance returns
+        // VK_ERROR_INCOMPATIBLE_DRIVER.
+        #[allow(unused_mut)]
+        let mut extension_names: Vec<*const i8> = vec![];
+        #[cfg(target_os = "macos")]
+        extension_names.push(ash::khr::portability_enumeration::NAME.as_ptr());
 
-        // No portability enumeration flags for headless
-        let create_flags = vk::InstanceCreateFlags::empty();
+        let create_flags = {
+            #[cfg(target_os = "macos")]
+            { vk::InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR }
+            #[cfg(not(target_os = "macos"))]
+            { vk::InstanceCreateFlags::empty() }
+        };
 
         let instance_info = vk::InstanceCreateInfo {
             p_application_info: &app_info,

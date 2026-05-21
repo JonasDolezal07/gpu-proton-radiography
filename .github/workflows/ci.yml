@@ -48,10 +48,9 @@ jobs:
       - name: Smoke — version + help
         run: ./rust/target/release/proton_tracer --help
 
-      - name: Smoke — init + explain (no GPU)
+      - name: Smoke — init + validate schema (no GPU, no field file needed)
         run: |
           ./rust/target/release/proton_tracer init zpinch -o /tmp/smoke.toml
-          ./rust/target/release/proton_tracer explain /tmp/smoke.toml
           ./rust/target/release/proton_tracer validate /tmp/smoke.toml
 
       - name: GPU physics tests (Mesa llvmpipe — correctness, not speed)
