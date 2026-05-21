@@ -378,6 +378,17 @@ impl VulkanContext {
             .to_string_lossy()
             .into_owned();
 
+        println!("Selected Vulkan device: {}", name);
+        if name.to_lowercase().contains("llvmpipe") || name.to_lowercase().contains("softpipe") {
+            eprintln!(
+                "WARNING: prad is running on a software Vulkan renderer ({}).\n\
+                 This is ~100× slower than a real GPU and likely unintentional.\n\
+                 On Linux/NVIDIA, ensure DISPLAY is set (e.g. via Xvfb) and\n\
+                 VK_ICD_FILENAMES points to the NVIDIA ICD before running.",
+                name
+            );
+        }
+
         Ok((device, name))
     }
 

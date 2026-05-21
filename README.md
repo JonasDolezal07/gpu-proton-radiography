@@ -17,7 +17,12 @@ detector-response and experimental-geometry modelling.
 ✓ Re-render without re-tracing particles
 ```
 
-**Validated on:** macOS Apple Silicon / MoltenVK · Ubuntu 22.04 / NVIDIA RTX 4090 (driver 550, headless)
+## Tested platforms
+
+| Platform | GPU | Backend | Status |
+|---|---|---|---|
+| macOS Apple Silicon | Apple M4 | MoltenVK/Vulkan | Validation suite passing; ~9 B steps/s peak |
+| Ubuntu 22.04 Linux | NVIDIA RTX 4090 | NVIDIA Vulkan 1.3.277 | Validation suite passing; ~34 B steps/s peak |
 
 ---
 
@@ -241,6 +246,10 @@ is not being replaced by prad.
 |---|---|---|
 | Wall time | 42.8 s | 0.20 s |
 | At-scale speedup (1 M particles) | — | ≈ 2280× |
+
+Additional Linux/NVIDIA validation on an RTX 4090 reached ~34 B particle-steps/s
+on the benchmark configuration, corresponding to roughly ~2 M particles/s for
+the tested step budget. See `benchmarks/validation/nvidia_rtx4090_ubuntu2204.txt`.
 
 See [docs/benchmark.md](docs/benchmark.md) to reproduce these numbers.
 

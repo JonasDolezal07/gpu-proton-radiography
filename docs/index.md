@@ -47,12 +47,21 @@ hide:
 
     ---
 
-    ~9 billion relativistic Boris steps per second on Apple M4.
+    ~9 B steps/s on Apple M4 · ~34 B steps/s on NVIDIA RTX 4090.
     1M particles traced end-to-end in under 2 s on a laptop GPU.
 
     [:octicons-arrow-right-24: Benchmarks](benchmark.md)
 
 </div>
+
+---
+
+## Tested platforms
+
+| Platform | GPU | Backend | Status |
+|---|---|---|---|
+| macOS Apple Silicon | Apple M4 | MoltenVK/Vulkan | Validation suite passing; ~9 B steps/s peak |
+| Ubuntu 22.04 Linux | NVIDIA RTX 4090 | NVIDIA Vulkan 1.3.277 | Validation suite passing; ~34 B steps/s peak |
 
 ---
 
