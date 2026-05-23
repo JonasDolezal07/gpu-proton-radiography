@@ -6,8 +6,8 @@ hide:
 <div class="hero-header">
   <img src="images/logo_text.png" alt="prad" class="hero-logo-side" />
   <div class="hero-text">
-    <p><strong>Forward-model proton radiographs from measured or simulated plasma fields.</strong></p>
-    <p>Full relativistic Boris orbit — not a paraxial approximation. Runs on the GPU in seconds.</p>
+    <p><strong>GPU Proton Radiography — a forward model for laser-plasma and HEDP experiments.</strong></p>
+    <p>prad traces synthetic proton beams through measured or simulated electromagnetic fields and produces radiographs for direct comparison with experimental RCF data. Full relativistic Boris orbit — not a paraxial approximation. 10⁶ particles in under 2 seconds on a laptop GPU.</p>
     <div class="install-block">pip install prad</div>
   </div>
 </div>
@@ -159,19 +159,26 @@ path-integrated field topology — no paraxial assumptions.
 
 ## Why this tool?
 
-Proton radiography is sensitive to the path-integrated field, not just its peak value.
-The mapping from field structure to film pattern is nonlinear and depends on geometry —
-magnification, detector distance, source divergence.
+**Speed that changes what's practical.** The full-orbit Boris integrator runs 10⁶ particles
+in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. A matched CPU
+reference (PlasmaPy, single core) takes ~43 seconds at 10,000 particles — roughly 2000× slower
+at scale. That gap makes workflows practical that previously required paraxial shortcuts:
+broad parameter sweeps, interactive geometry design, comparison of field topologies, and
+large synthetic dataset generation for ML inverse solvers.
 
-**Paraxial approximations fail** in the strong-field, large-deflection regimes common
-in modern pulsed-power and laser-plasma experiments.
+**No approximations.** Every fast alternative uses the paraxial approximation — integrating
+the field kick along an unperturbed straight-line trajectory. In the strong-field regimes
+common in pulsed-power and high-intensity laser experiments, it fails badly. At just 20%
+of the kink instability field amplitude the paraxial model produces streaks spanning the
+entire detector; the full-orbit result shows the correct helical kink signature. prad traces
+the complete relativistic orbit in all cases.
 
-prad runs the full relativistic Boris orbit, so you can:
-
-- See where paraxial approximations break down and by how much
-- Forward-model field topologies and compare directly to experimental RCF films
-- Sweep source and geometry parameters before committing to a shot
-- Use TNSA-like energy spectra that match real laser-accelerated proton sources
+**A complete research environment.** prad ships with a Python API (`pip install prad`,
+numpy arrays in and out), a parameter sweep engine, a GUI for interactive deck editing,
+TNSA exponential spectrum sampling, and self-documenting run directories with SHA-256 field
+hashes for exact reproducibility. You can go from a numpy field array to a synthetic
+radiograph with three lines of Python, or run a multi-point energy sweep from the command line
+in one command.
 
 [Get started :octicons-arrow-right-24:](quickstart.md){ .md-button .md-button--primary }
 [Python API :octicons-arrow-right-24:](python_api.md){ .md-button }
