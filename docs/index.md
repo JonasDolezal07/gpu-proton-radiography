@@ -52,6 +52,16 @@ hide:
 
     [:octicons-arrow-right-24: Benchmarks](benchmark.md)
 
+-   :material-chart-line:{ .lg .middle } **Numerical Robustness**
+
+    ---
+
+    Timestep, particle-count, and field-grid convergence studies.
+    Field-grid resolution identified as the dominant sensitivity.
+    One-command figure reproduction.
+
+    [:octicons-arrow-right-24: Convergence studies](convergence.md)
+
 </div>
 
 ---

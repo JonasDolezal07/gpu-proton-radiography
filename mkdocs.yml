@@ -44,6 +44,7 @@ nav:
     - Source Geometry: geometry.md
     - Energy Spectra: spectra.md
     - Validation: validation.md
+    - Numerical Robustness: convergence.md
     - Benchmarks: benchmark.md
     - Limitations: limitations.md
   - Reference:
