@@ -105,7 +105,7 @@ path-integrated field topology — no paraxial assumptions.
         B, bounds_m=(-0.05, 0.05, -0.05, 0.05, -0.05, 0.05)
     )
 
-    # Monoenergetic — 14.7 MeV (D–T fusion protons)
+    # Monoenergetic — 14.7 MeV (D–³He fusion protons)
     result = prad.run(
         field,
         energy_MeV=14.7,

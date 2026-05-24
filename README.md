@@ -197,7 +197,7 @@ Three proton source spectra are supported:
 
 | Mode | Deck field | Typical use |
 |---|---|---|
-| Monoenergetic | `energy_MeV` | D–T fusion protons (14.7 MeV), accelerator beams |
+| Monoenergetic | `energy_MeV` | D–³He fusion protons (14.7 MeV), accelerator beams |
 | Gaussian spread | `energy_spread_percent` | Slightly impure mono sources, calibration |
 | Exponential / TNSA | `temperature_MeV`, `cutoff_mev` | Laser-accelerated proton sources |
 
@@ -237,7 +237,7 @@ Output: `runs/sweep_001/` with one run directory per point and a live `sweep_man
 
 ## Performance
 
-Measured on Apple M4 (prad v0.3.0):
+Measured on Apple M4 (prad v0.3.1):
 
 | Field | 100,000 particles | 1,000,000 particles |
 |---|---|---|
@@ -317,7 +317,7 @@ If you use prad in published work, please cite:
   author       = {Dolezal, Jonas},
   title        = {{prad}: {GPU}-accelerated relativistic proton radiography},
   year         = {2026},
-  version      = {0.3.0},
+  version      = {0.3.1},
   url          = {https://github.com/JonasDolezal07/gpu-proton-radiography},
   license      = {MIT},
 }

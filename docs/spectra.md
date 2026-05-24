@@ -10,7 +10,7 @@ All three are fully compatible with the relativistic Boris integrator —
 
 | Mode | Key parameter | Typical use |
 |---|---|---|
-| `mono` | `energy_MeV` | D–T fusion protons (14.7 MeV), accelerator beams |
+| `mono` | `energy_MeV` | D–³He fusion protons (14.7 MeV), accelerator beams |
 | `gaussian` | `energy_spread_percent` | Slightly impure mono sources, calibration runs |
 | `exponential` | `temperature_MeV`, `cutoff_MeV` | Laser-accelerated (TNSA) proton sources |
 
@@ -45,7 +45,6 @@ This is the default and the simplest case.
 
 | Source | Energy |
 |---|---|
-| D–T fusion protons | 14.7 MeV |
 | D–³He fusion protons | 14.7 MeV and 3.0 MeV |
 | OMEGA-EP, NIF backlighter | 14.7 MeV |
 | Accelerator protons | varies |
