@@ -201,6 +201,13 @@ def percentile_norm(img, lo=1, hi=99.5):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--fast', action='store_true',
+                    help='Use 50,000 particles instead of 500,000')
+    args = ap.parse_args()
+    n_particles = 50_000 if args.fast else 500_000
+
     bfld = ROOT / 'data/instabilities/kink_strong.bfld'
     scales = [0.05, 0.20, 0.50]
     labels = ['5%  (θ_max ≈ 0.2 rad)', '20% (θ_max ≈ 0.9 rad)', '50% (θ_max ≈ 2.2 rad)']
@@ -209,10 +216,11 @@ def main():
     B0, bounds, _ = read_bfld(bfld)
     paraxial_imgs = [paraxial_radiograph(B0, bounds, s) for s in scales]
 
-    print('Running full-orbit prad…')
+    print(f'Running full-orbit prad  (n={n_particles:,})…')
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
-        fullorbit_imgs = [run_prad(bfld, s, tmpdir, i) for i, s in enumerate(scales)]
+        fullorbit_imgs = [run_prad(bfld, s, tmpdir, i, n_particles=n_particles)
+                          for i, s in enumerate(scales)]
 
     print('Plotting…')
     fig, axes = plt.subplots(2, 3, figsize=(7.0, 4.8))

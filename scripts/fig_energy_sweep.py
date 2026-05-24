@@ -26,6 +26,9 @@ FIELD_PATH = ROOT / 'data/instabilities/zpinch.bfld'
 PIXELS     = 512
 DET_HALF   = 250   # mm half-width
 
+N_PARTICLES_FULL = 300_000
+N_PARTICLES_FAST =  50_000
+
 DECK_TEMPLATE = """
 [field]
 path = "{field_path}"
@@ -33,7 +36,7 @@ path = "{field_path}"
 [source]
 type               = "parallel"
 energy_MeV         = {energy_MeV}
-n_particles        = 300000
+n_particles        = {n_particles}
 beam_radius_mm     = 40.0
 source_distance_mm = 80.0
 
@@ -70,13 +73,13 @@ def gamma_beta(energy_MeV):
     return g, b
 
 
-def run_energy(energy_MeV, tmpdir, idx):
+def run_energy(energy_MeV, tmpdir, idx, n_particles=N_PARTICLES_FULL):
     dt, max_steps = dt_and_steps(energy_MeV)
     deck = tmpdir / f'deck_{idx}.toml'
     out  = tmpdir / f'out_{idx}'
     deck.write_text(DECK_TEMPLATE.format(
         field_path=FIELD_PATH, energy_MeV=energy_MeV,
-        pixels=PIXELS, dt_ps=dt, max_steps=max_steps,
+        n_particles=n_particles, pixels=PIXELS, dt_ps=dt, max_steps=max_steps,
     ))
     env = os.environ.copy()
     env.setdefault('VK_ICD_FILENAMES', '/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json')
@@ -94,12 +97,19 @@ def run_energy(energy_MeV, tmpdir, idx):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--fast', action='store_true',
+                    help=f'Use {N_PARTICLES_FAST:,} particles instead of {N_PARTICLES_FULL:,}')
+    args = ap.parse_args()
+    n_particles = N_PARTICLES_FAST if args.fast else N_PARTICLES_FULL
+
     imgs = []
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
         for i, E in enumerate(ENERGIES):
             print(f'Running E = {E} MeV  ({i+1}/{len(ENERGIES)})…')
-            imgs.append(run_energy(E, tmpdir, i))
+            imgs.append(run_energy(E, tmpdir, i, n_particles=n_particles))
 
     plt.rcParams.update({'font.size': 8, 'font.family': 'serif'})
     fig, axes = plt.subplots(2, 3, figsize=(7.0, 4.8), constrained_layout=True)

@@ -21,24 +21,29 @@ ROOT = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(ROOT))
 BIN  = ROOT / 'rust/target/release/proton_tracer'
 
-DECKS = [
-    # (label, toml source block, max_steps, dt_ps)
-    (
-        'Monoenergetic\n14.7 MeV',
-        '[source]\ntype               = "parallel"\nenergy_MeV         = 14.7\nn_particles        = 500000\nbeam_radius_mm     = 40.0\nsource_distance_mm = 80.0',
-        25000, 0.2,
-    ),
-    (
-        'Gaussian\n14.7 MeV ± 5 %',
-        '[source]\ntype                  = "parallel"\nenergy_MeV            = 14.7\nenergy_spread_percent = 5.0\nn_particles           = 500000\nbeam_radius_mm        = 40.0\nsource_distance_mm    = 80.0',
-        25000, 0.2,
-    ),
-    (
-        'TNSA exponential\nT = 3 MeV, E_cut = 40 MeV',
-        '[source]\ntype               = "parallel"\nenergy_MeV         = 14.7\ntemperature_MeV    = 3.0\ncutoff_mev         = 40.0\nn_particles        = 500000\nbeam_radius_mm     = 40.0\nsource_distance_mm = 80.0',
-        50000, 0.1,
-    ),
-]
+N_PARTICLES_FULL = 500_000
+N_PARTICLES_FAST =  50_000
+
+
+def _build_decks(n_particles):
+    return [
+        # (label, toml source block, max_steps, dt_ps)
+        (
+            'Monoenergetic\n14.7 MeV',
+            f'[source]\ntype               = "parallel"\nenergy_MeV         = 14.7\nn_particles        = {n_particles}\nbeam_radius_mm     = 40.0\nsource_distance_mm = 80.0',
+            25000, 0.2,
+        ),
+        (
+            'Gaussian\n14.7 MeV ± 5 %',
+            f'[source]\ntype                  = "parallel"\nenergy_MeV            = 14.7\nenergy_spread_percent = 5.0\nn_particles           = {n_particles}\nbeam_radius_mm        = 40.0\nsource_distance_mm    = 80.0',
+            25000, 0.2,
+        ),
+        (
+            'TNSA exponential\nT = 3 MeV, E_cut = 40 MeV',
+            f'[source]\ntype               = "parallel"\nenergy_MeV         = 14.7\ntemperature_MeV    = 3.0\ncutoff_mev         = 40.0\nn_particles        = {n_particles}\nbeam_radius_mm     = 40.0\nsource_distance_mm = 80.0',
+            50000, 0.1,
+        ),
+    ]
 
 FIELD_BLOCK = f"""
 [field]
@@ -69,10 +74,17 @@ def run_deck(deck_toml, out_dir):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--fast', action='store_true',
+                    help=f'Use {N_PARTICLES_FAST:,} particles instead of {N_PARTICLES_FULL:,}')
+    args = ap.parse_args()
+    decks = _build_decks(N_PARTICLES_FAST if args.fast else N_PARTICLES_FULL)
+
     imgs = []
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
-        for i, (lbl, src_block, max_steps, dt) in enumerate(DECKS):
+        for i, (lbl, src_block, max_steps, dt) in enumerate(decks):
             print(f'Running spectrum {i+1}/3: {lbl.replace(chr(10), " ")}')
             deck = tmpdir / f'deck_{i}.toml'
             deck.write_text(
@@ -87,7 +99,7 @@ def main():
     plt.rcParams.update({'font.size': 8, 'font.family': 'serif'})
     fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.8), constrained_layout=True)
 
-    for ax, img, (lbl, *_) in zip(axes, imgs, DECKS):
+    for ax, img, (lbl, *_) in zip(axes, imgs, decks):
         norm = PowerNorm(gamma=0.5, vmin=0, vmax=vmax)
         im = ax.imshow(img, origin='lower', norm=norm, cmap='inferno',
                        extent=[-250, 250, -250, 250])
