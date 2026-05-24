@@ -160,11 +160,12 @@ path-integrated field topology — no paraxial assumptions.
 ## Why this tool?
 
 **Speed that changes what's practical.** The full-orbit Boris integrator runs 10⁶ particles
-in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. A matched CPU
-reference (PlasmaPy, single core) takes ~43 seconds at 10,000 particles — roughly 2000× slower
-at scale. That gap makes workflows practical that previously required paraxial shortcuts:
-broad parameter sweeps, interactive geometry design, comparison of field topologies, and
-large synthetic dataset generation for ML inverse solvers.
+in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. In a matched
+simplified particle-tracing test (10,000 particles, uniform field, single core), prad is
+**214× faster** than a CPU Boris implementation via PlasmaPy, with GPU utilisation
+increasing further at larger particle counts. That gap makes workflows practical that
+previously required paraxial shortcuts: broad parameter sweeps, interactive geometry design,
+comparison of field topologies, and large synthetic dataset generation for ML inverse solvers.
 
 **No approximations.** Every fast alternative uses the paraxial approximation — integrating
 the field kick along an unperturbed straight-line trajectory. In the strong-field regimes

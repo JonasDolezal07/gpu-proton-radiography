@@ -50,10 +50,11 @@ Deck parameters, run status, and the 3D radiograph — all in one view.
 ## Why this tool
 
 **Speed that changes what's practical.** The full-orbit Boris integrator runs 10⁶ particles
-in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. A matched CPU
-reference (PlasmaPy, single core) takes ~43 seconds at 10,000 particles — prad is roughly
-2000× faster at scale. That gap makes workflows practical that previously weren't: broad
-parameter sweeps, interactive geometry design, comparison of field topologies, synthetic
+in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. In a matched
+simplified particle-tracing test (10,000 particles, uniform field, single core), prad is
+**214× faster** than a CPU Boris implementation via PlasmaPy — and GPU utilisation increases
+further at larger particle counts. That gap makes workflows practical that previously weren't:
+broad parameter sweeps, interactive geometry design, comparison of field topologies, synthetic
 dataset generation for ML inverse solvers.
 
 **No approximations.** Every fast alternative uses the paraxial approximation — it integrates
@@ -249,15 +250,15 @@ Measured on Apple M4 (prad v0.3.1):
 Peak step throughput: **9.0 B steps/s**.
 
 **vs PlasmaPy** — in a matched simplified uniform-field particle-tracing benchmark
-(10,000 particles, uniform Bz = 1 T, same geometry), prad's GPU backend is substantially
-faster than a single-core PlasmaPy CPU Boris workflow. This comparison isolates the
-forward particle-tracing step only; PlasmaPy is a broader plasma-physics ecosystem and
-is not being replaced by prad.
+(10,000 particles, uniform Bz = 1 T, same geometry), prad's GPU backend is
+214× faster than a single-core CPU Boris implementation via PlasmaPy. This comparison
+isolates the forward particle-tracing step only; PlasmaPy is a broader plasma-physics
+ecosystem and is not being replaced by prad.
 
 | | PlasmaPy (CPU) | prad (GPU) |
 |---|---|---|
-| Wall time | 42.8 s | 0.20 s |
-| At-scale speedup (1 M particles) | — | ≈ 2280× |
+| Wall time (10,000 particles) | 42.8 s | 0.20 s |
+| Measured speedup | — | **214×** |
 
 Additional Linux/NVIDIA validation on an RTX 4090 reached ~34 B particle-steps/s
 on the benchmark configuration, corresponding to roughly ~2 M particles/s for

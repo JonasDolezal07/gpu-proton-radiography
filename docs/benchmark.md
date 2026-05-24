@@ -143,13 +143,15 @@ Test conditions: 10,000 particles, uniform Bz = 1 T, E = 14.7 MeV, dt = 0.2 ps, 
 |---|---|---|
 | Wall time (10,000 particles) | 42.8 s | 0.20 s |
 | Step throughput | 4.0 M steps/s | 0.86 B steps/s |
-| At-scale speedup (1M particles) | — | ≈2280× faster |
+| Measured speedup at 10k | — | **214×** |
 
 ![PlasmaPy comparison](images/benchmark/plasmapy.png)
 
+The 214× figure is measured directly at 10,000 particles. GPU utilisation increases
+at larger counts; prad simulates 1,000,000 particles in ~1.9 s on Apple M4.
+
 **What this means in practice:**  For a parameter sweep of 20 configurations
 × 200,000 particles, prad completes in under a minute on a laptop GPU.
-The same sweep would take several hours with PlasmaPy on a single CPU core.
 
 **What prad does not provide:** PlasmaPy includes MHD field solvers,
 plasma diagnostic tools, and a much broader scientific Python ecosystem.
