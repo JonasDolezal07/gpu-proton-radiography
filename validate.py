@@ -379,15 +379,20 @@ def test4_B_energy_conservation():
         print("   no hits recorded")
         return False
 
-    # ke_MeV column is already in MeV
-    ke_mev   = [h[2] for h in hits]
-    mean_ke  = _mean(ke_mev)
-    std_ke   = _std(ke_mev, mean_ke)
-    rel_std  = std_ke / mean_ke if mean_ke > 0 else float("inf")
-    tol      = 1e-4
+    # ke_MeV column is already in MeV.
+    # Use numpy for numerically stable mean/std — Python's sum() accumulates
+    # O(N * eps_f64) error over 50k identical values, producing a spurious
+    # nonzero std even when all values are bit-identical (true std = 0).
+    ke_arr  = np.array([h[2] for h in hits])
+    mean_ke = float(np.mean(ke_arr))
+    std_ke  = float(np.std(ke_arr))
+    rel_std = std_ke / mean_ke if mean_ke > 0 else float("inf")
+    n_unique = int(len(np.unique(ke_arr)))
+    tol     = 1e-4
 
     ok = rel_std <= tol
-    print(f"   hits = {len(hits)},  kinetic energy mean = {mean_ke:.4f} MeV,  std/mean = {rel_std:.2e}")
+    print(f"   hits = {len(hits)},  kinetic energy mean = {mean_ke:.4f} MeV,  "
+          f"std/mean = {rel_std:.2e},  unique values = {n_unique}")
     if not ok:
         print(f"   FAIL: energy not conserved (std/mean = {rel_std:.2e} > {tol:.0e})")
 
@@ -397,11 +402,13 @@ def test4_B_energy_conservation():
         "pass": ok,
         "kinetic_energy_mean_MeV": round(mean_ke, 6),
         "energy_rel_std": float(f"{rel_std:.3e}"),
+        "n_unique_ke_values": n_unique,
         "tolerance": tol,
         "note": (
             "Uses relativistic Boris integrator. Particles store u = γv; "
-            "KE at detector = (γ-1)m_p c². Energy is conserved exactly (std/mean → 0) "
-            "because the Boris rotation preserves |u| to machine precision."
+            "KE at detector = (γ-1)m_p c². In a uniform B field all particles "
+            "execute the same GPU ops → identical float32 KE (n_unique = 1). "
+            "True std = 0; residual rel_std ≈ f64 machine precision."
         ),
         **png_info,
     }
@@ -1135,16 +1142,17 @@ def test12_relativistic_60mev():
         REPORT["test12_relativistic_60mev"] = {"pass": False, "error": "no hits"}
         return False
 
-    ke_vals  = [h[2] for h in hits]
-    mean_ke  = _mean(ke_vals)
-    std_ke   = _std(ke_vals, mean_ke)
+    ke_arr   = np.array([h[2] for h in hits])
+    mean_ke  = float(np.mean(ke_arr))
+    std_ke   = float(np.std(ke_arr))
     rel_std  = std_ke / mean_ke
+    n_unique = int(len(np.unique(ke_arr)))
 
-    mean_ok  = abs(mean_ke - E_MEV) < 0.1     # within 0.1 MeV of 60
-    spread_ok = rel_std < 1e-4                 # monoenergetic
+    mean_ok   = abs(mean_ke - E_MEV) < 0.1     # within 0.1 MeV of 60
+    spread_ok = rel_std < 1e-4                  # monoenergetic
 
     ok = mean_ok and spread_ok
-    print(f"   hits={len(ke_vals)}  mean={mean_ke:.4f} MeV  std={std_ke:.4f} MeV  rel_std={rel_std:.2e}")
+    print(f"   hits={len(ke_arr)}  mean={mean_ke:.4f} MeV  std={std_ke:.4f} MeV  rel_std={rel_std:.2e}")
     if not mean_ok:
         print(f"   FAIL: mean {mean_ke:.4f} MeV not within 0.1 MeV of {E_MEV} (non-relativistic init would give ~58.17 MeV)")
     if not spread_ok:
@@ -1153,12 +1161,13 @@ def test12_relativistic_60mev():
     png_ok, png_info = check_png_output(out)
     ok = ok and png_ok
     REPORT["test12_relativistic_60mev"] = {
-        "pass":         ok,
-        "n_hits":       len(ke_vals),
-        "mean_ke_MeV":  round(mean_ke, 4),
-        "std_ke_MeV":   round(std_ke, 6),
-        "rel_std":      round(rel_std, 8),
-        "target_MeV":   E_MEV,
+        "pass":             ok,
+        "n_hits":           len(ke_arr),
+        "mean_ke_MeV":      round(mean_ke, 4),
+        "std_ke_MeV":       round(std_ke, 6),
+        "rel_std":          round(rel_std, 8),
+        "n_unique_ke_values": n_unique,
+        "target_MeV":       E_MEV,
         **png_info,
     }
     return ok
