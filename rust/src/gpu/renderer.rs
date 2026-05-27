@@ -10,6 +10,7 @@ use super::{VulkanContext, Swapchain, GpuBuffer, FieldTexture, DetectorTexture, 
 use crate::loaders::{FieldData, ParticleData};
 use crate::config::{PngExportConfig, ScaleMode, ColormapType, DetectorResponseConfig};
 use crate::run_dir::{RunDir, RunDiagnostics};
+use crate::dt_schedule::DtSchedule;
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 const MAX_DETECTOR_HITS: usize = 1_000_000;
@@ -375,6 +376,9 @@ pub struct Renderer {
     is_shutting_down: bool,
     diagnostics_logged: bool,
     benchmark_reported: bool,
+    // Adaptive timestep
+    dt_schedule: Option<DtSchedule>,
+    t_sim_s: f64,
     // Source metadata for PNG sidecar (stored at load time, not in GPU sim_params)
     source_type: String,
     particle_energy_mev: f32,
@@ -513,6 +517,8 @@ impl Renderer {
             is_shutting_down: false,
             diagnostics_logged: false,
             benchmark_reported: false,
+            dt_schedule: None,
+            t_sim_s: 0.0,
             source_type: String::new(),
             particle_energy_mev: 0.0,
             png_cfg: PngExportConfig::default(),
@@ -608,6 +614,8 @@ impl Renderer {
             is_shutting_down: false,
             diagnostics_logged: false,
             benchmark_reported: false,
+            dt_schedule: None,
+            t_sim_s: 0.0,
             source_type: String::new(),
             particle_energy_mev: 0.0,
             png_cfg: PngExportConfig::default(),
@@ -1069,6 +1077,24 @@ impl Renderer {
         self.sim_params.detector_extent = [detector_extent[0], detector_extent[1], 0.0, 0.0];
     }
 
+    /// Install an adaptive-dt schedule. Called from load_simulation when dt_was_supplied=false.
+    pub fn set_dt_schedule(&mut self, schedule: DtSchedule) {
+        self.sim_params.dt = schedule.dt_large_s as f32; // start in vacuum phase
+        self.dt_schedule = Some(schedule);
+        self.t_sim_s = 0.0;
+    }
+
+    /// Update sim_params.dt from the schedule and advance t_sim_s.
+    /// Called at the start of every dispatch (both batch and GUI paths).
+    /// No-op when no schedule is set (user-supplied fixed dt).
+    fn tick_adaptive_dt(&mut self) {
+        if let Some(ref sched) = self.dt_schedule {
+            self.sim_params.dt = sched.pick(self.t_sim_s);
+        }
+        // Advance simulated time by the steps this dispatch will execute
+        self.t_sim_s += STEPS_PER_FRAME as f64 * self.sim_params.dt as f64;
+    }
+
     /// Set the source position for the marker visualization
     pub fn set_source_position(&mut self, position: [f32; 3]) {
         // Size based on field dimensions (about 2% of field extent)
@@ -1154,6 +1180,7 @@ impl Renderer {
         self.is_running = true;
         self.frame_count = 0;
         self.diagnostics_logged = false;
+        self.t_sim_s = 0.0;
         self.benchmark_reported = false;
 
         log::info!("Simulation started");
@@ -1398,6 +1425,11 @@ impl Renderer {
             return Ok(false);
         }
 
+        // Update adaptive dt before acquiring the device borrow
+        if self.is_running && self.compute_pipeline.is_some() && self.particle_buffer.is_some() {
+            self.tick_adaptive_dt();
+        }
+
         let device = self.ctx.device();
         let frame = &self.frames[self.current_frame];
 
@@ -1589,6 +1621,8 @@ impl Renderer {
         if !self.is_running || self.compute_pipeline.is_none() || self.particle_buffer.is_none() {
             return Ok(true); // Nothing to do
         }
+
+        self.tick_adaptive_dt();
 
         let device = self.ctx.device();
         let frame = &self.frames[self.current_frame];

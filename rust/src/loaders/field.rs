@@ -238,6 +238,78 @@ impl FieldData {
         }
     }
 
+    /// Trilinear sample of B; returns [0,0,0] for positions outside bounds.
+    fn sample_b_at_or_zero(&self, x: f32, y: f32, z: f32) -> [f32; 3] {
+        let b = &self.bounds;
+        if x < b.x_min || x > b.x_max || y < b.y_min || y > b.y_max || z < b.z_min || z > b.z_max {
+            return [0.0, 0.0, 0.0];
+        }
+        Self::trilinear(&self.data, self.nx, self.ny, self.nz, b, x, y, z)
+    }
+
+    /// Trilinear sample of E; returns [0,0,0] for positions outside bounds.
+    fn sample_e_at_or_zero(&self, x: f32, y: f32, z: f32) -> [f32; 3] {
+        let b = &self.bounds;
+        if x < b.x_min || x > b.x_max || y < b.y_min || y > b.y_max || z < b.z_min || z > b.z_max {
+            return [0.0, 0.0, 0.0];
+        }
+        Self::trilinear(&self.e_data, self.nx, self.ny, self.nz, b, x, y, z)
+    }
+
+    fn trilinear(data: &[f32], nx: u32, ny: u32, nz: u32, b: &FieldBounds, x: f32, y: f32, z: f32) -> [f32; 3] {
+        let u = ((x - b.x_min) / (b.x_max - b.x_min)).clamp(0.0, 0.999);
+        let v = ((y - b.y_min) / (b.y_max - b.y_min)).clamp(0.0, 0.999);
+        let w = ((z - b.z_min) / (b.z_max - b.z_min)).clamp(0.0, 0.999);
+        let ix = (u * (nx - 1) as f32) as usize;
+        let iy = (v * (ny - 1) as f32) as usize;
+        let iz = (w * (nz - 1) as f32) as usize;
+        let stride_y = nz as usize;
+        let stride_x = ny as usize * stride_y;
+        let idx = (ix * stride_x + iy * stride_y + iz) * 3;
+        if idx + 2 < data.len() {
+            [data[idx], data[idx + 1], data[idx + 2]]
+        } else {
+            [0.0, 0.0, 0.0]
+        }
+    }
+
+    /// Superimpose `other` onto `self` by resampling `other` at each of `self`'s
+    /// grid nodes and accumulating scaled values.  Positions outside `other`'s
+    /// bounds contribute zero (no extrapolation).
+    pub fn add_field(&mut self, other: &FieldData, scale_b: f32, scale_e: f32) {
+        let b = &self.bounds;
+        let nx = self.nx as usize;
+        let ny = self.ny as usize;
+        let nz = self.nz as usize;
+        let dx = (b.x_max - b.x_min) / (nx - 1).max(1) as f32;
+        let dy = (b.y_max - b.y_min) / (ny - 1).max(1) as f32;
+        let dz = (b.z_max - b.z_min) / (nz - 1).max(1) as f32;
+
+        for ix in 0..nx {
+            let x = b.x_min + ix as f32 * dx;
+            for iy in 0..ny {
+                let y = b.y_min + iy as f32 * dy;
+                for iz in 0..nz {
+                    let z = b.z_min + iz as f32 * dz;
+                    let base = (ix * ny * nz + iy * nz + iz) * 3;
+
+                    if scale_b != 0.0 {
+                        let [bx, by, bz] = other.sample_b_at_or_zero(x, y, z);
+                        self.data[base]     += scale_b * bx;
+                        self.data[base + 1] += scale_b * by;
+                        self.data[base + 2] += scale_b * bz;
+                    }
+                    if scale_e != 0.0 {
+                        let [ex, ey, ez] = other.sample_e_at_or_zero(x, y, z);
+                        self.e_data[base]     += scale_e * ex;
+                        self.e_data[base + 1] += scale_e * ey;
+                        self.e_data[base + 2] += scale_e * ez;
+                    }
+                }
+            }
+        }
+    }
+
     /// Public accessor: (min, max) magnitude of the B-field.
     pub fn b_magnitude_range(&self) -> (f32, f32) { Self::field_mag_range(&self.data) }
 

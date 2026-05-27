@@ -300,21 +300,33 @@ pub struct SimDetectorConfig {
     pub save_hits: bool,
 }
 
+/// One field file entry in the resolved SI config.
+#[derive(Debug, Clone, Serialize)]
+pub struct SimFieldEntry {
+    pub path: String,
+    pub e_path: Option<String>,
+    pub scale_b: f64,
+    pub scale_e: f64,
+}
+
 /// Top-level simulation config (SI).
 #[derive(Debug, Clone, Serialize)]
 pub struct SimConfig {
-    pub field_path: String,
-    pub e_field_path: Option<String>,
-    #[serde(default = "one_f64")]
-    pub scale_b: f64,
-    #[serde(default)]
-    pub scale_e: f64,
+    /// Primary field (index 0) plus any extra overlaid grids (index 1+).
+    pub b_fields: Vec<SimFieldEntry>,
     pub source: SimSourceConfig,
     pub detector: SimDetectorConfig,
     pub dt_s: f64,
     pub dt_was_supplied: bool,
     pub max_steps: u32,
     pub detector_response: DetectorResponseConfig,
+}
+
+impl SimConfig {
+    /// Convenience: path of the primary (first) field file.
+    pub fn primary_field_path(&self) -> &str {
+        &self.b_fields[0].path
+    }
 }
 
 // ── conversion ────────────────────────────────────────────────────────────────
@@ -683,10 +695,12 @@ impl TryFrom<RawConfig> for SimConfig {
         };
 
         Ok(SimConfig {
-            field_path: raw.field_path,
-            e_field_path: raw.e_field_path,
-            scale_b: 1.0,
-            scale_e: 1.0,
+            b_fields: vec![SimFieldEntry {
+                path: raw.field_path,
+                e_path: raw.e_field_path,
+                scale_b: 1.0,
+                scale_e: 1.0,
+            }],
             source,
             detector,
             dt_s,
@@ -718,6 +732,20 @@ pub struct DeckConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct DeckFieldBlock {
+    pub path: String,
+    pub e_path: Option<String>,
+    #[serde(rename = "scale_B", default = "deck_one")]
+    pub scale_b: f64,
+    #[serde(rename = "scale_E", default)]
+    pub scale_e: f64,
+    /// Additional field grids to superimpose onto the primary grid.
+    #[serde(default)]
+    pub extra_b: Vec<DeckFieldExtra>,
+}
+
+/// One entry in `[[field.extra_b]]`.
+#[derive(Debug, Deserialize)]
+pub struct DeckFieldExtra {
     pub path: String,
     pub e_path: Option<String>,
     #[serde(rename = "scale_B", default = "deck_one")]
@@ -891,11 +919,23 @@ impl TryFrom<DeckConfig> for SimConfig {
             save_hits: d.save_hits,
         };
 
-        Ok(SimConfig {
-            field_path: deck.field.path,
-            e_field_path: deck.field.e_path,
+        let mut b_fields = vec![SimFieldEntry {
+            path:    deck.field.path,
+            e_path:  deck.field.e_path,
             scale_b: deck.field.scale_b,
             scale_e: deck.field.scale_e,
+        }];
+        for extra in deck.field.extra_b {
+            b_fields.push(SimFieldEntry {
+                path:    extra.path,
+                e_path:  extra.e_path,
+                scale_b: extra.scale_b,
+                scale_e: extra.scale_e,
+            });
+        }
+
+        Ok(SimConfig {
+            b_fields,
             source,
             detector,
             dt_s,

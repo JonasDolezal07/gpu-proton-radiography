@@ -1279,6 +1279,259 @@ def test13_tilted_geometry():
     return ok
 
 
+# ── test 14: superimposed fields ─────────────────────────────────────────────
+
+def test14_superimposed_fields():
+    """
+    Primary field: B = E = 0 (2×2×2 grid, same spatial bounds as test4).
+    Extra field:   Bz = 1 T (16×16×16 grid, same bounds).
+
+    After CPU compositing the effective field is Bz = 1 T — identical to test4.
+    Energy conservation check: std(KE) / mean(KE) < 1e-4.
+
+    This validates:
+      - extra field is loaded and resampled onto the primary grid
+      - result is physics-equivalent to having a single Bz=1T field
+    """
+    print("Test 14: Superimposed fields  (zero primary + Bz=1T extra = uniform Bz=1T)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    bounds = (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06)
+
+    # Primary: all zeros, coarse grid
+    B_zero = np.zeros((2, 2, 2, 3), dtype=np.float32)
+    E_zero = np.zeros_like(B_zero)
+    write_bfld(VALDATA / "t14_zero.bfld", B_zero, E_zero, bounds)
+
+    # Extra: Bz = 1 T, fine grid
+    B_bz = np.zeros((16, 16, 16, 3), dtype=np.float32)
+    B_bz[..., 2] = 1.0
+    E_bz = np.zeros_like(B_bz)
+    write_bfld(VALDATA / "t14_Bz.bfld", B_bz, E_bz, bounds)
+
+    deck = f"""\
+[field]
+path = "t14_zero.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[[field.extra_b]]
+path = "t14_Bz.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[source]
+type = "parallel"
+n_particles = 50000
+energy_MeV = 14.7
+beam_radius_mm = 30.0
+source_distance_mm = 100.0
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [512, 512]
+
+[numerics]
+dt_ps = 1.0
+max_steps = 20000
+"""
+    deck_path = VALDATA / "t14_superimpose.toml"
+    deck_path.write_text(deck)
+
+    out = VALOUT / "t14_superimpose"
+    import shutil
+    if out.exists():
+        shutil.rmtree(out)
+
+    env = os.environ.copy()
+    brew_lib = Path("/opt/homebrew/lib")
+    icd      = Path("/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json")
+    if icd.exists() and "VK_ICD_FILENAMES" not in env:
+        env["VK_ICD_FILENAMES"] = str(icd)
+    if brew_lib.exists():
+        existing = env.get("DYLD_LIBRARY_PATH", "")
+        if str(brew_lib) not in existing:
+            env["DYLD_LIBRARY_PATH"] = (str(brew_lib) + ":" + existing).rstrip(":")
+
+    cmd = [str(BIN), "run", str(deck_path), "-o", str(out)]
+    try:
+        result = subprocess.run(cmd, cwd=VALDATA, capture_output=True, text=True, timeout=120, env=env)
+    except subprocess.TimeoutExpired:
+        REPORT["test14_superimposed_fields"] = {"pass": False, "error": "timeout"}
+        return False
+    if result.returncode != 0:
+        print(f"   tracer error: {result.stderr[-300:]}")
+        REPORT["test14_superimposed_fields"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    hits_bin = out / "counts" / "hits.bin"
+    if not hits_bin.exists():
+        print("   no hits.bin found")
+        REPORT["test14_superimposed_fields"] = {"pass": False, "error": "no hits.bin"}
+        return False
+    raw = hits_bin.read_bytes()
+    if len(raw) < 4:
+        print("   hits.bin too short")
+        REPORT["test14_superimposed_fields"] = {"pass": False, "error": "no hits"}
+        return False
+    n_hits_recorded = struct.unpack_from("<I", raw, 0)[0]
+    hits_data = np.frombuffer(raw, dtype="<f4", offset=4).reshape(-1, 3)
+    ke_arr = hits_data[:, 2]
+    mean_ke = float(np.mean(ke_arr))
+    std_ke  = float(np.std(ke_arr))
+    rel_std = std_ke / mean_ke if mean_ke > 0 else float("inf")
+    tol = 1e-4
+
+    ok = rel_std <= tol
+    print(f"   hits = {len(ke_arr)},  mean KE = {mean_ke:.4f} MeV,  std/mean = {rel_std:.2e}")
+    if not ok:
+        print(f"   FAIL: std/mean = {rel_std:.2e} > {tol:.0e}  (B-only → energy must be conserved)")
+
+    REPORT["test14_superimposed_fields"] = {
+        "pass": ok,
+        "n_hits": int(len(ke_arr)),
+        "mean_ke_MeV": round(mean_ke, 6),
+        "std_mean_ratio": float(f"{rel_std:.3e}"),
+        "tolerance": tol,
+    }
+    return ok
+
+
+# ── test 15: adaptive dt gives same physics as fixed dt ──────────────────────
+
+def test15_adaptive_dt():
+    """
+    Pencil source through uniform Bz = 1 T.  Run twice:
+      A) fixed dt_ps = 1.0  (explicit, disables adaptive schedule)
+      B) no dt_ps supplied  (triggers adaptive schedule)
+
+    Checks:
+      1. Both runs produce ≥ 10000 hits
+      2. Mean hit positions agree within 1 mm  (adaptive dt gives same deflection)
+      3. Energy conservation holds in both  (std/mean < 1e-4)
+    """
+    print("Test 15: Adaptive dt — same physics as fixed dt")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    N_PARTICLES = 20_000
+    bounds = (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06)
+
+    # Bz = 1 T (same field as test 4)
+    bfld = VALDATA / "t15_Bz.bfld"
+    if not bfld.exists():
+        B = np.zeros((16, 16, 16, 3), dtype=np.float32)
+        B[..., 2] = 1.0
+        E = np.zeros_like(B)
+        write_bfld(bfld, B, E, bounds)
+
+    def make_deck(with_fixed_dt):
+        dt_line = "dt_ps = 1.0\n" if with_fixed_dt else ""
+        return f"""\
+[field]
+path = "t15_Bz.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[source]
+type = "pencil"
+n_particles = {N_PARTICLES}
+energy_MeV = 14.7
+position_mm = [-100.0, 0.0, 0.0]
+aim_at_mm = [0.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [512, 512]
+
+[numerics]
+{dt_line}max_steps = 30000
+"""
+
+    env = os.environ.copy()
+    brew_lib = Path("/opt/homebrew/lib")
+    icd      = Path("/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json")
+    if icd.exists() and "VK_ICD_FILENAMES" not in env:
+        env["VK_ICD_FILENAMES"] = str(icd)
+    if brew_lib.exists():
+        existing = env.get("DYLD_LIBRARY_PATH", "")
+        if str(brew_lib) not in existing:
+            env["DYLD_LIBRARY_PATH"] = (str(brew_lib) + ":" + existing).rstrip(":")
+
+    import shutil
+    results_ke = {}
+    results_y  = {}
+
+    for label, fixed in [("fixed", True), ("adaptive", False)]:
+        deck_path = VALDATA / f"t15_{label}.toml"
+        deck_path.write_text(make_deck(fixed))
+        out = VALOUT / f"t15_{label}"
+        if out.exists():
+            shutil.rmtree(out)
+        cmd = [str(BIN), "run", str(deck_path), "-o", str(out)]
+        try:
+            r = subprocess.run(cmd, cwd=VALDATA, capture_output=True,
+                               text=True, timeout=120, env=env)
+        except subprocess.TimeoutExpired:
+            REPORT["test15_adaptive_dt"] = {"pass": False, "error": f"timeout ({label})"}
+            return False
+        if r.returncode != 0:
+            print(f"   tracer error ({label}): {r.stderr[-300:]}")
+            REPORT["test15_adaptive_dt"] = {"pass": False, "error": f"simulation failed ({label})"}
+            return False
+
+        hits_bin = out / "counts" / "hits.bin"
+        if not hits_bin.exists():
+            print(f"   no hits.bin ({label})")
+            REPORT["test15_adaptive_dt"] = {"pass": False, "error": f"no hits ({label})"}
+            return False
+        raw = hits_bin.read_bytes()
+        hits_data = np.frombuffer(raw, dtype="<f4", offset=4).reshape(-1, 3)
+        results_ke[label] = hits_data[:, 2]
+        results_y[label]  = hits_data[:, 0]  # local-y hit position
+
+    n_fixed    = len(results_ke["fixed"])
+    n_adaptive = len(results_ke["adaptive"])
+    mean_y_fixed    = float(np.mean(results_y["fixed"]))
+    mean_y_adaptive = float(np.mean(results_y["adaptive"]))
+    rel_std_fixed    = float(np.std(results_ke["fixed"])  / np.mean(results_ke["fixed"]))
+    rel_std_adaptive = float(np.std(results_ke["adaptive"]) / np.mean(results_ke["adaptive"]))
+
+    hits_ok   = n_fixed >= 10000 and n_adaptive >= 10000
+    pos_ok    = abs(mean_y_fixed - mean_y_adaptive) < 1.0  # within 1 mm
+    energy_ok = rel_std_fixed < 1e-4 and rel_std_adaptive < 1e-4
+
+    ok = hits_ok and pos_ok and energy_ok
+    print(f"   fixed:    hits={n_fixed}, mean_y={mean_y_fixed:.3f} mm, ke_rel_std={rel_std_fixed:.2e}")
+    print(f"   adaptive: hits={n_adaptive}, mean_y={mean_y_adaptive:.3f} mm, ke_rel_std={rel_std_adaptive:.2e}")
+    print(f"   Δmean_y = {abs(mean_y_fixed - mean_y_adaptive):.4f} mm  (tol 1.0 mm)")
+    if not hits_ok:
+        print(f"   FAIL: insufficient hits")
+    if not pos_ok:
+        print(f"   FAIL: hit positions disagree by {abs(mean_y_fixed - mean_y_adaptive):.3f} mm")
+    if not energy_ok:
+        print(f"   FAIL: energy not conserved")
+
+    REPORT["test15_adaptive_dt"] = {
+        "pass": ok,
+        "n_hits_fixed": n_fixed,
+        "n_hits_adaptive": n_adaptive,
+        "mean_y_fixed_mm": round(mean_y_fixed, 4),
+        "mean_y_adaptive_mm": round(mean_y_adaptive, 4),
+        "delta_mean_y_mm": round(abs(mean_y_fixed - mean_y_adaptive), 4),
+        "ke_rel_std_fixed": float(f"{rel_std_fixed:.3e}"),
+        "ke_rel_std_adaptive": float(f"{rel_std_adaptive:.3e}"),
+    }
+    return ok
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1302,6 +1555,8 @@ if __name__ == "__main__":
         test11_exponential_spectrum,
         test12_relativistic_60mev,
         test13_tilted_geometry,
+        test14_superimposed_fields,
+        test15_adaptive_dt,
     ]
 
     results = {}

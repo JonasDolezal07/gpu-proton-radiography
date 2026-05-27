@@ -33,6 +33,36 @@ scale_E = 0.0                             # multiplicative scale on E (default 0
 `scale_B` and `scale_E` are applied before the simulation starts. Use them to scan field
 strength without modifying the field file, or to disable one component entirely (`scale_E = 0`).
 
+#### Superimposing multiple fields
+
+Any number of extra field grids can be overlaid onto the primary grid using
+`[[field.extra_b]]` entries.  Each extra field is resampled (CPU-side, trilinear
+interpolation, zero outside its bounds) onto the primary grid before the GPU sees the data
+— no shader or Vulkan changes are required.
+
+```toml
+[field]
+path = "data/background.bfld"      # primary (defines the grid that the GPU sees)
+scale_B = 1.0
+
+[[field.extra_b]]
+path = "data/insert_coil.bfld"     # resampled onto primary grid at load time
+scale_B = 0.5                      # independent per-field scale factor
+scale_E = 0.0
+
+[[field.extra_b]]
+path = "data/external_solenoid.bfld"
+scale_B = 2.0
+```
+
+Rules:
+- The first `[field]` entry sets the grid dimensions and bounds used by the GPU.
+- Extra fields with different grids or bounds are interpolated onto the primary grid; voxels
+  that fall outside an extra field's bounds contribute zero (no extrapolation).
+- Each extra field can have its own `scale_B` / `scale_E`.
+- `e_path` on an extra field works the same as on the primary field.
+- JSON configs (legacy) do not support superimposed fields — use TOML decks.
+
 ### `[source]`
 
 All source types share the same table, discriminated by `type`.

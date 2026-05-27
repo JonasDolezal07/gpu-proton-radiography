@@ -21,6 +21,7 @@ mod run_dir;
 mod overrides;
 mod sweep;
 mod inspect;
+mod dt_schedule;
 
 use anyhow::Result;
 use winit::{
@@ -303,41 +304,16 @@ impl App {
             .parent()
             .unwrap_or(std::path::Path::new("."));
 
-        let field_path = config_dir.join(&config.field_path);
-        log::info!("  Loading field from: {}", field_path.display());
-        let mut field = FieldData::load(&field_path)?;
-        log::info!("  Loaded field: {}x{}x{}", field.nx, field.ny, field.nz);
-
-        // Optional separate E-field file
-        if let Some(ref e_path_str) = config.e_field_path {
-            let e_path = config_dir.join(e_path_str);
-            log::info!("  Loading separate E-field from: {}", e_path.display());
-            let e_field = FieldData::load(&e_path)?;
-            field.set_e_from_separate_file(e_field)?;
-            log::info!("  E-field merged");
-        }
-
-        // Apply scale factors to field data (CPU-side, before GPU upload)
-        let sb = config.scale_b as f32;
-        let se = config.scale_e as f32;
-        if (sb - 1.0).abs() > f32::EPSILON {
-            for v in field.data.iter_mut() { *v *= sb; }
-            log::info!("  Applied scale_B = {}", sb);
-        }
-        if (se - 1.0).abs() > f32::EPSILON {
-            for v in field.e_data.iter_mut() { *v *= se; }
-            log::info!("  Applied scale_E = {}", se);
-        }
-
-        // Both B and E are fully resolved — log diagnostics
-        field.log_diagnostics();
+        let field = load_composite_field(&config, config_dir)?;
 
         // ── Field SHA-256 + metadata update ───────────────────────────────────
         if let Some(meta) = &mut self.run_metadata {
-            meta.input_files.field_path = Some(field_path.display().to_string());
-            meta.input_files.field_sha256 = run_dir::sha256_file(&field_path).ok();
-            if let Some(ref e_path_str) = config.e_field_path {
-                let e_abs = config_dir.join(e_path_str);
+            let primary = &config.b_fields[0];
+            let abs_path = config_dir.join(&primary.path);
+            meta.input_files.field_path = Some(abs_path.display().to_string());
+            meta.input_files.field_sha256 = run_dir::sha256_file(&abs_path).ok();
+            if let Some(ref ep) = primary.e_path {
+                let e_abs = config_dir.join(ep);
                 meta.input_files.e_field_path = Some(e_abs.display().to_string());
                 meta.input_files.e_field_sha256 = run_dir::sha256_file(&e_abs).ok();
             }
@@ -397,11 +373,18 @@ impl App {
             detector_center[2] as f64,
         ]);
 
-        // Auto-compute dt if not supplied
-        if !config.dt_was_supplied {
-            config.dt_s = compute_recommended_dt(&config, &field);
-            log::info!("  dt auto-computed: {}", units::fmt_time(config.dt_s));
-        }
+        // Auto-compute dt: adaptive schedule (default) or fixed (user-supplied)
+        let dt_schedule = if !config.dt_was_supplied {
+            let sched = dt_schedule::DtSchedule::compute(&config, &field);
+            config.dt_s = sched.dt_small_s;  // store dt_small in config for summary/metadata
+            log::info!("  dt adaptive: large={} small={} (≈{:.0}× speedup in vacuum)",
+                units::fmt_time(sched.dt_large_s),
+                units::fmt_time(sched.dt_small_s),
+                sched.speedup_estimate);
+            Some(sched)
+        } else {
+            None
+        };
 
         // ── RunDir: copy deck + write resolved_config.json ────────────────────
         if let Some(rd) = &self.run_dir {
@@ -468,6 +451,9 @@ impl App {
              (config.detector.height_m / 2.0) as f32],
         );
         renderer.sim_params.max_steps = config.max_steps;
+        if let Some(sched) = dt_schedule {
+            renderer.set_dt_schedule(sched);
+        }
 
         let source_pos = match &config.source.geometry {
             SimSourceGeometry::Pencil { position_m, .. } |
@@ -1202,7 +1188,7 @@ fn build_deck_display(deck_path: &str) -> anyhow::Result<DeckDisplay> {
         dt_ps: if config.dt_was_supplied { config.dt_s * 1e12 } else { 0.0 },
         dt_auto: !config.dt_was_supplied,
         max_steps: config.max_steps,
-        field_file: config.field_path.clone(),
+        field_file: config.primary_field_path().to_string(),
         geometry,
         detector_center_mm: config.detector.center_m
             .map(|c| [c[0] * 1e3, c[1] * 1e3, c[2] * 1e3]),
@@ -1211,6 +1197,56 @@ fn build_deck_display(deck_path: &str) -> anyhow::Result<DeckDisplay> {
             config.detector.height_m * 1e3,
         ],
     })
+}
+
+/// Load the primary field and superimpose any extra fields declared in the config.
+///
+/// Each extra field is resampled onto the primary grid before GPU upload so the
+/// shader and descriptor set remain unchanged.
+fn load_composite_field(config: &SimConfig, config_dir: &std::path::Path) -> Result<FieldData> {
+    let primary = &config.b_fields[0];
+    let primary_path = config_dir.join(&primary.path);
+    log::info!("  Loading field from: {}", primary_path.display());
+    let mut field = FieldData::load(&primary_path)?;
+    log::info!("  Loaded field: {}x{}x{}", field.nx, field.ny, field.nz);
+
+    if let Some(ref ep) = primary.e_path {
+        let e_path = config_dir.join(ep);
+        log::info!("  Loading separate E-field from: {}", e_path.display());
+        let e_field = FieldData::load(&e_path)?;
+        field.set_e_from_separate_file(e_field)?;
+        log::info!("  E-field merged");
+    }
+
+    let sb = primary.scale_b as f32;
+    let se = primary.scale_e as f32;
+    if (sb - 1.0).abs() > f32::EPSILON {
+        for v in field.data.iter_mut() { *v *= sb; }
+        log::info!("  Applied scale_B = {}", sb);
+    }
+    if (se - 1.0).abs() > f32::EPSILON {
+        for v in field.e_data.iter_mut() { *v *= se; }
+        log::info!("  Applied scale_E = {}", se);
+    }
+
+    for (i, extra) in config.b_fields[1..].iter().enumerate() {
+        let extra_path = config_dir.join(&extra.path);
+        log::info!("  Superimposing field {}: {}", i + 1, extra_path.display());
+        let mut extra_field = FieldData::load(&extra_path)?;
+        log::info!("    Grid: {}x{}x{}", extra_field.nx, extra_field.ny, extra_field.nz);
+
+        if let Some(ref ep) = extra.e_path {
+            let e_path = config_dir.join(ep);
+            let e_field = FieldData::load(&e_path)?;
+            extra_field.set_e_from_separate_file(e_field)?;
+        }
+
+        field.add_field(&extra_field, extra.scale_b as f32, extra.scale_e as f32);
+        log::info!("    Superimposed (scale_B={}, scale_E={})", extra.scale_b, extra.scale_e);
+    }
+
+    field.log_diagnostics();
+    Ok(field)
 }
 
 /// Compute the minimum of three physics-motivated dt candidates.
@@ -1332,9 +1368,14 @@ fn build_experiment_summary(config: &SimConfig, field: &FieldData) -> Vec<String
 
     out.push("Simulation timing:".into());
     if config.dt_was_supplied {
-        out.push(format!("  dt                    : {}  [user supplied]", fmt_time(config.dt_s)));
+        out.push(format!("  dt                    : {}  [user supplied, fixed]", fmt_time(config.dt_s)));
     } else {
-        out.push(format!("  dt                    : {}  [auto]", fmt_time(config.dt_s)));
+        let sched = dt_schedule::DtSchedule::compute(config, field);
+        out.push(format!("  dt (in-field)         : {}  [adaptive, auto]", fmt_time(sched.dt_small_s)));
+        out.push(format!("  dt (vacuum)           : {}  ({:.0}× larger)",
+            fmt_time(sched.dt_large_s), sched.speedup_estimate));
+        out.push(format!("  field entry           : {}  exit: {}",
+            fmt_time(sched.t_entry_s), fmt_time(sched.t_exit_s)));
     }
     out.push("  Recommended candidates:".into());
     if b_max > 1e-10 {
@@ -1369,25 +1410,27 @@ fn build_experiment_summary(config: &SimConfig, field: &FieldData) -> Vec<String
         let dist = ((det_ctr[0] - src_pos[0]).powi(2)
                   + (det_ctr[1] - src_pos[1]).powi(2)
                   + (det_ctr[2] - src_pos[2]).powi(2)).sqrt();
-        let dist_avail = v * config.dt_s * config.max_steps as f64;
-        let steps_needed = (dist / (v * config.dt_s)).ceil() as u64;
+
+        // Step budget uses the effective dt for the full path.
+        // With adaptive dt: vacuum uses dt_large, field uses dt_small.
+        // Conservative: assume the entire path uses dt_small (worst case).
+        let dt_for_budget = config.dt_s; // dt_small when adaptive, fixed dt otherwise
+        let dist_avail = v * dt_for_budget * config.max_steps as f64;
+        let steps_needed = (dist / (v * dt_for_budget)).ceil() as u64;
         if steps_needed > config.max_steps as u64 {
-            out.push(format!(
-                "  WARNING: step budget too small for source → detector path:"));
-            out.push(format!(
-                "    Source → detector distance : {}",
-                fmt_dist(dist)));
-            out.push(format!(
-                "    Max simulated distance     : {}  ({} steps × {})",
-                fmt_dist(dist_avail), config.max_steps, fmt_time(config.dt_s)));
-            out.push(format!(
-                "    Steps needed (straight-line, zero field) : {}",
-                steps_needed));
-            out.push(format!(
-                "    max_steps configured       : {}",
-                config.max_steps));
-            out.push(
-                "    Particles will not reach the detector — increase max_steps.".into());
+            out.push("  WARNING: step budget too small for source → detector path:".into());
+            out.push(format!("    Source → detector distance : {}", fmt_dist(dist)));
+            if config.dt_was_supplied {
+                out.push(format!("    Max simulated distance     : {}  ({} steps × {})",
+                    fmt_dist(dist_avail), config.max_steps, fmt_time(dt_for_budget)));
+            } else {
+                out.push(format!("    Max simulated distance     : {}  ({} steps × {} in-field dt)",
+                    fmt_dist(dist_avail), config.max_steps, fmt_time(dt_for_budget)));
+                out.push("    Note: adaptive dt uses larger steps in vacuum, so actual budget is larger.".into());
+            }
+            out.push(format!("    Steps needed (straight-line) : {}", steps_needed));
+            out.push(format!("    max_steps configured         : {}", config.max_steps));
+            out.push("    Increase max_steps or the vacuum speedup will carry particles through.".into());
         }
     }
 
@@ -2047,18 +2090,15 @@ fn run_explain_subcommand(argv: &[String]) -> Result<()> {
     let mut config = SimConfig::load_with_overrides(&deck_path, &cli_overrides)?;
     let config_dir = std::path::Path::new(&deck_path)
         .parent().unwrap_or(std::path::Path::new("."));
-    let field_path = config_dir.join(&config.field_path);
+    let primary_path = config_dir.join(config.primary_field_path());
 
     println!("Config: {}", deck_path);
-    println!("Field:  {}", field_path.display());
-
-    let mut field = FieldData::load(&field_path)?;
-
-    if let Some(ref e_path_str) = config.e_field_path.clone() {
-        let e_path = config_dir.join(e_path_str);
-        let e_field = FieldData::load(&e_path)?;
-        field.set_e_from_separate_file(e_field)?;
+    println!("Field:  {}", primary_path.display());
+    if config.b_fields.len() > 1 {
+        println!("  + {} extra superimposed field(s)", config.b_fields.len() - 1);
     }
+
+    let field = load_composite_field(&config, config_dir)?;
 
     // Resolve beam center (mirrors load_simulation)
     let beam_center: [f32; 3] = match &config.source.geometry {
@@ -2104,7 +2144,8 @@ fn run_explain_subcommand(argv: &[String]) -> Result<()> {
     }
 
     if !config.dt_was_supplied {
-        config.dt_s = compute_recommended_dt(&config, &field);
+        let sched = dt_schedule::DtSchedule::compute(&config, &field);
+        config.dt_s = sched.dt_small_s;
     }
 
     for line in build_experiment_summary(&config, &field) {

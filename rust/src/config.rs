@@ -928,7 +928,7 @@ impl SimulationConfig {
 
         // Field (from file)
         config.field.source = FieldSource::File(FileFieldConfig {
-            path: legacy.field_path.clone(),
+            path: legacy.primary_field_path().to_string(),
             format: FieldFileFormat::Bfld,
         });
 
