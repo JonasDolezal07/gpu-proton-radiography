@@ -194,3 +194,7 @@ in one command.
 [Get started :octicons-arrow-right-24:](quickstart.md){ .md-button .md-button--primary }
 [Python API :octicons-arrow-right-24:](python_api.md){ .md-button }
 [Validation :octicons-arrow-right-24:](validation.md){ .md-button }
+
+---
+
+Built by [Jonas Dolezal](https://jonasdolezal.com).

@@ -89,5 +89,8 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/JonasDolezal07/gpu-proton-radiography
       name: Source on GitHub
+    - icon: material/web
+      link: https://jonasdolezal.com
+      name: jonasdolezal.com
 
-copyright: "© 2025 Jonas Dolezal — MIT Licence"
+copyright: "© 2025 <a href='https://jonasdolezal.com'>Jonas Dolezal</a> — MIT Licence"
