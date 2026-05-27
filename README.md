@@ -12,12 +12,22 @@ It runs the full **relativistic Boris** orbit on the GPU. No paraxial approximat
 no non-relativistic shortcuts. 10⁶ particles end-to-end in under 2 seconds on a laptop GPU.
 
 ```
-✓ 12/12 physics validation tests passing
+✓ 16/16 physics validation tests passing
 ✓ Reproducible, self-documenting run directories
 ✓ CLI + GUI workflows
 ✓ Python API (pip install prad)
 ✓ Re-render without re-tracing particles
 ```
+
+## New in v0.4.0
+
+- **Arbitrary source/detector geometry** — detector normal and up vectors are fully configurable; Gram-Schmidt basis construction in the shader handles any orientation (test 13)
+- **Per-hit binary export** (`counts/hits.bin`) — every detector hit recorded as `(y_mm, z_mm, energy_MeV)`; enables energy-resolved radiographs and post-hoc material inference
+- **Adaptive timestep** — large dt in vacuum, Larmor-constrained dt inside the field; 5–20× speedup with no physics change (test 15)
+- **Superimposed field grids** — stack any number of `.bfld` files at load time via `[[field.extra_b]]` TOML blocks; CPU-side resampling, no shader changes (test 14)
+- **Bethe-Bloch CSDA energy loss** — relativistic stopping power from a 256-entry GPU lookup table; scalar density grid (`.dens` format); material presets (water, CH₂, Be, Al, H); 0.7% agreement with NIST PSTAR at 14.7 MeV (test 16)
+
+---
 
 ## Tested platforms
 
@@ -186,6 +196,7 @@ runs/zpinch_01/
   counts/
     raw_counts.bin         ← u32 [H×W] detector hit counts
     processed_counts.bin   ← f32 [H×W] after detector response
+    hits.bin               ← (y_mm, z_mm, energy_MeV) per hit
   images/
     radiograph.png
 ```
@@ -238,7 +249,7 @@ Output: `runs/sweep_001/` with one run directory per point and a live `sweep_man
 
 ## Performance
 
-Measured on Apple M4 (prad v0.3.1):
+Measured on Apple M4 (prad v0.4.0):
 
 | Field | 100,000 particles | 1,000,000 particles |
 |---|---|---|
@@ -275,11 +286,36 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # build first, then validate
 ```
 
-12 physics tests: B-only regression, zero-field straight-line projection, uniform E-field
+16 physics tests: B-only regression, zero-field straight-line projection, uniform E-field
 deflection (sign and magnitude), relativistic Boris energy conservation (14.7000 MeV
 recovered to sub-eV accuracy), pencil/point/disk source geometry, Gaussian energy spread,
 exponential/TNSA spectrum (mean KE ≈ T, hard cutoff enforced), Gaussian blur, Poisson noise
-reproducibility, and 60 MeV relativistic momentum initialisation (γ ≈ 1.064).
+reproducibility, 60 MeV relativistic momentum initialisation (γ ≈ 1.064), tilted geometry
+(arbitrary detector orientation), superimposed field grids, adaptive timestep (Δmean_y = 0.73 mm
+at ~20× speedup), and Bethe-Bloch CSDA energy loss (0.7% vs NIST PSTAR).
+
+Latest run — Apple M4, macOS 15, MoltenVK (2026-05-28):
+
+```
+  test1_regression                     PASS   (999,189 hits)
+  test2_zero_fields                    PASS   (mean_y = +0.018 mm, mean_z = +0.011 mm)
+  test3_uniform_E                      PASS
+  test4_B_energy_conservation          PASS   (KE = 14.7000 MeV, std/mean = 1.2×10⁻¹⁶)
+  test5_pencil_tilted                  PASS   (mean_y = +7.333 mm, expected +7.333 mm)
+  test6_point_full_cone                PASS   (hit fraction = 1.0000)
+  test7_disk_spatial_spread            PASS   (std_y = 15.005 mm, expected 15.000 mm)
+  test8_energy_spread                  PASS   (spread = 5.00%, target 5.0%)
+  test9_blur_conservation              PASS   (count conserved; σ widens from 0 → 6.09 px)
+  test10_poisson_reproducibility       PASS
+  test11_exponential_spectrum          PASS   (mean = 3.54 MeV ≈ T = 3.0 MeV, cutoff = 40 MeV)
+  test12_relativistic_60mev            PASS   (mean = 60.0000 MeV, rel_std = 2.4×10⁻¹⁶)
+  test13_tilted_geometry               PASS   (std_y = 74.91 mm, expected 75.0 mm)
+  test14_superimposed_fields           PASS   (std/mean = 6.5×10⁻⁸)
+  test15_adaptive_dt                   PASS   (Δmean_y = 0.73 mm at ~20× speedup)
+  test16_bethe_bloch                   PASS   (rel_err = 0.007, tol 0.05)
+  ──────────────────────────────────────────
+  16/16 PASS
+```
 
 ---
 
@@ -289,15 +325,19 @@ reproducibility, and 60 MeV relativistic momentum initialisation (γ ≈ 1.064).
 |---|---|
 | [docs/quickstart.md](docs/quickstart.md) | Full install → first run walkthrough |
 | [docs/python_api.md](docs/python_api.md) | Python API reference (`prad.run`, `Field`, `RunResult`) |
-| [docs/geometry.md](docs/geometry.md) | Coordinate system, detector geometry, source types |
+| [docs/geometry.md](docs/geometry.md) | Coordinate system, detector geometry, source types, tilted geometry |
 | [docs/spectra.md](docs/spectra.md) | Mono, Gaussian, and TNSA energy spectra |
 | [docs/input_decks.md](docs/input_decks.md) | TOML schema, all fields, `--set` overrides |
+| [docs/adaptive_timestep.md](docs/adaptive_timestep.md) | Three-phase adaptive dt schedule, speedup, config |
+| [docs/field_compositing.md](docs/field_compositing.md) | Superimposing multiple `.bfld` grids at load time |
+| [docs/stopping_power.md](docs/stopping_power.md) | Bethe-Bloch CSDA energy loss, `.dens` format, material presets |
 | [docs/run_artifacts.md](docs/run_artifacts.md) | Run directory anatomy and reproducibility |
-| [docs/file_formats.md](docs/file_formats.md) | `.bfld`, binary count formats, metadata schema |
+| [docs/file_formats.md](docs/file_formats.md) | `.bfld`, `.dens`, `hits.bin`, binary count formats, metadata schema |
 | [docs/rendering.md](docs/rendering.md) | Counts → PNG pipeline, re-render without GPU |
 | [docs/sweeps.md](docs/sweeps.md) | Parameter sweeps, syntax, sweep manifest |
 | [docs/benchmark.md](docs/benchmark.md) | Throughput scaling, physics sanity cases, PlasmaPy comparison |
-| [docs/validation.md](docs/validation.md) | Physics test descriptions and tolerances |
+| [docs/validation.md](docs/validation.md) | Physics test descriptions and tolerances (16 tests) |
+| [docs/convergence.md](docs/convergence.md) | Numerical robustness and convergence studies |
 | [docs/gui.md](docs/gui.md) | Deck launcher workflow |
 | [docs/limitations.md](docs/limitations.md) | Honest constraints and known gaps |
 
@@ -318,7 +358,7 @@ If you use prad in published work, please cite:
   author       = {Dolezal, Jonas},
   title        = {{prad}: {GPU}-accelerated relativistic proton radiography},
   year         = {2026},
-  version      = {0.3.1},
+  version      = {0.4.0},
   url          = {https://github.com/JonasDolezal07/gpu-proton-radiography},
   license      = {MIT},
 }
