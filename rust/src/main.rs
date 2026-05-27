@@ -676,7 +676,9 @@ impl ApplicationHandler for App {
                                         if let (Some(rd), Some(meta), Some(renderer)) =
                                             (&self.run_dir, &mut self.run_metadata, &self.renderer)
                                         {
-                                            finalize_run_dir_export(renderer, rd, meta, &self.png_cfg, run_time_s);
+                                            let save_hits = self.resolved_config.as_ref()
+                                                .map(|c| c.detector.save_hits).unwrap_or(true);
+                                            finalize_run_dir_export(renderer, rd, meta, &self.png_cfg, save_hits, run_time_s);
                                         }
                                     } else {
                                         // ── Legacy: timestamp-based flat export ───────────────
@@ -846,7 +848,9 @@ impl ApplicationHandler for App {
                                     if let (Some(rd), Some(meta)) =
                                         (&self.run_dir, &mut self.run_metadata)
                                     {
-                                        finalize_run_dir_export(renderer, rd, meta, &self.png_cfg, wall_s);
+                                        let save_hits = self.resolved_config.as_ref()
+                                            .map(|c| c.detector.save_hits).unwrap_or(true);
+                                        finalize_run_dir_export(renderer, rd, meta, &self.png_cfg, save_hits, wall_s);
                                     }
                                     self.gui_run_finalized = true;
                                     run_dir::detach_log_tee();
@@ -1098,15 +1102,19 @@ fn finalize_run_dir_export(
     run_dir: &run_dir::RunDir,
     meta: &mut run_dir::RunMetadata,
     png_cfg: &PngExportConfig,
+    save_hits: bool,
     wall_s: f64,
 ) -> bool {
-    let export_ok = match renderer.export_to_run_dir(run_dir, png_cfg) {
+    let export_ok = match renderer.export_to_run_dir(run_dir, png_cfg, save_hits) {
         Ok((raw, _)) => {
             let hits: u64 = raw.iter().map(|&c| c as u64).sum();
             log::info!("Total detector hits: {}", hits);
             meta.outputs.raw_counts = Some("counts/raw_counts.bin".to_string());
             meta.outputs.processed_counts = Some("counts/processed_counts.bin".to_string());
             meta.outputs.radiograph_png = Some("images/radiograph.png".to_string());
+            if save_hits {
+                meta.outputs.hits_bin = Some("counts/hits.bin".to_string());
+            }
             true
         }
         Err(e) => {
@@ -2295,7 +2303,9 @@ fn run_batch_headless(
         if let (Some(renderer), Some(run_dir), Some(run_meta)) =
             (&app.renderer, &app.run_dir, &mut app.run_metadata)
         {
-            finalize_run_dir_export(renderer, run_dir, run_meta, &app.png_cfg, wall_s);
+            let save_hits = app.resolved_config.as_ref()
+                .map(|c| c.detector.save_hits).unwrap_or(true);
+            finalize_run_dir_export(renderer, run_dir, run_meta, &app.png_cfg, save_hits, wall_s);
             run_dir.write_metadata(run_meta)?;
         }
     } else {

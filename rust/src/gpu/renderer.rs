@@ -1903,6 +1903,7 @@ impl Renderer {
     /// Writes:
     ///   counts/raw_counts.bin        (u32 little-endian)
     ///   counts/processed_counts.bin  (f32 little-endian)
+    ///   counts/hits.bin              (u32 n_hits header + f32 y_mm,z_mm,energy_MeV triples)
     ///   images/radiograph.png
     ///
     /// Returns `(raw_counts, processed_counts)` for use in metadata construction.
@@ -1910,6 +1911,7 @@ impl Renderer {
         &self,
         run_dir: &RunDir,
         cfg: &PngExportConfig,
+        save_hits: bool,
     ) -> Result<(Vec<u32>, Vec<f32>)> {
         let tex_w = DETECTOR_RESOLUTION as usize;
         let tex_h = DETECTOR_RESOLUTION as usize;
@@ -1943,7 +1945,37 @@ impl Renderer {
             .map_err(|e| anyhow::anyhow!("Failed to save radiograph.png: {}", e))?;
         log::info!("Wrote radiograph       → {:?}", run_dir.radiograph_png_path());
 
+        if save_hits {
+            let hits = self.read_detector_hits()?;
+            Self::write_hits_bin(&hits, &run_dir.hits_bin_path())?;
+            log::info!("Wrote hits             → {:?}", run_dir.hits_bin_path());
+        }
+
         Ok((raw_counts, processed))
+    }
+
+    /// Write per-hit binary: 4-byte little-endian u32 count, then (y_mm, z_mm, energy_MeV)
+    /// as f32 LE triples.  Readable in Python:
+    ///   n = np.frombuffer(data[:4], dtype='<u4')[0]
+    ///   hits = np.frombuffer(data[4:], dtype='<f4').reshape(n, 3)
+    fn write_hits_bin(hits: &[DetectorHit], path: &std::path::Path) -> Result<()> {
+        const PROTON_MASS_KG: f64 = 1.672_621_923_69e-27;
+        const MEV_J: f64          = 1.602_176_634e-13;
+
+        let n = hits.len() as u32;
+        let mut buf = Vec::with_capacity(4 + hits.len() * 12);
+        buf.extend_from_slice(&n.to_le_bytes());
+        for hit in hits {
+            let y_mm       = hit.position[0] * 1e3;
+            let z_mm       = hit.position[1] * 1e3;
+            // hit.energy is (γ-1)c² [J/kg]; multiply by proton mass to get KE in Joules
+            let energy_mev = (hit.energy as f64 * PROTON_MASS_KG / MEV_J) as f32;
+            buf.extend_from_slice(&y_mm.to_le_bytes());
+            buf.extend_from_slice(&z_mm.to_le_bytes());
+            buf.extend_from_slice(&energy_mev.to_le_bytes());
+        }
+        std::fs::write(path, &buf).context("Failed to write hits.bin")?;
+        Ok(())
     }
 
     /// Export detector hits to CSV (positions in mm, energies in MeV) plus a

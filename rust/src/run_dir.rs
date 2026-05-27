@@ -101,6 +101,7 @@ impl RunDir {
 
     pub fn raw_counts_path(&self)       -> PathBuf { self.counts_dir().join("raw_counts.bin") }
     pub fn processed_counts_path(&self) -> PathBuf { self.counts_dir().join("processed_counts.bin") }
+    pub fn hits_bin_path(&self)         -> PathBuf { self.counts_dir().join("hits.bin") }
     pub fn radiograph_png_path(&self)   -> PathBuf { self.images_dir().join("radiograph.png") }
     pub fn hits_csv_path(&self)         -> PathBuf { self.tables_dir().join("hits.csv") }
     pub fn resolved_config_path(&self)  -> PathBuf { self.root.join("resolved_config.json") }
@@ -284,6 +285,8 @@ pub struct OutputFiles {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub processed_counts: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub hits_bin: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub radiograph_png: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hits_csv: Option<String>,
@@ -386,6 +389,7 @@ impl RunMetadata {
                 input_deck: None,
                 raw_counts: None,
                 processed_counts: None,
+                hits_bin: None,
                 radiograph_png: None,
                 hits_csv: None,
             },

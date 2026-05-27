@@ -296,6 +296,8 @@ pub struct SimDetectorConfig {
     /// Full height along the z-axis [m].
     pub height_m: f64,
     pub pixels: [u32; 2],
+    /// Write counts/hits.bin (y_mm, z_mm, energy_MeV per hit).
+    pub save_hits: bool,
 }
 
 /// Top-level simulation config (SI).
@@ -657,6 +659,7 @@ impl TryFrom<RawConfig> for SimConfig {
                 width_m:  mm_to_m(rd.width_mm),
                 height_m: mm_to_m(rd.height_mm),
                 pixels,
+                save_hits: true,
             }
         } else {
             // Legacy: detector described inside the source block.
@@ -675,6 +678,7 @@ impl TryFrom<RawConfig> for SimConfig {
                 width_m:  0.50,
                 height_m: 0.50,
                 pixels,
+                save_hits: true,
             }
         };
 
@@ -765,6 +769,8 @@ pub struct DeckDetectorBlock {
     pub height_mm: f64,
     #[serde(default = "deck_default_pixels")]
     pub pixels: [u32; 2],
+    #[serde(default = "deck_default_true")]
+    pub save_hits: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -794,6 +800,7 @@ fn one_f64()  -> f64 { 1.0 }
 fn deck_default_normal() -> [f64; 3] { [1.0, 0.0, 0.0] }
 fn deck_default_up()     -> [f64; 3] { [0.0, 1.0, 0.0] }
 fn deck_default_pixels() -> [u32; 2] { [512, 512] }
+fn deck_default_true()   -> bool     { true }
 
 impl TryFrom<DeckConfig> for SimConfig {
     type Error = anyhow::Error;
@@ -881,6 +888,7 @@ impl TryFrom<DeckConfig> for SimConfig {
             width_m:  mm_to_m(d.width_mm),
             height_m: mm_to_m(d.height_mm),
             pixels: d.pixels,
+            save_hits: d.save_hits,
         };
 
         Ok(SimConfig {
