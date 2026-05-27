@@ -1279,8 +1279,16 @@ fn build_experiment_summary(config: &SimConfig, field: &FieldData) -> Vec<String
     let detector_distance_m = config.detector.distance_m
         .or_else(|| config.detector.center_m.map(|c| {
             let dir = src.beam_direction();
-            let exit_x = if dir[0] > 0.0 { b.x_max } else { b.x_min } as f64;
-            (c[0] - exit_x).abs()
+            // Project detector center onto beam direction from the field-exit face.
+            let field_exit = [
+                if dir[0] > 0.0 { b.x_max } else { b.x_min } as f64,
+                if dir[1] > 0.0 { b.y_max } else { b.y_min } as f64,
+                if dir[2] > 0.0 { b.z_max } else { b.z_min } as f64,
+            ];
+            let delta = [c[0] - field_exit[0], c[1] - field_exit[1], c[2] - field_exit[2]];
+            (delta[0] * dir[0] as f64
+           + delta[1] * dir[1] as f64
+           + delta[2] * dir[2] as f64).abs()
         }))
         .unwrap_or(0.0);
 

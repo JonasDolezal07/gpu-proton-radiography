@@ -163,15 +163,13 @@ void record_hit(uint idx, vec3 hit_pos, vec3 vel) {
     }
 }
 
-// Check if position is outside simulation domain
-// Use detector extent as margin - particles beyond this can't hit the detector anyway
+// Check if position is outside simulation domain.
+// Margin = max detector half-extent applied uniformly in all three world axes.
+// This is correct for any detector orientation: a tilted detector can span any
+// world direction, so the margin must be orientation-independent.
 bool is_outside_domain(vec3 pos) {
-    // Use detector extent for y,z margin (particles beyond this miss the detector)
-    vec3 margin = vec3(
-        0.5 * (params.field_max.x - params.field_min.x),  // x: half field width
-        params.detector_extent.x,  // y: detector half-extent
-        params.detector_extent.y   // z: detector half-extent
-    );
+    float det_reach = max(params.detector_extent.x, params.detector_extent.y);
+    vec3 margin = vec3(det_reach);
 
     vec3 domain_min = min(params.field_min.xyz, params.detector_pos.xyz) - margin;
     vec3 domain_max = max(params.field_max.xyz, params.detector_pos.xyz) + margin;

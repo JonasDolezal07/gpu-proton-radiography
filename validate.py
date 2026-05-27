@@ -1173,6 +1173,112 @@ def test12_relativistic_60mev():
     return ok
 
 
+# ── test 13: tilted geometry — beam along +z, detector facing -z ─────────────
+
+def test13_tilted_geometry():
+    """
+    Parallel beam along +z (not the default +x), zero field.
+    Source at (0, 0, -100mm), detector at (0, 0, +110mm) facing -z.
+    Beam radius = 150mm, well inside the 500mm detector (half-extent 250mm),
+    so with correct domain-exit logic every particle should reach the detector.
+
+    The field extends ±60mm in x/y, so the old axis-biased margin (margin.x = 60mm)
+    made domain_max.x = 120mm.  Particles at |x| > 120mm were killed immediately on
+    step 1 — that is ~10% of a 150mm-radius beam.
+
+    Checks:
+      1. hit_fraction >= 0.99  (no particles killed by domain exit)
+      2. std(local-y) ≈ std(local-z) ≈ 75mm  (uniform disk R=150mm, std = R/2)
+    """
+    print("Test 13: Tilted geometry  (+z beam, detector facing -z, 150mm radius)")
+    import math, json as _json
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    n_particles = 50_000
+    radius_mm   = 150.0
+
+    nx = ny = nz = 16
+    bounds = (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06)
+    B = np.zeros((nx, ny, nz, 3), dtype=np.float32)
+    E = np.zeros_like(B)
+    write_bfld(VALDATA / "t13_zero.bfld", B, E, bounds)
+
+    cfg = {
+        "field_path": "t13_zero.bfld",
+        "detector": {
+            "center_mm": [0.0, 0.0, 110.0],
+            "normal":    [0.0, 0.0, -1.0],   # facing -z (toward source)
+            "up":        [0.0, 1.0,  0.0],
+            "width_mm":  500.0,
+            "height_mm": 500.0,
+            "pixels":    [512, 512],
+        },
+        "source": {
+            "source_type":    "parallel",
+            "n_particles":    n_particles,
+            "energy_MeV":     14.7,
+            "beam_center":    [0.0, 0.0, -0.1],   # 100mm upstream in z [m]
+            "beam_direction": [0.0, 0.0,  1.0],   # +z beam axis
+            "beam_radius_mm": radius_mm,
+            "angular_spread_deg": 0.0,
+        },
+        "dt_ps":     1.0,
+        "max_steps": 20_000,
+    }
+    cfg_path = VALDATA / "t13_tilted.json"
+    with open(cfg_path, "w") as f:
+        _json.dump(cfg, f, indent=2)
+
+    out = VALOUT / "t13_tilted"
+    if not run_batch(cfg_path, out):
+        print("   tracer error")
+        REPORT["test13_tilted_geometry"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    hits = read_hits(out)
+    n_hits       = len(hits)
+    hit_fraction = n_hits / n_particles
+
+    # Detector basis for +z beam, normal=[0,0,-1], up=[0,1,0]:
+    #   u_y = [0,1,0]  (world-y ↔ local-y)
+    #   v_z = cross([0,0,-1],[0,1,0]) = [1,0,0]  (world-x ↔ local-z)
+    # So h[0] = world-y offset,  h[1] = world-x offset.
+    # Uniform disk R=150mm → std of one Cartesian component = R/2 = 75mm.
+    expected_std = radius_mm / 2.0
+
+    ys = [h[0] for h in hits]
+    zs = [h[1] for h in hits]
+    std_y = _std(ys) if ys else 0.0
+    std_z = _std(zs) if zs else 0.0
+
+    hit_ok  = hit_fraction >= 0.99
+    std_ok  = (abs(std_y - expected_std) / expected_std < 0.05 and
+               abs(std_z - expected_std) / expected_std < 0.05)
+    ok = hit_ok and std_ok
+
+    print(f"   hits = {n_hits} / {n_particles},  fraction = {hit_fraction:.4f}")
+    print(f"   std_y = {std_y:.2f} mm,  std_z = {std_z:.2f} mm  (expected {expected_std:.1f} mm)")
+    if not hit_ok:
+        print(f"   FAIL: hit fraction {hit_fraction:.4f} < 0.99  "
+              "(domain-exit bug kills outer-ring particles without the shader fix)")
+    if not std_ok:
+        print(f"   FAIL: spatial std outside 5% of {expected_std:.1f} mm")
+
+    png_ok, png_info = check_png_output(out)
+    ok = ok and png_ok
+    REPORT["test13_tilted_geometry"] = {
+        "pass":           ok,
+        "hits":           n_hits,
+        "n_particles":    n_particles,
+        "hit_fraction":   round(hit_fraction, 6),
+        "std_y_mm":       round(std_y, 2),
+        "std_z_mm":       round(std_z, 2),
+        "expected_std_mm": expected_std,
+        **png_info,
+    }
+    return ok
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1195,6 +1301,7 @@ if __name__ == "__main__":
         test10_poisson_reproducibility,
         test11_exponential_spectrum,
         test12_relativistic_60mev,
+        test13_tilted_geometry,
     ]
 
     results = {}

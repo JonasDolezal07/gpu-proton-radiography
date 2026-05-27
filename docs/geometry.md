@@ -1,15 +1,22 @@
 # Coordinate system and geometry
 
-## Beam axis convention
+## Arbitrary geometry
 
-**+x is the beam axis throughout.**
+Source positions, beam directions, and detector orientations are fully configurable —
+there is no requirement to align anything with +x.  The examples throughout this page
+use the conventional +x beam axis for clarity, but the engine is geometry-independent.
+
+See [Tilted-geometry example](#tilted-geometry-example) below for a complete off-axis deck.
+
+## Default beam axis convention
+
+The default configuration places the beam along **+x**:
 
 - Source is upstream: x < 0
 - Detector is downstream: x > 0
 - The detector plane is y–z
 
-This convention is consistent across the config, shader, and CSV output. Do not assume any
-other axis orientation.
+This is just a convention used by the built-in presets and examples, not a constraint of the engine.
 
 ## Source geometry
 
@@ -137,3 +144,44 @@ Strong field deflections increase path length, so you need margin above this —
 
 The default `max_steps = 10000` with `dt_ps = 1.0` is adequate for most geometries within
 ~60 mm field volumes. Increase `max_steps` for larger geometries or strongly deflecting fields.
+
+## Tilted-geometry example
+
+The following deck models an OMEGA-style geometry: the plasma column is aligned with z,
+the proton source enters at an oblique angle, and the detector is tilted.
+
+```toml
+# OMEGA-style tilted geometry
+[field]
+path = "data/instabilities/zpinch.bfld"
+
+[source]
+type              = "point"
+position_mm       = [-60.0,  20.0, -80.0]   # off-axis source
+aim_at_mm         = [  0.0,   0.0,   0.0]   # aimed at plasma centre
+cone_half_angle_deg = 8.0
+energy_MeV        = 14.7
+n_particles       = 500000
+
+[detector]
+# Detector placed downstream of the field, rotated 20° away from +x
+center_mm  = [120.0, -15.0, 80.0]
+normal     = [-0.940,  0.116, -0.320]   # points back toward source (unit vector)
+up         = [  0.0,   1.0,   0.0]
+width_mm   = 400.0
+height_mm  = 400.0
+
+[numerics]
+dt_ps     = 0.2
+max_steps = 30000
+```
+
+Key points:
+
+- `aim_at_mm` computes the `direction` vector automatically from `position_mm` → target.
+- `normal` should point **toward the source** (the half-space the beam comes from).  If it
+  points away, no hits will be recorded because particles cross from the wrong side.
+- `up` only needs to be non-parallel to `normal`; it is Gram–Schmidt-projected onto the
+  detector plane automatically.
+- Hit positions in `hits.bin` and the CSV are in **detector-local coordinates** (`u_y`, `v_z`),
+  regardless of world orientation.  Multiply by the detector pixel pitch to convert to mm on film.
