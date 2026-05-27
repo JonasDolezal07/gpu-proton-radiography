@@ -49,6 +49,8 @@ impl ComputePipeline {
             // binding 2: detector hits buffer (storage)
             // binding 3: detector image (storage image for atomic writes)
             // binding 4: E-field texture (sampled image)
+            // binding 5: density texture (sampled image, R32_SFLOAT)
+            // binding 6: stopping power table (storage buffer, std430)
             let bindings = [
                 vk::DescriptorSetLayoutBinding {
                     binding: 0,
@@ -81,6 +83,20 @@ impl ComputePipeline {
                 vk::DescriptorSetLayoutBinding {
                     binding: 4,
                     descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    descriptor_count: 1,
+                    stage_flags: vk::ShaderStageFlags::COMPUTE,
+                    ..Default::default()
+                },
+                vk::DescriptorSetLayoutBinding {
+                    binding: 5,
+                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    descriptor_count: 1,
+                    stage_flags: vk::ShaderStageFlags::COMPUTE,
+                    ..Default::default()
+                },
+                vk::DescriptorSetLayoutBinding {
+                    binding: 6,
+                    descriptor_type: vk::DescriptorType::STORAGE_BUFFER,
                     descriptor_count: 1,
                     stage_flags: vk::ShaderStageFlags::COMPUTE,
                     ..Default::default()
@@ -139,11 +155,11 @@ impl ComputePipeline {
             let pool_sizes = [
                 vk::DescriptorPoolSize {
                     ty: vk::DescriptorType::STORAGE_BUFFER,
-                    descriptor_count: 2,
+                    descriptor_count: 3,  // particle + detector + stopping power
                 },
                 vk::DescriptorPoolSize {
                     ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    descriptor_count: 2,  // B field + E field
+                    descriptor_count: 3,  // B field + E field + density
                 },
                 vk::DescriptorPoolSize {
                     ty: vk::DescriptorType::STORAGE_IMAGE,
@@ -211,6 +227,10 @@ impl ComputePipeline {
         detector_image_view: vk::ImageView,
         e_field_view: vk::ImageView,
         e_field_sampler: vk::Sampler,
+        density_view: vk::ImageView,
+        density_sampler: vk::Sampler,
+        stopping_buffer: vk::Buffer,
+        stopping_size: vk::DeviceSize,
     ) {
         let particle_info = vk::DescriptorBufferInfo {
             buffer: particle_buffer,
@@ -240,6 +260,18 @@ impl ComputePipeline {
             sampler: e_field_sampler,
             image_view: e_field_view,
             image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+        };
+
+        let density_info = vk::DescriptorImageInfo {
+            sampler: density_sampler,
+            image_view: density_view,
+            image_layout: vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+        };
+
+        let stopping_info = vk::DescriptorBufferInfo {
+            buffer: stopping_buffer,
+            offset: 0,
+            range: stopping_size,
         };
 
         let writes = [
@@ -281,6 +313,22 @@ impl ComputePipeline {
                 descriptor_count: 1,
                 descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                 p_image_info: &e_field_info,
+                ..Default::default()
+            },
+            vk::WriteDescriptorSet {
+                dst_set: self.descriptor_set,
+                dst_binding: 5,
+                descriptor_count: 1,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                p_image_info: &density_info,
+                ..Default::default()
+            },
+            vk::WriteDescriptorSet {
+                dst_set: self.descriptor_set,
+                dst_binding: 6,
+                descriptor_count: 1,
+                descriptor_type: vk::DescriptorType::STORAGE_BUFFER,
+                p_buffer_info: &stopping_info,
                 ..Default::default()
             },
         ];

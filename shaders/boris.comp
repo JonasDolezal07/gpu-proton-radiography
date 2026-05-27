@@ -71,6 +71,8 @@ layout(push_constant) uniform SimParams {
 //   binding 2 — detector hits buffer  (STORAGE_BUFFER)
 //   binding 3 — detector image        (STORAGE_IMAGE, uimage2D, R32_UINT)
 //   binding 4 — E-field texture       (COMBINED_IMAGE_SAMPLER, sampler3D, R32G32B32A32_SFLOAT)
+//   binding 5 — density texture       (COMBINED_IMAGE_SAMPLER, sampler3D, R32_SFLOAT) [g/cm³]
+//   binding 6 — stopping power buffer (STORAGE_BUFFER, std430) mass stopping power table
 
 layout(std430, binding = 0) buffer ParticleBuffer {
     Particle particles[];
@@ -78,6 +80,16 @@ layout(std430, binding = 0) buffer ParticleBuffer {
 
 layout(binding = 1) uniform sampler3D field_texture;    // Bx,By,Bz in .xyz [T]
 layout(binding = 4) uniform sampler3D e_field_texture;  // Ex,Ey,Ez in .xyz [V/m]
+layout(binding = 5) uniform sampler3D density_texture;  // ρ in .r [g/cm³]
+
+layout(std430, binding = 6) readonly buffer StoppingPower {
+    float dedx[256];       // mass stopping power [MeV cm²/g], log-spaced KE grid
+    float log_e_min;       // log(E_min_MeV)
+    float log_e_inv_range; // 1/(log(E_max_MeV) - log(E_min_MeV))
+    float dens_xmin; float dens_ymin; float dens_zmin;
+    float dens_xmax; float dens_ymax; float dens_zmax;
+    float _pad0; float _pad1;
+} stopping;
 
 layout(std430, binding = 2) buffer DetectorBuffer {
     uint hit_count;
@@ -108,6 +120,45 @@ vec3 sample_efield(vec3 pos) {
     vec3 uvw = (pos - params.field_min.xyz) / (params.field_max.xyz - params.field_min.xyz);
     uvw = clamp(uvw, vec3(0.0), vec3(1.0));
     return texture(e_field_texture, uvw).xyz;
+}
+
+// Return density [g/cm³] at world position, zero outside density grid bounds.
+float sample_density(vec3 pos) {
+    vec3 dmin = vec3(stopping.dens_xmin, stopping.dens_ymin, stopping.dens_zmin);
+    vec3 dmax = vec3(stopping.dens_xmax, stopping.dens_ymax, stopping.dens_zmax);
+    if (any(lessThan(pos, dmin)) || any(greaterThan(pos, dmax))) {
+        return 0.0;
+    }
+    vec3 uvw = clamp((pos - dmin) / (dmax - dmin), vec3(0.0), vec3(1.0));
+    return texture(density_texture, uvw).r;
+}
+
+// Apply CSDA energy loss via Bethe-Bloch. Rescales |u| = γv in place.
+// rho [g/cm³], path_m [m], vel = u = γv [m/s] (modified in place).
+void apply_energy_loss(float rho, float path_m, inout vec3 vel) {
+    if (rho <= 0.0 || path_m <= 0.0) return;
+
+    float u_sq = dot(vel, vel);
+    float gamma = sqrt(1.0 + u_sq * INV_C_SQ);
+    float KE_MeV = (gamma - 1.0) * 938.272046;
+
+    // Look up mass stopping power by KE
+    float log_KE = log(max(KE_MeV, 0.001));
+    float t_idx = clamp((log_KE - stopping.log_e_min) * stopping.log_e_inv_range, 0.0, 1.0);
+    int idx = clamp(int(t_idx * 255.0), 0, 255);
+    float dedx_val = stopping.dedx[idx]; // MeV cm²/g
+
+    // dE = (dE/dρx) × ρ × dx (dx in cm: path_m × 100)
+    float dE_MeV = dedx_val * rho * path_m * 100.0;
+
+    float new_KE = max(KE_MeV - dE_MeV, 0.001);
+    float new_gamma = 1.0 + new_KE / 938.272046;
+    float new_u_mag = C_M_S * sqrt(new_gamma * new_gamma - 1.0);
+
+    float old_u_mag = sqrt(u_sq);
+    if (old_u_mag > 1e-10) {
+        vel *= new_u_mag / old_u_mag;
+    }
 }
 
 // ============================================================================
@@ -229,7 +280,14 @@ void main() {
         vel = u_plus + half_qm_dt * E;
 
         float gamma_new = sqrt(1.0 + dot(vel, vel) * INV_C_SQ);
-        pos = pos + (vel / gamma_new) * dt;
+        vec3 v_phys = vel / gamma_new;           // physical velocity [m/s]
+        pos = pos + v_phys * dt;
+
+        // CSDA energy loss (Bethe-Bloch). No-op when density is 0.
+        float rho = sample_density(pos);
+        if (rho > 0.0) {
+            apply_energy_loss(rho, length(v_phys) * dt, vel);
+        }
 
         // Check detector hit
         {

@@ -3,7 +3,9 @@
 mod field;
 mod particles;
 mod config;
+mod density;
 
 pub use field::{FieldData, FieldBounds, EFieldSource};
 pub use particles::{ParticleData, Particle};
-pub use config::{SimConfig, SimSourceConfig, SimDetectorConfig, SimSourceGeometry};
+pub use config::{SimConfig, SimSourceConfig, SimDetectorConfig, SimSourceGeometry, SimDensityConfig};
+pub use density::DensityData;

@@ -147,6 +147,56 @@ write_metadata = true
 
 All four default to true. Set to false to skip writing specific outputs.
 
+### `[density]` (optional)
+
+```toml
+[density]
+path = "data/plasma.dens"     # path to .dens density grid file (relative to deck)
+material = "water"            # material preset: water | plastic | beryllium | aluminum | hydrogen
+```
+
+Enables continuous-slowing-down approximation (CSDA) energy loss via the Bethe-Bloch formula.
+Each Boris step looks up the local density, computes `dE = S(KE) × ρ × |v|·dt`, and reduces the
+particle momentum accordingly.  Direction is unchanged; only the speed is reduced.
+
+When `[density]` is absent the simulation is energy-conserving (pure EM deflection).
+
+#### Density file format (`.dens`)
+
+64-byte binary header + scalar f32 grid, C-contiguous (x outermost, z innermost):
+
+```
+magic "DENS"  (4 bytes)
+version u32   (currently 1)
+nx, ny, nz    (u32 × 3)
+x_min, x_max, y_min, y_max, z_min, z_max  (f32 × 6, metres)
+padding        (20 bytes to reach 64)
+data           nx×ny×nz f32 values [g/cm³]
+```
+
+Values outside the declared grid bounds contribute zero (vacuum) — the density grid does not
+need to cover the full simulation volume.
+
+#### Custom material
+
+```toml
+[density]
+path = "data/plasma.dens"
+material = "custom"
+z_over_a = 0.5                # effective Z/A
+i_ev = 75.0                   # mean excitation energy [eV]
+```
+
+Built-in presets and their parameters:
+
+| Material   | Z/A    | I (eV) |
+|------------|--------|--------|
+| water      | 0.5551 | 75.0   |
+| plastic    | 0.5702 | 57.4   |
+| beryllium  | 0.4439 | 63.7   |
+| aluminum   | 0.4818 | 166.0  |
+| hydrogen   | 0.9922 | 19.2   |
+
 ### `[detector_response]` (optional)
 
 ```toml

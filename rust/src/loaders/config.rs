@@ -320,6 +320,21 @@ pub struct SimConfig {
     pub dt_was_supplied: bool,
     pub max_steps: u32,
     pub detector_response: DetectorResponseConfig,
+    /// Optional density grid + material for Bethe-Bloch stopping.
+    pub density: Option<SimDensityConfig>,
+}
+
+/// Density / stopping power config (maps to `[density]` TOML block).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SimDensityConfig {
+    /// Path to the `.dens` file (relative to the deck directory).
+    pub path: String,
+    /// Material preset name (water, plastic, beryllium, aluminum) or "custom".
+    pub material: String,
+    /// For material = "custom": effective Z/A.
+    pub z_over_a: Option<f64>,
+    /// For material = "custom": mean excitation energy [eV].
+    pub i_ev: Option<f64>,
 }
 
 impl SimConfig {
@@ -707,6 +722,7 @@ impl TryFrom<RawConfig> for SimConfig {
             dt_was_supplied,
             max_steps: raw.max_steps,
             detector_response: raw.detector_response,
+            density: None, // legacy JSON configs don't support density
         })
     }
 }
@@ -728,6 +744,7 @@ pub struct DeckConfig {
     pub output: DeckOutput,
     #[serde(default)]
     pub detector_response: DetectorResponseConfig,
+    pub density: Option<DeckDensityBlock>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -742,6 +759,18 @@ pub struct DeckFieldBlock {
     #[serde(default)]
     pub extra_b: Vec<DeckFieldExtra>,
 }
+
+/// Optional `[density]` block in a TOML deck.
+#[derive(Debug, Deserialize)]
+pub struct DeckDensityBlock {
+    pub path: String,
+    #[serde(default = "deck_water")]
+    pub material: String,
+    pub z_over_a: Option<f64>,
+    pub i_ev: Option<f64>,
+}
+
+fn deck_water() -> String { "water".to_string() }
 
 /// One entry in `[[field.extra_b]]`.
 #[derive(Debug, Deserialize)]
@@ -934,6 +963,13 @@ impl TryFrom<DeckConfig> for SimConfig {
             });
         }
 
+        let density = deck.density.map(|d| SimDensityConfig {
+            path: d.path,
+            material: d.material,
+            z_over_a: d.z_over_a,
+            i_ev: d.i_ev,
+        });
+
         Ok(SimConfig {
             b_fields,
             source,
@@ -942,6 +978,7 @@ impl TryFrom<DeckConfig> for SimConfig {
             dt_was_supplied,
             max_steps,
             detector_response: deck.detector_response,
+            density,
         })
     }
 }

@@ -22,6 +22,7 @@ mod overrides;
 mod sweep;
 mod inspect;
 mod dt_schedule;
+mod stopping_power;
 
 use anyhow::Result;
 use winit::{
@@ -474,6 +475,12 @@ impl App {
         renderer.set_source_metadata(source_type_name, config.source.particle_energy_mev as f32);
         renderer.set_png_config(self.png_cfg.clone());
         renderer.set_detector_response_config(config.detector_response.clone());
+
+        // Load density grid and compute stopping table (or vacuum fallback)
+        {
+            let (density, stopping) = load_density_and_stopping(&config, config_dir)?;
+            renderer.upload_density(&density, &stopping)?;
+        }
 
         const BORIS_SHADER: &[u8] = include_bytes!("../../shaders/boris.spv");
         renderer.load_compute_shader(BORIS_SHADER)?;
@@ -1247,6 +1254,44 @@ fn load_composite_field(config: &SimConfig, config_dir: &std::path::Path) -> Res
 
     field.log_diagnostics();
     Ok(field)
+}
+
+/// Load density data and compute the GPU stopping power table.
+///
+/// Returns `(DensityData::vacuum(), StoppingGpuData::vacuum())` when no
+/// `[density]` block is present in the config.
+fn load_density_and_stopping(
+    config: &SimConfig,
+    config_dir: &std::path::Path,
+) -> Result<(loaders::DensityData, stopping_power::StoppingGpuData)> {
+    use crate::stopping_power::{Material, StoppingGpuData};
+    use crate::loaders::DensityData;
+
+    let Some(ref dcfg) = config.density else {
+        return Ok((DensityData::vacuum(), StoppingGpuData::vacuum()));
+    };
+
+    let dens_path = config_dir.join(&dcfg.path);
+    log::info!("  Loading density from: {}", dens_path.display());
+    let density = DensityData::load(&dens_path)?;
+    log::info!("  Density grid: {}x{}x{} (g/cm³)", density.nx, density.ny, density.nz);
+
+    let mat = if dcfg.material.to_lowercase() == "custom" {
+        let z_over_a = dcfg.z_over_a.ok_or_else(|| anyhow::anyhow!("[density] material='custom' requires z_over_a"))?;
+        let i_ev = dcfg.i_ev.ok_or_else(|| anyhow::anyhow!("[density] material='custom' requires i_ev"))?;
+        Material::custom(z_over_a, i_ev)
+    } else {
+        Material::from_name(&dcfg.material).ok_or_else(|| {
+            anyhow::anyhow!("[density] unknown material '{}'; known: water, plastic, beryllium, aluminum, hydrogen", dcfg.material)
+        })?
+    };
+    log::info!("  Stopping material: {} (Z/A={:.4}, I={:.1} eV)", dcfg.material, mat.z_over_a, mat.i_ev);
+
+    let dens_min = [density.bounds.x_min, density.bounds.y_min, density.bounds.z_min];
+    let dens_max = [density.bounds.x_max, density.bounds.y_max, density.bounds.z_max];
+    let stopping = StoppingGpuData::for_material(&mat, dens_min, dens_max);
+
+    Ok((density, stopping))
 }
 
 /// Compute the minimum of three physics-motivated dt candidates.

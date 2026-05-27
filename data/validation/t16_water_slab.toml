@@ -1,0 +1,27 @@
+[field]
+path = "t16_zero.bfld"
+scale_B = 0.0
+scale_E = 0.0
+
+[density]
+path = "t16_water_slab.dens"
+material = "water"
+
+[source]
+type = "pencil"
+n_particles = 10000
+energy_MeV = 14.7
+position_mm = [-80.0, 0.0, 0.0]
+aim_at_mm = [0.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 200.0
+height_mm = 200.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 30000

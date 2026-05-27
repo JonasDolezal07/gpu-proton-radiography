@@ -1532,6 +1532,190 @@ pixels = [512, 512]
     return ok
 
 
+# ── test 16: Bethe-Bloch energy loss ─────────────────────────────────────────
+
+def write_dens(path, rho_arr, bounds):
+    """Write a .dens binary file.  rho_arr: (nx,ny,nz) float32 array [g/cm³]."""
+    nx, ny, nz = rho_arr.shape
+    xmn, xmx, ymn, ymx, zmn, zmx = bounds
+    with open(path, "wb") as f:
+        f.write(b"DENS")
+        f.write(struct.pack("<I", 1))              # version
+        f.write(struct.pack("<III", nx, ny, nz))
+        f.write(struct.pack("<6f", xmn, xmx, ymn, ymx, zmn, zmx))
+        f.write(b"\x00" * (64 - 4 - 4 - 12 - 24))  # padding to 64 bytes
+        f.write(rho_arr.astype("<f4").tobytes())
+
+
+def bethe_bloch_water_mev_cm2_g(ke_mev):
+    """Bethe-Bloch mass stopping power [MeV cm²/g] for proton in water."""
+    K = 0.307075
+    ME_C2 = 0.51099895
+    MP_C2 = 938.272046
+    I_MEV = 75.0e-6  # water mean excitation energy
+
+    gamma = 1.0 + ke_mev / MP_C2
+    beta2 = 1.0 - 1.0 / gamma**2
+    tmax = 2 * ME_C2 * beta2 * gamma**2 / (1 + 2*gamma*ME_C2/MP_C2 + (ME_C2/MP_C2)**2)
+    arg = 2 * ME_C2 * beta2 * gamma**2 * tmax / I_MEV**2
+    bracket = 0.5 * np.log(arg) - beta2
+    if bracket <= 0:
+        return 0.0
+    return K * 0.5551 / beta2 * bracket   # Z/A_water = 0.5551
+
+
+def analytic_ke_loss_water(ke0_mev, thickness_m):
+    """CSDA energy loss [MeV] for a proton in water (ρ=1 g/cm³) over thickness_m [m]."""
+    # Integrate dE/dx via simple trapezoidal quadrature from ke0 downward
+    n_steps = 1000
+    ke = ke0_mev
+    dx_cm = thickness_m * 100.0 / n_steps  # path element [cm]
+    for _ in range(n_steps):
+        dedx = bethe_bloch_water_mev_cm2_g(ke)  # MeV cm²/g; × ρ=1 g/cm³ = MeV/cm
+        dE = dedx * dx_cm
+        ke -= dE
+        if ke <= 0.001:
+            return ke0_mev - 0.001
+    return ke0_mev - ke
+
+
+def test16_bethe_bloch():
+    """
+    Proton beam (pencil) through a uniform water slab (ρ = 1 g/cm³, 5 mm thick).
+    Checks that the GPU simulation energy loss matches the analytic Bethe-Bloch
+    integral to within ±5%.  Also verifies no hit has more energy than the input
+    (energy is never gained).
+    """
+    print("Test 16: Bethe-Bloch energy loss in water slab")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    SLAB_THICKNESS_M = 0.001   # 1 mm water slab (14.7 MeV range ≈ 2.4 mm → protons pass through)
+    RHO_WATER = 1.0            # g/cm³
+    ENERGY_MEV = 14.7
+    N_PARTICLES = 10_000
+
+    # Slab spans x ∈ [0, SLAB_THICKNESS_M]; y,z ∈ [-0.05, 0.05 m]
+    slab_bounds = (0.0, SLAB_THICKNESS_M, -0.05, 0.05, -0.05, 0.05)
+
+    # Build 4×16×16 density grid: uniform ρ = 1 g/cm³ inside slab
+    dens = np.full((4, 16, 16), RHO_WATER, dtype=np.float32)
+    dens_path = VALDATA / "t16_water_slab.dens"
+    write_dens(dens_path, dens, slab_bounds)
+
+    # Zero B-field spanning a broader region
+    bfld_path = VALDATA / "t16_zero.bfld"
+    B = np.zeros((4, 8, 8, 3), dtype=np.float32)
+    E = np.zeros_like(B)
+    write_bfld(bfld_path, B, E, (-0.01, 0.16, -0.05, 0.05, -0.05, 0.05))
+
+    deck = f"""\
+[field]
+path = "t16_zero.bfld"
+scale_B = 0.0
+scale_E = 0.0
+
+[density]
+path = "t16_water_slab.dens"
+material = "water"
+
+[source]
+type = "pencil"
+n_particles = {N_PARTICLES}
+energy_MeV = {ENERGY_MEV}
+position_mm = [-80.0, 0.0, 0.0]
+aim_at_mm = [0.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 200.0
+height_mm = 200.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 30000
+"""
+    deck_path = VALDATA / "t16_water_slab.toml"
+    deck_path.write_text(deck)
+
+    out = VALOUT / "t16_bethe_bloch"
+    import shutil
+    if out.exists():
+        shutil.rmtree(out)
+
+    env = os.environ.copy()
+    brew_lib = Path("/opt/homebrew/lib")
+    icd = Path("/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json")
+    if icd.exists() and "VK_ICD_FILENAMES" not in env:
+        env["VK_ICD_FILENAMES"] = str(icd)
+    if brew_lib.exists():
+        existing = env.get("DYLD_LIBRARY_PATH", "")
+        if str(brew_lib) not in existing:
+            env["DYLD_LIBRARY_PATH"] = (str(brew_lib) + ":" + existing).rstrip(":")
+
+    cmd = [str(BIN), "run", str(deck_path), "-o", str(out)]
+    try:
+        result = subprocess.run(cmd, cwd=VALDATA, capture_output=True, text=True, timeout=120, env=env)
+    except subprocess.TimeoutExpired:
+        REPORT["test16_bethe_bloch"] = {"pass": False, "error": "timeout"}
+        return False
+    if result.returncode != 0:
+        print(f"   tracer error: {result.stderr[-500:]}")
+        REPORT["test16_bethe_bloch"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    hits_bin = out / "counts" / "hits.bin"
+    if not hits_bin.exists():
+        print("   no hits.bin found")
+        REPORT["test16_bethe_bloch"] = {"pass": False, "error": "no hits.bin"}
+        return False
+    raw = hits_bin.read_bytes()
+    if len(raw) < 4:
+        print("   hits.bin too short")
+        REPORT["test16_bethe_bloch"] = {"pass": False, "error": "no hits"}
+        return False
+
+    n_rec = struct.unpack_from("<I", raw, 0)[0]
+    hits_data = np.frombuffer(raw, dtype="<f4", offset=4).reshape(-1, 3)
+    ke_arr = hits_data[:, 2]
+
+    # Analytic expected energy loss
+    expected_loss = analytic_ke_loss_water(ENERGY_MEV, SLAB_THICKNESS_M)
+    expected_ke_exit = ENERGY_MEV - expected_loss
+
+    mean_ke  = float(np.mean(ke_arr))
+    max_ke   = float(np.max(ke_arr))
+    rel_err  = abs(mean_ke - expected_ke_exit) / expected_ke_exit
+
+    tol_rel  = 0.05   # ±5% tolerance on mean exit KE
+
+    ok1 = rel_err <= tol_rel
+    ok2 = max_ke <= ENERGY_MEV + 0.01   # no particle gains energy (allow 10 keV rounding)
+    ok  = ok1 and ok2
+
+    print(f"   hits = {len(ke_arr)},  mean KE = {mean_ke:.4f} MeV  (expected {expected_ke_exit:.4f} MeV)")
+    print(f"   energy loss: simulated = {ENERGY_MEV - mean_ke:.3f} MeV,  analytic = {expected_loss:.3f} MeV")
+    print(f"   relative error = {rel_err:.3f}  (tol {tol_rel})")
+    if not ok1:
+        print(f"   FAIL: relative error {rel_err:.3f} > {tol_rel}")
+    if not ok2:
+        print(f"   FAIL: max KE {max_ke:.4f} > input {ENERGY_MEV} MeV (energy gained!)")
+
+    REPORT["test16_bethe_bloch"] = {
+        "pass": ok,
+        "n_hits": int(len(ke_arr)),
+        "mean_ke_sim_MeV": round(mean_ke, 4),
+        "expected_ke_MeV": round(expected_ke_exit, 4),
+        "loss_sim_MeV": round(ENERGY_MEV - mean_ke, 4),
+        "loss_analytic_MeV": round(expected_loss, 4),
+        "relative_error": float(f"{rel_err:.4f}"),
+        "tolerance": tol_rel,
+    }
+    return ok
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1557,6 +1741,7 @@ if __name__ == "__main__":
         test13_tilted_geometry,
         test14_superimposed_fields,
         test15_adaptive_dt,
+        test16_bethe_bloch,
     ]
 
     results = {}

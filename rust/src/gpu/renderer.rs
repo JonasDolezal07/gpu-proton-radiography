@@ -365,6 +365,8 @@ pub struct Renderer {
     particle_buffer: Option<GpuBuffer>,
     field_texture: Option<FieldTexture>,
     e_field_texture: Option<FieldTexture>,
+    density_texture: Option<FieldTexture>,   // R32_SFLOAT scalar density grid
+    stopping_buffer: Option<GpuBuffer>,      // Bethe-Bloch table (binding 6)
     detector_buffer: Option<GpuBuffer>,
 
     // Simulation state
@@ -508,6 +510,8 @@ impl Renderer {
             particle_buffer: None,
             field_texture: None,
             e_field_texture: None,
+            density_texture: None,
+            stopping_buffer: None,
             detector_buffer: None,
             sim_params,
             particle_count: 0,
@@ -605,6 +609,8 @@ impl Renderer {
             particle_buffer: None,
             field_texture: None,
             e_field_texture: None,
+            density_texture: None,
+            stopping_buffer: None,
             detector_buffer: None,
             sim_params,
             particle_count: 0,
@@ -867,6 +873,85 @@ impl Renderer {
         Ok(())
     }
 
+    /// Upload a scalar density grid and stopping power table to the GPU.
+    ///
+    /// Pass `DensityData::vacuum()` + `StoppingGpuData::vacuum()` when no
+    /// `[density]` block is configured — the shader will skip energy loss.
+    pub fn upload_density(
+        &mut self,
+        density: &crate::loaders::DensityData,
+        stopping: &crate::stopping_power::StoppingGpuData,
+    ) -> Result<()> {
+        let device = self.ctx.device();
+        let n = (density.nx * density.ny * density.nz) as usize;
+
+        // Upload scalar density texture
+        let mut tex = FieldTexture::new_scalar(device, &self.allocator, density.nx, density.ny, density.nz)?;
+        let bytes = (n * std::mem::size_of::<f32>()) as vk::DeviceSize;
+        let mut staging = StagingBuffer::new(device, &self.allocator, bytes)?;
+        staging.write(&density.data)?;
+        self.upload_texture_data(&mut tex, &staging, density.nx, density.ny, density.nz)?;
+        staging.cleanup(device, &self.allocator);
+
+        if let Some(mut old) = self.density_texture.take() {
+            old.cleanup(device, &self.allocator);
+        }
+        self.density_texture = Some(tex);
+
+        // Upload stopping power buffer
+        let stop_bytes = std::mem::size_of::<crate::stopping_power::StoppingGpuData>() as vk::DeviceSize;
+        let mut stop_buf = GpuBuffer::new(
+            device,
+            &self.allocator,
+            stop_bytes,
+            vk::BufferUsageFlags::STORAGE_BUFFER | vk::BufferUsageFlags::TRANSFER_DST,
+            gpu_allocator::MemoryLocation::GpuOnly,
+            "stopping_power_buffer",
+        )?;
+        let stop_staging_bytes = stop_bytes;
+        let mut stop_staging = StagingBuffer::new(device, &self.allocator, stop_staging_bytes)?;
+        stop_staging.write(bytemuck::bytes_of(stopping))?;
+
+        // Copy staging → device-local buffer
+        {
+            let queue = self.ctx.compute_queue();
+            let alloc_info = vk::CommandBufferAllocateInfo {
+                command_pool: self.ctx.command_pool(),
+                level: vk::CommandBufferLevel::PRIMARY,
+                command_buffer_count: 1,
+                ..Default::default()
+            };
+            unsafe {
+                let cmd = device.allocate_command_buffers(&alloc_info)?[0];
+                device.begin_command_buffer(cmd, &vk::CommandBufferBeginInfo {
+                    flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+                    ..Default::default()
+                })?;
+                device.cmd_copy_buffer(cmd, stop_staging.buffer(), stop_buf.buffer, &[vk::BufferCopy {
+                    src_offset: 0, dst_offset: 0, size: stop_staging_bytes,
+                }]);
+                device.end_command_buffer(cmd)?;
+                let submit = vk::SubmitInfo {
+                    command_buffer_count: 1,
+                    p_command_buffers: &cmd,
+                    ..Default::default()
+                };
+                device.queue_submit(queue, &[submit], vk::Fence::null())?;
+                device.queue_wait_idle(queue)?;
+                device.free_command_buffers(self.ctx.command_pool(), &[cmd]);
+            }
+        }
+        stop_staging.cleanup(device, &self.allocator);
+
+        if let Some(mut old) = self.stopping_buffer.take() {
+            old.cleanup(device, &self.allocator);
+        }
+        self.stopping_buffer = Some(stop_buf);
+
+        log::info!("Uploaded density texture: {}x{}x{}", density.nx, density.ny, density.nz);
+        Ok(())
+    }
+
     fn upload_texture_data(
         &self,
         texture: &mut FieldTexture,
@@ -1044,6 +1129,8 @@ impl Renderer {
         let particles = self.particle_buffer.as_ref().context("No particle buffer")?;
         let b_field = self.field_texture.as_ref().context("No B-field texture")?;
         let e_field = self.e_field_texture.as_ref().context("No E-field texture")?;
+        let density = self.density_texture.as_ref().context("No density texture")?;
+        let stopping = self.stopping_buffer.as_ref().context("No stopping power buffer")?;
         let detector = self.detector_buffer.as_ref().context("No detector buffer")?;
 
         pipeline.update_descriptors(
@@ -1057,6 +1144,10 @@ impl Renderer {
             self.detector_texture.storage_view,
             e_field.view,
             e_field.sampler,
+            density.view,
+            density.sampler,
+            stopping.buffer,
+            stopping.size,
         );
 
         Ok(())

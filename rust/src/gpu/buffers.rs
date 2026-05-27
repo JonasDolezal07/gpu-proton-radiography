@@ -189,6 +189,78 @@ impl FieldTexture {
         }
     }
 
+    /// Scalar (R32_SFLOAT) 3D texture — used for density grids.
+    pub fn new_scalar(
+        device: &ash::Device,
+        allocator: &Arc<Mutex<Allocator>>,
+        nx: u32,
+        ny: u32,
+        nz: u32,
+    ) -> Result<Self> {
+        unsafe {
+            let extent = vk::Extent3D { width: nx, height: ny, depth: nz };
+
+            let image_info = vk::ImageCreateInfo {
+                image_type: vk::ImageType::TYPE_3D,
+                format: vk::Format::R32_SFLOAT,
+                extent,
+                mip_levels: 1,
+                array_layers: 1,
+                samples: vk::SampleCountFlags::TYPE_1,
+                tiling: vk::ImageTiling::OPTIMAL,
+                usage: vk::ImageUsageFlags::SAMPLED | vk::ImageUsageFlags::TRANSFER_DST,
+                sharing_mode: vk::SharingMode::EXCLUSIVE,
+                initial_layout: vk::ImageLayout::UNDEFINED,
+                ..Default::default()
+            };
+
+            let image = device.create_image(&image_info, None)
+                .context("Failed to create scalar 3D image")?;
+
+            let requirements = device.get_image_memory_requirements(image);
+            let allocation = allocator.lock().unwrap().allocate(&AllocationCreateDesc {
+                name: "density_texture",
+                requirements,
+                location: MemoryLocation::GpuOnly,
+                linear: false,
+                allocation_scheme: AllocationScheme::GpuAllocatorManaged,
+            }).context("Failed to allocate density image memory")?;
+
+            device.bind_image_memory(image, allocation.memory(), allocation.offset())
+                .context("Failed to bind density image memory")?;
+
+            let view_info = vk::ImageViewCreateInfo {
+                image,
+                view_type: vk::ImageViewType::TYPE_3D,
+                format: vk::Format::R32_SFLOAT,
+                subresource_range: vk::ImageSubresourceRange {
+                    aspect_mask: vk::ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+                },
+                ..Default::default()
+            };
+            let view = device.create_image_view(&view_info, None)
+                .context("Failed to create density image view")?;
+
+            let sampler_info = vk::SamplerCreateInfo {
+                mag_filter: vk::Filter::LINEAR,
+                min_filter: vk::Filter::LINEAR,
+                mipmap_mode: vk::SamplerMipmapMode::LINEAR,
+                address_mode_u: vk::SamplerAddressMode::CLAMP_TO_EDGE,
+                address_mode_v: vk::SamplerAddressMode::CLAMP_TO_EDGE,
+                address_mode_w: vk::SamplerAddressMode::CLAMP_TO_EDGE,
+                ..Default::default()
+            };
+            let sampler = device.create_sampler(&sampler_info, None)
+                .context("Failed to create density sampler")?;
+
+            Ok(Self { image, view, sampler, allocation: Some(allocation), extent })
+        }
+    }
+
     pub fn cleanup(&mut self, device: &ash::Device, allocator: &Arc<Mutex<Allocator>>) {
         unsafe {
             device.destroy_sampler(self.sampler, None);
