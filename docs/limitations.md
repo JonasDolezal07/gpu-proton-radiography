@@ -7,17 +7,22 @@ This is research-grade software. The following constraints are known and deliber
 **Static fields only.** The field is loaded once at startup and does not evolve during the
 simulation. There is no field–particle feedback.
 
-**Collisionless.** No inter-particle interactions, scattering, or energy loss. Protons travel
-through the field independently.
-
 **Single species.** Only protons are supported. No multi-species or ion mixture support.
 
-**Relativistic Boris integrator (implemented).** Particles are pushed in
-specific-momentum space (`u = γv`) with γ recomputed each step. This is exact at all
-energies — there is no non-relativistic approximation in the integrator.
+**Relativistic Boris integrator.** Particles are pushed in specific-momentum space
+(`u = γv`) with γ recomputed each step. This is exact at all energies — there is no
+non-relativistic approximation in the integrator.
 
-**Uniform time step.** `dt_ps` is fixed for all particles throughout the simulation. There
-is no adaptive step size control.
+**Adaptive or fixed timestep.** By default, prad uses a large dt in vacuum and a
+Larmor-constrained dt inside the field (see [adaptive timestep](adaptive_timestep.md)).
+A fixed dt can be specified with `dt_ps`. There is no per-particle or sub-step
+adaptive control.
+
+**CSDA energy loss only.** When a `[density]` block is configured, proton energy loss
+follows the Bethe-Bloch CSDA (mean energy loss per step). Energy-loss straggling
+(Bohr / Landau-Vavilov fluctuations), nuclear stopping (relevant below ~100 keV), and
+range straggling are not modelled. No energy loss occurs without a density grid —
+the simulation is fully collisionless by default.
 
 ## Detector model
 
@@ -25,8 +30,9 @@ is no adaptive step size control.
 geometry.
 
 **Simple detector response.** Blur, background, and Poisson noise are modelled. More
-sophisticated response functions (energy-dependent efficiency, proton stopping) are not
-implemented.
+sophisticated response functions (energy-dependent efficiency, absolute dose calibration)
+are not implemented. The energy deposited in RCF film layers is not computed — only the
+geometric hit position and exit kinetic energy are recorded.
 
 ## Validation
 

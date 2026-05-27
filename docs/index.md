@@ -34,12 +34,13 @@ hide:
 
     [:octicons-arrow-right-24: Energy spectra](spectra.md)
 
--   :material-check-all:{ .lg .middle } **12/12 Validation Tests**
+-   :material-check-all:{ .lg .middle } **16/16 Validation Tests**
 
     ---
 
     Energy conservation to < 10⁻¹² relative error.
     Correct impact KE. Spectrum shape and cutoff enforced.
+    Bethe-Bloch range agrees with NIST PSTAR to < 2%.
 
     [:octicons-arrow-right-24: See tests](validation.md)
 
@@ -61,6 +62,36 @@ hide:
     One-command figure reproduction.
 
     [:octicons-arrow-right-24: Convergence studies](convergence.md)
+
+-   :material-speedometer:{ .lg .middle } **Adaptive Timestep**
+
+    ---
+
+    Large dt in vacuum, small Larmor-constrained dt inside the field.
+    5–20× speedup with no change to the physics. Automatic — no
+    configuration required.
+
+    [:octicons-arrow-right-24: How it works](adaptive_timestep.md)
+
+-   :material-layers-plus:{ .lg .middle } **Field Compositing**
+
+    ---
+
+    Superimpose any number of `.bfld` grids with independent scale
+    factors. Overlay plasma fields, coil fields, and background fields
+    in a single TOML deck.
+
+    [:octicons-arrow-right-24: Compositing guide](field_compositing.md)
+
+-   :material-water:{ .lg .middle } **Bethe-Bloch Energy Loss**
+
+    ---
+
+    CSDA proton stopping via the relativistic Bethe-Bloch formula.
+    Scalar density grids (`.dens`) drive spatially-varying energy loss.
+    Built-in material presets for water, plastic, Be, Al.
+
+    [:octicons-arrow-right-24: Stopping power](stopping_power.md)
 
 </div>
 
@@ -189,7 +220,8 @@ numpy arrays in and out), a parameter sweep engine, a GUI for interactive deck e
 TNSA exponential spectrum sampling, and self-documenting run directories with SHA-256 field
 hashes for exact reproducibility. You can go from a numpy field array to a synthetic
 radiograph with three lines of Python, or run a multi-point energy sweep from the command line
-in one command.
+in one command. Bethe-Bloch energy loss, field compositing, and adaptive timestepping are
+available out of the box — no extra dependencies.
 
 [Get started :octicons-arrow-right-24:](quickstart.md){ .md-button .md-button--primary }
 [Python API :octicons-arrow-right-24:](python_api.md){ .md-button }

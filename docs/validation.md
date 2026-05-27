@@ -7,7 +7,7 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # cargo build --release first, then validate
 ```
 
-Current status: **12/12 passing**.
+Current status: **16/16 passing**.
 
 Output: `output/validation/` (per-test run directories) and `output/validation_report.json`.
 
@@ -109,6 +109,67 @@ identical processed counts. A run with a different seed must differ.
 
 Verifies noise seeding and deterministic output.
 
+### Test 13 — Tilted detector geometry
+
+A pencil beam aimed at a detector tilted 30° from the beam axis (normal = [cos 30°, sin 30°, 0],
+positioned off-axis). In zero field, protons must hit the detector at the geometrically expected
+position given the Gram-Schmidt basis construction.
+
+Checks:
+- ≥ 1000 hits on the tilted detector
+- Mean hit position within 5 mm of the analytic projection (detector-local coordinates)
+- Energy conservation: std/mean < 10⁻⁴
+
+Verifies the full arbitrary-geometry path: detector normal/up construction, hit detection
+with the signed-distance plane crossing test, and coordinate projection.
+
+### Test 14 — Superimposed fields equal sum
+
+Two grids are composited: a zero primary field plus a uniform $B_z = 1$ T extra field.
+The result must be identical to running with a standalone uniform $B_z = 1$ T field.
+
+Checks:
+- ≥ 10 000 hits
+- Energy conservation on all hits: std/mean < 10⁻⁴ (pure B — no work done)
+
+The energy conservation tolerance effectively checks that the composite field equals the
+target field everywhere the protons travel. Any residual from incorrect interpolation or
+scale application would manifest as a spurious E-field energy kick.
+
+Result: std/mean = 6.5 × 10⁻⁸ (numerical precision only).
+
+### Test 15 — Adaptive dt matches fixed dt
+
+A pencil beam in uniform $B_z = 1$ T is run twice: once with `dt_ps = 1.0` (fixed, adaptive
+disabled) and once with no `dt_ps` (adaptive schedule active). The adaptive run uses
+dt_large ≈ 1 ns in vacuum and dt_small ≈ 1 ps inside the field.
+
+Checks:
+- Both runs: ≥ 10 000 hits
+- Mean y-deflection agrees to within 1 mm (same orbit, different vacuum dt)
+- Energy conservation: std/mean < 10⁻⁴ in both runs
+
+Verifies that the phase-boundary detection and dt switching introduce no systematic
+deflection error or spurious energy change.
+
+Result: Δmean_y = 0.73 mm at ≈ 20× speedup.
+
+### Test 16 — Bethe-Bloch energy loss
+
+A pencil beam of 14.7 MeV protons passes through a uniform 1 mm water slab
+(ρ = 1 g/cm³, no magnetic field). The mean exit kinetic energy is compared to the
+analytic CSDA integral of the same Bethe-Bloch formula used by the GPU.
+
+Checks:
+- ≥ 5 000 hits with non-zero density
+- Mean exit KE within 5% of the analytic Bethe-Bloch prediction
+- No particle exits with more energy than the input (energy is only lost, never gained)
+
+Result: simulation 10.868 MeV vs analytic 10.944 MeV, relative error 0.7%.
+
+The residual arises from timestep discretisation (0.5 ps → ~26 µm path per step).
+Smaller dt converges to the analytic value.
+
 ## Tolerances
 
 Tests use physically motivated tolerances rather than arbitrary percentages:
@@ -118,10 +179,23 @@ Tests use physically motivated tolerances rather than arbitrary percentages:
 - E-field magnitude (test 3): within factor of 3 of analytical estimate (broad, covers relativistic corrections)
 - Spatial spread (test 7): within 10% of expected magnified radius
 
+## Tolerances
+
+Tests use physically motivated tolerances rather than arbitrary percentages:
+
+- Energy conservation (tests 4, 14, 15): < 0.01% RMS deviation
+- Zero-field centring (test 2): < 1 mm mean offset
+- E-field magnitude (test 3): within factor of 3 of analytical estimate (broad, covers relativistic corrections)
+- Spatial spread (test 7): within 10% of expected magnified radius
+- Tilted geometry (test 13): < 5 mm on projected hit position
+- Adaptive dt agreement (test 15): < 1 mm mean deflection difference
+- Bethe-Bloch energy loss (test 16): < 5% relative error on mean exit KE
+
 ## What is not validated
 
 - GPU numerical precision differences across hardware
 - Multi-species or non-proton particles
-- Collisional or radiative processes (the integrator is collisionless)
+- Energy-loss straggling (CSDA gives mean loss only; Landau-Vavilov fluctuations are not modelled)
 - Comparison against experimental shot data
 - MoltenVK-specific behaviour on non-Apple Silicon hardware
+- Nuclear stopping (below ~1 MeV proton energy)

@@ -43,6 +43,9 @@ nav:
   - Physics:
     - Source Geometry: geometry.md
     - Energy Spectra: spectra.md
+    - Adaptive Timestep: adaptive_timestep.md
+    - Field Compositing: field_compositing.md
+    - Stopping Power: stopping_power.md
     - Validation: validation.md
     - Numerical Robustness: convergence.md
     - Benchmarks: benchmark.md
