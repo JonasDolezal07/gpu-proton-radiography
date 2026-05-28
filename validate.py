@@ -1716,6 +1716,933 @@ max_steps = 30000
     return ok
 
 
+# ── helpers for run-subcommand tests ─────────────────────────────────────────
+
+def _vulkan_env():
+    """Return os.environ copy with MoltenVK ICD configured if present."""
+    env = os.environ.copy()
+    brew_lib = Path("/opt/homebrew/lib")
+    icd      = Path("/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json")
+    if icd.exists() and "VK_ICD_FILENAMES" not in env:
+        env["VK_ICD_FILENAMES"] = str(icd)
+    if brew_lib.exists():
+        existing = env.get("DYLD_LIBRARY_PATH", "")
+        if str(brew_lib) not in existing:
+            env["DYLD_LIBRARY_PATH"] = (str(brew_lib) + ":" + existing).rstrip(":")
+    return env
+
+
+def run_deck(deck_path, out_dir, timeout=120):
+    """Run the 'run' subcommand with a TOML deck; return True on success."""
+    import shutil
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    env = _vulkan_env()
+    cmd = [str(BIN), "run", str(deck_path), "-o", str(out_dir)]
+    try:
+        r = subprocess.run(cmd, cwd=VALDATA, capture_output=True,
+                           text=True, timeout=timeout, env=env)
+    except subprocess.TimeoutExpired:
+        print("   TIMEOUT")
+        return False
+    for line in (r.stdout + r.stderr).splitlines():
+        upper = line.upper()
+        if any(tok in upper for tok in ("ERROR", "WARN", "COMPLETE", "EXPORTED", "HITS")):
+            print("   ", line.strip())
+    return r.returncode == 0
+
+
+def read_hits_bin(out_dir):
+    """Read counts/hits.bin → ndarray (N,3) of (y_mm, z_mm, ke_MeV)."""
+    hits_bin = out_dir / "counts" / "hits.bin"
+    if not hits_bin.exists():
+        return np.zeros((0, 3), dtype=np.float32)
+    raw = hits_bin.read_bytes()
+    if len(raw) < 4:
+        return np.zeros((0, 3), dtype=np.float32)
+    return np.frombuffer(raw, dtype="<f4", offset=4).reshape(-1, 3)
+
+
+# ── test 17: analytic straight-line detector hit ──────────────────────────────
+
+def test17_analytic_hit():
+    """
+    Off-axis pencil beam (zero field): GPU hit must match the analytic
+    ray–plane intersection to within 0.1 mm.
+
+    Source at (−100, +20, −15) mm, direction along (100, 15, −8) normalised.
+    Detector at (110, 0, 0) mm, normal +x, up +y.
+
+    Analytic:  r_hit = src + t*d  where t = n·(det−src)/(n·d).
+    Expected:  y_local = +51.5 mm,  z_local = −31.8 mm.
+
+    Tests: source position, detector plane, Gram-Schmidt basis, ray–plane
+           intersection, and per-hit hits.bin coordinate accuracy.
+    """
+    print("Test 17: Analytic straight-line hit  (ray–plane intersection, 0.1 mm)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    src_pos = np.array([-100.0, 20.0, -15.0])   # mm
+    aim_at  = np.array([   0.0, 35.0, -23.0])   # mm  → direction (100,15,−8)
+
+    d_raw = aim_at - src_pos                     # (100, 15, -8)
+    d     = d_raw / np.linalg.norm(d_raw)
+
+    det_center = np.array([110.0, 0.0, 0.0])
+    det_normal = np.array([  1.0, 0.0, 0.0])
+    det_up     = np.array([  0.0, 1.0, 0.0])
+
+    t_hit  = np.dot(det_normal, det_center - src_pos) / np.dot(det_normal, d)
+    r_hit  = src_pos + t_hit * d
+    offset = r_hit - det_center
+
+    u_y = det_up - np.dot(det_up, det_normal) * det_normal
+    u_y /= np.linalg.norm(u_y)
+    v_z = np.cross(det_normal, u_y)
+
+    y_analytic = float(np.dot(offset, u_y))
+    z_analytic = float(np.dot(offset, v_z))
+
+    B = np.zeros((4, 4, 4, 3), dtype=np.float32)
+    E = np.zeros_like(B)
+    write_bfld(VALDATA / "t17_zero.bfld", B, E,
+               (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06))
+
+    deck = f"""\
+[field]
+path = "t17_zero.bfld"
+scale_B = 0.0
+scale_E = 0.0
+
+[source]
+type = "pencil"
+n_particles = 10000
+energy_MeV = 14.7
+position_mm = {src_pos.tolist()}
+aim_at_mm = {aim_at.tolist()}
+
+[detector]
+center_mm = {det_center.tolist()}
+normal = {det_normal.tolist()}
+up = {det_up.tolist()}
+width_mm = 500.0
+height_mm = 500.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 1.0
+max_steps = 20000
+"""
+    (VALDATA / "t17_analytic_hit.toml").write_text(deck)
+
+    out = VALOUT / "t17_analytic_hit"
+    if not run_deck(VALDATA / "t17_analytic_hit.toml", out):
+        REPORT["test17_analytic_hit"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    data = read_hits_bin(out)
+    if len(data) == 0:
+        print("   no hits")
+        REPORT["test17_analytic_hit"] = {"pass": False, "error": "no hits"}
+        return False
+
+    y_gpu  = float(np.mean(data[:, 0]))
+    z_gpu  = float(np.mean(data[:, 1]))
+    std_y  = float(np.std(data[:, 0]))
+    std_z  = float(np.std(data[:, 1]))
+
+    tol = 0.1   # mm
+    ok_y   = abs(y_gpu - y_analytic) < tol
+    ok_z   = abs(z_gpu - z_analytic) < tol
+    ok_std = std_y < tol and std_z < tol
+    ok     = ok_y and ok_z and ok_std
+
+    print(f"   hits = {len(data)}")
+    print(f"   y: GPU = {y_gpu:+.4f} mm,  analytic = {y_analytic:+.4f} mm,  "
+          f"diff = {y_gpu - y_analytic:+.4f} mm")
+    print(f"   z: GPU = {z_gpu:+.4f} mm,  analytic = {z_analytic:+.4f} mm,  "
+          f"diff = {z_gpu - z_analytic:+.4f} mm")
+    print(f"   std_y = {std_y:.4f} mm,  std_z = {std_z:.4f} mm  (pencil → ≈ 0)")
+    if not ok_y:
+        print(f"   FAIL: y diff {y_gpu - y_analytic:+.4f} mm exceeds ±{tol} mm")
+    if not ok_z:
+        print(f"   FAIL: z diff {z_gpu - z_analytic:+.4f} mm exceeds ±{tol} mm")
+    if not ok_std:
+        print(f"   FAIL: std > {tol} mm for pencil beam")
+
+    REPORT["test17_analytic_hit"] = {
+        "pass": ok,
+        "n_hits": len(data),
+        "y_gpu_mm": round(y_gpu, 4), "y_analytic_mm": round(y_analytic, 4),
+        "y_diff_mm": round(y_gpu - y_analytic, 4),
+        "z_gpu_mm": round(z_gpu, 4), "z_analytic_mm": round(z_analytic, 4),
+        "z_diff_mm": round(z_gpu - z_analytic, 4),
+        "std_y_mm": round(std_y, 5), "std_z_mm": round(std_z, 5),
+        "tolerance_mm": tol,
+    }
+    return ok
+
+
+# ── test 18: analytic Larmor radius ───────────────────────────────────────────
+
+def test18_larmor_radius():
+    """
+    Pencil beam through uniform Bz = 0.1 T.  Exact cycloid formula:
+      r_L = p/(qB),  θ_exit = arcsin(L/r_L)
+      y_det = r_L(cos θ_exit − 1) + tan(θ_exit)(x_det − x_exit)
+
+    GPU mean deflection must agree with the analytic value to within 1 %.
+
+    Tests: relativistic Boris integrator accuracy against a closed-form helix.
+    """
+    print("Test 18: Larmor radius  (analytic cycloid vs GPU Boris, tol 1 %)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    E_MEV = 14.7
+    B_T   = 0.1
+    C     = 2.99792458e8
+    MP_C2 = 938.272046
+    Q     = 1.602176634e-19
+    MP_KG = MP_C2 * 1.602176634e-13 / C**2
+
+    gamma = 1.0 + E_MEV / MP_C2
+    beta  = float(np.sqrt(1.0 - 1.0 / gamma**2))
+    v     = beta * C
+    p_SI  = gamma * MP_KG * v
+    r_L   = p_SI / (Q * B_T)             # Larmor radius [m]
+
+    # Field: x ∈ [−0.06, +0.06] m  →  L = 0.12 m
+    L             = 0.12
+    x_field_exit  = 0.06
+    x_det         = 0.11
+
+    s       = L / r_L
+    y_exit  = r_L * (np.sqrt(1.0 - s**2) - 1.0)   # m, negative
+    vy_vx   = -s / np.sqrt(1.0 - s**2)
+    y_det_m = y_exit + vy_vx * (x_det - x_field_exit)
+    y_det_mm = y_det_m * 1000.0
+
+    B_arr = np.zeros((16, 16, 16, 3), dtype=np.float32)
+    B_arr[..., 2] = float(B_T)
+    E_arr = np.zeros_like(B_arr)
+    write_bfld(VALDATA / "t18_Bz.bfld", B_arr, E_arr,
+               (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06))
+
+    deck = f"""\
+[field]
+path = "t18_Bz.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[source]
+type = "pencil"
+n_particles = 10000
+energy_MeV = {E_MEV}
+position_mm = [-100.0, 0.0, 0.0]
+aim_at_mm = [0.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 20000
+"""
+    (VALDATA / "t18_larmor.toml").write_text(deck)
+
+    out = VALOUT / "t18_larmor"
+    if not run_deck(VALDATA / "t18_larmor.toml", out):
+        REPORT["test18_larmor_radius"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    data = read_hits_bin(out)
+    if len(data) == 0:
+        print("   no hits")
+        REPORT["test18_larmor_radius"] = {"pass": False, "error": "no hits"}
+        return False
+
+    y_gpu   = float(np.mean(data[:, 0]))
+    rel_err = abs(y_gpu - y_det_mm) / abs(y_det_mm)
+    tol_rel = 0.01
+
+    ok = rel_err < tol_rel
+    print(f"   hits = {len(data)},  r_L = {r_L:.4f} m")
+    print(f"   analytic y_det = {y_det_mm:.4f} mm,  GPU = {y_gpu:.4f} mm,  "
+          f"rel_err = {rel_err:.5f}  (tol {tol_rel})")
+    if not ok:
+        print(f"   FAIL: rel_err {rel_err:.5f} > {tol_rel}")
+
+    REPORT["test18_larmor_radius"] = {
+        "pass": ok,
+        "larmor_radius_m": round(r_L, 5),
+        "analytic_y_mm": round(y_det_mm, 4),
+        "gpu_y_mm": round(y_gpu, 4),
+        "abs_err_mm": round(abs(y_gpu - y_det_mm), 4),
+        "relative_error": round(rel_err, 6),
+        "tolerance": tol_rel,
+    }
+    return ok
+
+
+# ── test 19: E × B velocity selector ─────────────────────────────────────────
+
+def test19_exb_velocity_selector():
+    """
+    Velocity-selector force balance: with E_y = v_beam × B_z, the electric and
+    magnetic transverse forces cancel exactly and the proton goes straight.
+
+    Two runs using the same field file (Bz = 0.1 T, Ey = v_beam × Bz):
+      scale_E = 0  (B only)  → mean_y ≈ −2.4 mm  (large deflection)
+      scale_E = 1  (B + E)   → mean_y ≈  0.0 mm  (force balance)
+
+    Tests: correct sign and magnitude of both E and B forces, and vector sum.
+    """
+    print("Test 19: E×B velocity selector  (E_y = v_beam × B_z → straight beam)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    E_MEV = 14.7
+    B_T   = 0.1
+    C     = 2.99792458e8
+    MP_C2 = 938.272046
+    gamma  = 1.0 + E_MEV / MP_C2
+    v_beam = float(np.sqrt(1.0 - 1.0 / gamma**2)) * C
+    E_y    = v_beam * B_T                 # [V/m] — cancels magnetic force
+
+    B_arr = np.zeros((16, 16, 16, 3), dtype=np.float32)
+    B_arr[..., 2] = float(B_T)
+    E_arr = np.zeros((16, 16, 16, 3), dtype=np.float32)
+    E_arr[..., 1] = float(E_y)
+    write_bfld(VALDATA / "t19_ExB.bfld", B_arr, E_arr,
+               (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06))
+
+    template = """\
+[field]
+path = "t19_ExB.bfld"
+scale_B = 1.0
+scale_E = {se}
+
+[source]
+type = "pencil"
+n_particles = 20000
+energy_MeV = {emev}
+position_mm = [-100.0, 0.0, 0.0]
+aim_at_mm = [0.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 20000
+"""
+    runs = {"B_only": 0.0, "B_plus_E": 1.0}
+    mean_y = {}
+    for label, se in runs.items():
+        deck_path = VALDATA / f"t19_{label}.toml"
+        deck_path.write_text(template.format(se=se, emev=E_MEV))
+        out = VALOUT / f"t19_{label}"
+        if not run_deck(deck_path, out):
+            REPORT["test19_exb_velocity_selector"] = {"pass": False, "error": f"sim failed ({label})"}
+            return False
+        data = read_hits_bin(out)
+        if len(data) == 0:
+            REPORT["test19_exb_velocity_selector"] = {"pass": False, "error": f"no hits ({label})"}
+            return False
+        mean_y[label] = float(np.mean(data[:, 0]))
+
+    y_B   = mean_y["B_only"]
+    y_bal = mean_y["B_plus_E"]
+
+    ok_B       = y_B   < -1.0              # B-only must deflect in −y
+    ok_balance = abs(y_bal) < 1.0          # force-balance must stay near zero
+    ok_contrast = (y_B - y_bal) < -1.0    # runs must differ
+    ok = ok_B and ok_balance and ok_contrast
+
+    print(f"   B-only     mean_y = {y_B:+.3f} mm  (expect < −1.0 mm)")
+    print(f"   B+E bal    mean_y = {y_bal:+.3f} mm  (expect |y| < 1.0 mm)")
+    if not ok_B:
+        print(f"   FAIL: B-only not deflected (y = {y_B:+.3f})")
+    if not ok_balance:
+        print(f"   FAIL: force balance broken (|y| = {abs(y_bal):.3f} mm > 1 mm)")
+    if not ok_contrast:
+        print(f"   FAIL: B-only and B+E too similar")
+
+    REPORT["test19_exb_velocity_selector"] = {
+        "pass": ok,
+        "Bz_T": B_T,
+        "Ey_MV_m": round(E_y / 1e6, 4),
+        "v_beam_Mm_s": round(v_beam / 1e6, 3),
+        "mean_y_B_only_mm": round(y_B, 4),
+        "mean_y_balance_mm": round(y_bal, 4),
+        "contrast_mm": round(y_B - y_bal, 4),
+    }
+    return ok
+
+
+# ── test 20: hits.bin rebinning consistency ────────────────────────────────────
+
+def test20_hits_bin_rebinning():
+    """
+    Re-bin per-hit (y_mm, z_mm) records in Python using the GPU pixel formula:
+      col = int((y_mm + W/2) / W * 1024),  row = int((z_mm + H/2) / H * 1024)
+
+    Compare with raw_counts.bin (1024 × 1024 u32).
+
+    Checks:
+      1. Total rebinned count equals total raw count (no hits lost)
+      2. ≥ 99.5 % of occupied pixels agree within ±1 count
+         (allows for float32 rounding at pixel boundaries)
+
+    Tests: hits.bin position accuracy, coordinate convention, pixel mapping.
+    """
+    print("Test 20: hits.bin rebinning consistency  (Python histogram ↔ GPU image)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    W_MM = 200.0
+    H_MM = 200.0
+    RES  = 1024
+    N    = 50_000
+
+    B = np.zeros((4, 4, 4, 3), dtype=np.float32)
+    E = np.zeros_like(B)
+    write_bfld(VALDATA / "t20_zero.bfld", B, E,
+               (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06))
+
+    deck = f"""\
+[field]
+path = "t20_zero.bfld"
+scale_B = 0.0
+scale_E = 0.0
+
+[source]
+type = "disk"
+n_particles = {N}
+energy_MeV = 14.7
+center_mm = [-100.0, 0.0, 0.0]
+direction = [1.0, 0.0, 0.0]
+radius_um = 40000.0
+cone_half_angle_deg = 0.0
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = {W_MM}
+height_mm = {H_MM}
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 1.0
+max_steps = 20000
+"""
+    (VALDATA / "t20_rebinning.toml").write_text(deck)
+
+    out = VALOUT / "t20_rebinning"
+    if not run_deck(VALDATA / "t20_rebinning.toml", out):
+        REPORT["test20_hits_bin_rebinning"] = {"pass": False, "error": "sim failed"}
+        return False
+
+    data = read_hits_bin(out)
+    raw_bin = out / "counts" / "raw_counts.bin"
+    if len(data) == 0 or not raw_bin.exists():
+        print("   missing hits or counts")
+        REPORT["test20_hits_bin_rebinning"] = {"pass": False, "error": "missing output"}
+        return False
+
+    raw = np.frombuffer(raw_bin.read_bytes(), dtype="<u4").reshape(RES, RES)
+
+    y_mm = data[:, 0]
+    z_mm = data[:, 1]
+    col  = np.clip(((y_mm + W_MM / 2.0) / W_MM * RES).astype(np.int32), 0, RES - 1)
+    row  = np.clip(((z_mm + H_MM / 2.0) / H_MM * RES).astype(np.int32), 0, RES - 1)
+
+    rebin = np.zeros((RES, RES), dtype=np.int64)
+    np.add.at(rebin, (row, col), 1)
+
+    total_raw   = int(raw.sum())
+    total_rebin = int(rebin.sum())
+    diff        = np.abs(rebin.astype(np.int64) - raw.astype(np.int64))
+    occupied    = (raw > 0) | (rebin > 0)
+    n_occupied  = int(occupied.sum())
+    frac_ok     = float((diff[occupied] <= 1).sum()) / max(n_occupied, 1)
+
+    total_ok = (total_raw == total_rebin)
+    agree_ok = (frac_ok >= 0.995)
+    ok = total_ok and agree_ok
+
+    print(f"   hits = {len(data)},  total_raw = {total_raw},  total_rebin = {total_rebin}")
+    print(f"   occupied pixels = {n_occupied},  "
+          f"agree within ±1 = {frac_ok:.4f}  (tol 0.995)")
+    if not total_ok:
+        print(f"   FAIL: total count mismatch ({total_raw} raw vs {total_rebin} rebin)")
+    if not agree_ok:
+        print(f"   FAIL: pixel agreement {frac_ok:.4f} < 0.995")
+
+    REPORT["test20_hits_bin_rebinning"] = {
+        "pass": ok,
+        "n_hits": len(data),
+        "total_raw": total_raw,
+        "total_rebin": total_rebin,
+        "n_occupied_pixels": n_occupied,
+        "frac_within_1_count": round(frac_ok, 6),
+    }
+    return ok
+
+
+# ── test 21: geometry invariance ─────────────────────────────────────────────
+
+def test21_geometry_invariance():
+    """
+    Run the same physics (uniform Bz = 0.1 T, parallel beam) in two orientations
+    that are 90° rotations of each other.  The deflection magnitude in
+    detector-local coordinates must be identical.
+
+    Case A: beam +x → detector at (110, 0, 0) mm, up = (0, 1, 0)
+      Bz deflects in −y_world  → local_y < 0
+
+    Case B: beam +y → detector at (0, 110, 0) mm, up = (−1, 0, 0)
+      Bz deflects in +x_world  → u_y = (−1,0,0)  → local_y < 0  (same sign)
+
+    Assertion: |mean_y_A − mean_y_B| < 0.5 mm
+    """
+    print("Test 21: Geometry invariance  (90° world rotation, same local deflection)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    B_arr = np.zeros((16, 16, 16, 3), dtype=np.float32)
+    B_arr[..., 2] = 0.1
+    E_arr = np.zeros_like(B_arr)
+    write_bfld(VALDATA / "t21_Bz.bfld", B_arr, E_arr,
+               (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06))
+
+    decks = {
+        "A_beam_x": """\
+[field]
+path = "t21_Bz.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[source]
+type = "parallel"
+n_particles = 20000
+energy_MeV = 14.7
+beam_radius_mm = 30.0
+source_distance_mm = 100.0
+direction = [1.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 20000
+""",
+        "B_beam_y": """\
+[field]
+path = "t21_Bz.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[source]
+type = "parallel"
+n_particles = 20000
+energy_MeV = 14.7
+beam_radius_mm = 30.0
+source_distance_mm = 100.0
+direction = [0.0, 1.0, 0.0]
+
+[detector]
+center_mm = [0.0, 110.0, 0.0]
+normal = [0.0, 1.0, 0.0]
+up = [-1.0, 0.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 20000
+""",
+    }
+
+    mean_y = {}
+    for label, deck_txt in decks.items():
+        deck_path = VALDATA / f"t21_{label}.toml"
+        deck_path.write_text(deck_txt)
+        out = VALOUT / f"t21_{label}"
+        if not run_deck(deck_path, out):
+            REPORT["test21_geometry_invariance"] = {"pass": False, "error": f"sim failed ({label})"}
+            return False
+        data = read_hits_bin(out)
+        if len(data) == 0:
+            REPORT["test21_geometry_invariance"] = {"pass": False, "error": f"no hits ({label})"}
+            return False
+        mean_y[label] = float(np.mean(data[:, 0]))
+
+    y_A   = mean_y["A_beam_x"]
+    y_B   = mean_y["B_beam_y"]
+    diff  = abs(y_A - y_B)
+    tol   = 0.5   # mm
+
+    sign_ok = (y_A < 0) and (y_B < 0)
+    match_ok = diff < tol
+    ok = sign_ok and match_ok
+
+    print(f"   Case A (+x beam):  mean_y = {y_A:+.4f} mm")
+    print(f"   Case B (+y beam):  mean_y = {y_B:+.4f} mm")
+    print(f"   |difference| = {diff:.4f} mm  (tol {tol} mm)")
+    if not sign_ok:
+        print(f"   FAIL: signs differ  (both should be negative in detector-local frame)")
+    if not match_ok:
+        print(f"   FAIL: |Δ| = {diff:.4f} mm > {tol} mm — rotation changed the physics")
+
+    REPORT["test21_geometry_invariance"] = {
+        "pass": ok,
+        "mean_y_beam_x_mm": round(y_A, 4),
+        "mean_y_beam_y_mm": round(y_B, 4),
+        "diff_mm": round(diff, 4),
+        "tolerance_mm": tol,
+    }
+    return ok
+
+
+# ── test 22: field compositing linearity ──────────────────────────────────────
+
+def test22_field_compositing_linearity():
+    """
+    Orthogonal B components deflect in orthogonal detector channels; superimposing
+    them should leave each channel unaffected by the other (to first order,
+    L/r_L ≈ 0.02 here, so cross-coupling ~ 0.02 % — well within 5 % tolerance).
+
+    Bz = 0.1 T deflects in −y (F = q v_x Bz → −y).
+    By = 0.1 T deflects in +z (F = q v_x By → +z).
+
+    Three runs (pencil, +x beam):
+      A: zero primary + Bz extra   →  y_A < 0,  z_A ≈ 0
+      B: zero primary + By extra   →  y_B ≈ 0,  z_B > 0
+      C: zero primary + Bz + By    →  y_C ≈ y_A,  z_C ≈ z_B  (superposition)
+    """
+    print("Test 22: Field compositing linearity  (orthogonal B superposition)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    bounds = (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06)
+    B_zero = np.zeros((2, 2, 2, 3), dtype=np.float32)
+    E_zero = np.zeros_like(B_zero)
+    write_bfld(VALDATA / "t22_zero.bfld", B_zero, E_zero, bounds)
+
+    B_bz = np.zeros((16, 16, 16, 3), dtype=np.float32); B_bz[..., 2] = 0.1
+    B_by = np.zeros((16, 16, 16, 3), dtype=np.float32); B_by[..., 1] = 0.1
+    Ez   = np.zeros((16, 16, 16, 3), dtype=np.float32)
+    write_bfld(VALDATA / "t22_Bz.bfld", B_bz, Ez, bounds)
+    write_bfld(VALDATA / "t22_By.bfld", B_by, Ez, bounds)
+
+    common = """\
+[source]
+type = "pencil"
+n_particles = 10000
+energy_MeV = 14.7
+position_mm = [-100.0, 0.0, 0.0]
+aim_at_mm = [0.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 20000
+"""
+    decks = {
+        "A_Bz": '[field]\npath = "t22_zero.bfld"\nscale_B = 0.0\n\n'
+                '[[field.extra_b]]\npath = "t22_Bz.bfld"\nscale_B = 1.0\n\n' + common,
+        "B_By": '[field]\npath = "t22_zero.bfld"\nscale_B = 0.0\n\n'
+                '[[field.extra_b]]\npath = "t22_By.bfld"\nscale_B = 1.0\n\n' + common,
+        "C_both": '[field]\npath = "t22_zero.bfld"\nscale_B = 0.0\n\n'
+                  '[[field.extra_b]]\npath = "t22_Bz.bfld"\nscale_B = 1.0\n\n'
+                  '[[field.extra_b]]\npath = "t22_By.bfld"\nscale_B = 1.0\n\n' + common,
+    }
+
+    hits = {}
+    for label, deck_txt in decks.items():
+        deck_path = VALDATA / f"t22_{label}.toml"
+        deck_path.write_text(deck_txt)
+        out = VALOUT / f"t22_{label}"
+        if not run_deck(deck_path, out):
+            REPORT["test22_field_compositing_linearity"] = {"pass": False, "error": f"sim failed ({label})"}
+            return False
+        data = read_hits_bin(out)
+        if len(data) == 0:
+            REPORT["test22_field_compositing_linearity"] = {"pass": False, "error": f"no hits ({label})"}
+            return False
+        hits[label] = (float(np.mean(data[:, 0])), float(np.mean(data[:, 1])))
+
+    y_A, z_A = hits["A_Bz"]
+    y_B, z_B = hits["B_By"]
+    y_C, z_C = hits["C_both"]
+
+    y_rel = abs(y_C - y_A) / max(abs(y_A), 1e-3)
+    z_rel = abs(z_C - z_B) / max(abs(z_B), 1e-3)
+    tol = 0.05
+
+    ok_sign_A = y_A < 0
+    ok_sign_B = z_B > 0
+    ok_y  = y_rel < tol
+    ok_z  = z_rel < tol
+    ok = ok_sign_A and ok_sign_B and ok_y and ok_z
+
+    print(f"   A (Bz only):   y = {y_A:+.3f},  z = {z_A:+.3f} mm")
+    print(f"   B (By only):   y = {y_B:+.3f},  z = {z_B:+.3f} mm")
+    print(f"   C (Bz + By):   y = {y_C:+.3f},  z = {z_C:+.3f} mm")
+    print(f"   y_rel_err = {y_rel:.4f}  (C vs A,  tol {tol})")
+    print(f"   z_rel_err = {z_rel:.4f}  (C vs B,  tol {tol})")
+    if not ok_sign_A:
+        print(f"   FAIL: Bz-only should deflect in −y")
+    if not ok_sign_B:
+        print(f"   FAIL: By-only should deflect in +z")
+    if not ok_y:
+        print(f"   FAIL: y channel rel_err {y_rel:.4f} > {tol}")
+    if not ok_z:
+        print(f"   FAIL: z channel rel_err {z_rel:.4f} > {tol}")
+
+    REPORT["test22_field_compositing_linearity"] = {
+        "pass": ok,
+        "A_y_mm": round(y_A, 4), "A_z_mm": round(z_A, 4),
+        "B_y_mm": round(y_B, 4), "B_z_mm": round(z_B, 4),
+        "C_y_mm": round(y_C, 4), "C_z_mm": round(z_C, 4),
+        "y_rel_err": round(y_rel, 5),
+        "z_rel_err": round(z_rel, 5),
+        "tolerance": tol,
+    }
+    return ok
+
+
+# ── test 23: density scaling  ΔE ∝ ρ L ───────────────────────────────────────
+
+def test23_density_scaling():
+    """
+    Three water-equivalent slabs with matched and mismatched ρ × L (column depth):
+      A: 1 mm, ρ = 1 g/cm³   →  ρL = 0.1 g/cm²
+      B: 2 mm, ρ = 1 g/cm³   →  ρL = 0.2 g/cm²
+      C: 1 mm, ρ = 2 g/cm³   →  ρL = 0.2 g/cm²
+
+    ρL equivalence (range-energy theorem):  slabs B and C have the same column
+    depth → same energy loss, regardless of how ρ is distributed along the path.
+    This is EXACT in CSDA (Bethe-Bloch depends on Z/A and I, not density).
+
+    Checks:
+      1. Each slab's mean exit KE within 5 % of analytic_ke_loss_water(ρ→eq thickness)
+      2. |ΔE_C − ΔE_B| / ΔE_B < 3 %  (ρL equivalence, should be exact)
+    """
+    print("Test 23: Density scaling  (ΔE ∝ ρL;  ρL equivalence B ≡ C)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    E_MEV = 14.7
+    N     = 10_000
+
+    B_arr = np.zeros((4, 8, 8, 3), dtype=np.float32)
+    E_arr = np.zeros_like(B_arr)
+    write_bfld(VALDATA / "t23_zero.bfld", B_arr, E_arr,
+               (-0.01, 0.16, -0.05, 0.05, -0.05, 0.05))
+
+    slabs = {
+        "A_1mm_rho1": (0.001, 1.0),
+        "B_2mm_rho1": (0.002, 1.0),
+        "C_1mm_rho2": (0.001, 2.0),
+    }
+
+    results = {}
+    for label, (L_m, rho) in slabs.items():
+        dens_arr = np.full((4, 8, 8), rho, dtype=np.float32)
+        dens_path = VALDATA / f"t23_{label}.dens"
+        write_dens(dens_path, dens_arr, (0.0, L_m, -0.05, 0.05, -0.05, 0.05))
+
+        # analytic via ρL equivalence: ΔE same as ρ=1 slab of thickness ρ×L
+        eq_L = rho * L_m
+        analytic_loss = analytic_ke_loss_water(E_MEV, eq_L)
+        analytic_ke   = E_MEV - analytic_loss
+
+        deck = f"""\
+[field]
+path = "t23_zero.bfld"
+scale_B = 0.0
+scale_E = 0.0
+
+[density]
+path = "{dens_path.name}"
+material = "water"
+
+[source]
+type = "pencil"
+n_particles = {N}
+energy_MeV = {E_MEV}
+position_mm = [-50.0, 0.0, 0.0]
+aim_at_mm = [0.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 100.0
+height_mm = 100.0
+pixels = [128, 128]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 30000
+"""
+        deck_path = VALDATA / f"t23_{label}.toml"
+        deck_path.write_text(deck)
+
+        out = VALOUT / f"t23_{label}"
+        if not run_deck(deck_path, out):
+            REPORT["test23_density_scaling"] = {"pass": False, "error": f"sim failed ({label})"}
+            return False
+        data = read_hits_bin(out)
+        if len(data) == 0:
+            REPORT["test23_density_scaling"] = {"pass": False, "error": f"no hits ({label})"}
+            return False
+
+        mean_ke = float(np.mean(data[:, 2]))
+        dE      = E_MEV - mean_ke
+        rel_err = abs(mean_ke - analytic_ke) / analytic_ke
+        results[label] = {"mean_ke": mean_ke, "dE": dE,
+                          "analytic_ke": analytic_ke, "rel_err": rel_err}
+        print(f"   {label}: mean_ke = {mean_ke:.4f} MeV  "
+              f"(analytic {analytic_ke:.4f},  rel_err = {rel_err:.3f})")
+
+    tol_ind   = 0.05
+    tol_equiv = 0.03
+
+    ok_A = results["A_1mm_rho1"]["rel_err"] < tol_ind
+    ok_B = results["B_2mm_rho1"]["rel_err"] < tol_ind
+    ok_C = results["C_1mm_rho2"]["rel_err"] < tol_ind
+
+    dE_B     = results["B_2mm_rho1"]["dE"]
+    dE_C     = results["C_1mm_rho2"]["dE"]
+    eq_err   = abs(dE_C - dE_B) / max(dE_B, 0.001)
+    ok_equiv = eq_err < tol_equiv
+
+    ok = ok_A and ok_B and ok_C and ok_equiv
+
+    print(f"   ρL equiv (B vs C): dE_B = {dE_B:.4f},  dE_C = {dE_C:.4f},  "
+          f"rel_diff = {eq_err:.4f}  (tol {tol_equiv})")
+    if not ok_equiv:
+        print(f"   FAIL: ρL equivalence violated")
+
+    REPORT["test23_density_scaling"] = {
+        "pass": ok,
+        "slab_A": {k: round(v, 5) if isinstance(v, float) else v
+                   for k, v in results["A_1mm_rho1"].items()},
+        "slab_B": {k: round(v, 5) if isinstance(v, float) else v
+                   for k, v in results["B_2mm_rho1"].items()},
+        "slab_C": {k: round(v, 5) if isinstance(v, float) else v
+                   for k, v in results["C_1mm_rho2"].items()},
+        "rhoL_equiv_rel_err": round(eq_err, 5),
+        "tolerance_individual": tol_ind,
+        "tolerance_equiv": tol_equiv,
+    }
+    return ok
+
+
+# ── test 24: vacuum regression (no density block → energy conserved) ──────────
+
+def test24_vacuum_regression():
+    """
+    TOML deck with no [density] block and Bz = 1 T.  The Bethe-Bloch GPU path
+    must be a complete no-op: std(KE) / mean(KE) < 1e-4.
+
+    This is the TOML-path analog of test4, confirming that Feature #5
+    (stopping power) did not touch the energy-conserving vacuum default.
+    """
+    print("Test 24: Vacuum regression  (no [density] block → exact energy conservation)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    B_arr = np.zeros((16, 16, 16, 3), dtype=np.float32)
+    B_arr[..., 2] = 1.0
+    E_arr = np.zeros_like(B_arr)
+    write_bfld(VALDATA / "t24_Bz.bfld", B_arr, E_arr,
+               (-0.06, 0.06, -0.06, 0.06, -0.06, 0.06))
+
+    deck = """\
+[field]
+path = "t24_Bz.bfld"
+scale_B = 1.0
+scale_E = 0.0
+
+[source]
+type = "parallel"
+n_particles = 20000
+energy_MeV = 14.7
+beam_radius_mm = 30.0
+source_distance_mm = 100.0
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 500.0
+height_mm = 500.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 1.0
+max_steps = 20000
+"""
+    (VALDATA / "t24_vacuum_regression.toml").write_text(deck)
+
+    out = VALOUT / "t24_vacuum_regression"
+    if not run_deck(VALDATA / "t24_vacuum_regression.toml", out):
+        REPORT["test24_vacuum_regression"] = {"pass": False, "error": "simulation failed"}
+        return False
+
+    data = read_hits_bin(out)
+    if len(data) == 0:
+        print("   no hits")
+        REPORT["test24_vacuum_regression"] = {"pass": False, "error": "no hits"}
+        return False
+
+    ke_arr  = data[:, 2].astype(np.float64)
+    mean_ke = float(np.mean(ke_arr))
+    std_ke  = float(np.std(ke_arr))
+    rel_std = std_ke / mean_ke if mean_ke > 0 else float("inf")
+    tol = 1e-4
+
+    ok = rel_std < tol
+    print(f"   hits = {len(data)},  mean KE = {mean_ke:.4f} MeV,  "
+          f"std/mean = {rel_std:.2e}  (tol {tol:.0e})")
+    if not ok:
+        print(f"   FAIL: std/mean {rel_std:.2e} ≥ {tol:.0e}  "
+              "(Bethe-Bloch path active even without [density] block)")
+
+    REPORT["test24_vacuum_regression"] = {
+        "pass": ok,
+        "n_hits": len(data),
+        "mean_ke_MeV": round(mean_ke, 6),
+        "rel_std": float(f"{rel_std:.3e}"),
+        "tolerance": tol,
+        "note": "TOML-path analog of test4; no [density] → exact B-only energy conservation.",
+    }
+    return ok
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -1742,6 +2669,14 @@ if __name__ == "__main__":
         test14_superimposed_fields,
         test15_adaptive_dt,
         test16_bethe_bloch,
+        test17_analytic_hit,
+        test18_larmor_radius,
+        test19_exb_velocity_selector,
+        test20_hits_bin_rebinning,
+        test21_geometry_invariance,
+        test22_field_compositing_linearity,
+        test23_density_scaling,
+        test24_vacuum_regression,
     ]
 
     results = {}
@@ -1765,6 +2700,19 @@ if __name__ == "__main__":
 
     # Write machine-readable report
     import datetime
+
+    class _NumpyEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            if isinstance(obj, np.floating):
+                return float(obj)
+            if isinstance(obj, np.bool_):
+                return bool(obj)
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            return super().default(obj)
+
     report_path = ROOT / "output" / "validation_report.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)
     full_report = {
@@ -1773,7 +2721,7 @@ if __name__ == "__main__":
         "results": REPORT,
     }
     with open(report_path, "w") as f:
-        json.dump(full_report, f, indent=2)
+        json.dump(full_report, f, indent=2, cls=_NumpyEncoder)
     print(f"\nValidation report written to: {report_path}")
 
     sys.exit(0 if all_pass else 1)

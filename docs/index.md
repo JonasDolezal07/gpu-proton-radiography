@@ -7,7 +7,7 @@ hide:
   <img src="images/logo_text.png" alt="prad" class="hero-logo-side" />
   <div class="hero-text">
     <p><strong>GPU Proton Radiography — a forward model for laser-plasma and HEDP experiments.</strong></p>
-    <p>prad traces synthetic proton beams through measured or simulated electromagnetic fields and produces radiographs for direct comparison with experimental RCF data. Full relativistic Boris orbit — not a paraxial approximation. 10⁶ particles in under 2 seconds on a laptop GPU.</p>
+    <p>prad traces synthetic proton beams through measured or simulated electromagnetic fields and produces radiographs for direct comparison with experimental RCF data. Full relativistic Boris orbit — not a paraxial approximation. 10⁶ particles in under 2 seconds on a laptop GPU. 24 validation tests covering EM deflection, detector geometry, adaptive timestepping, field compositing, per-hit export, and Bethe-Bloch energy loss.</p>
     <div class="install-block">pip install prad</div>
   </div>
 </div>
@@ -34,13 +34,13 @@ hide:
 
     [:octicons-arrow-right-24: Energy spectra](spectra.md)
 
--   :material-check-all:{ .lg .middle } **16/16 Validation Tests**
+-   :material-check-all:{ .lg .middle } **24/24 Validation Tests**
 
     ---
 
-    Energy conservation to < 10⁻¹² relative error.
-    Correct impact KE. Spectrum shape and cutoff enforced.
-    Bethe-Bloch range agrees with NIST PSTAR to < 2%.
+    EM deflection, analytic Larmor radius, E×B force balance, detector
+    geometry, geometry invariance, field compositing, per-hit export,
+    Bethe-Bloch ρL equivalence, and vacuum regression.
 
     [:octicons-arrow-right-24: See tests](validation.md)
 

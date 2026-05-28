@@ -46,10 +46,11 @@ nav:
     - Adaptive Timestep: adaptive_timestep.md
     - Field Compositing: field_compositing.md
     - Stopping Power: stopping_power.md
-    - Validation: validation.md
+    - Limitations: limitations.md
+  - Validation & Performance:
+    - Validation (24/24): validation.md
     - Numerical Robustness: convergence.md
     - Benchmarks: benchmark.md
-    - Limitations: limitations.md
   - Reference:
     - File Formats: file_formats.md
     - Run Artifacts: run_artifacts.md
