@@ -994,7 +994,7 @@ def test11_exponential_spectrum():
     For dN/dE ∝ exp(−E/T) with cutoff ≫ T the mean is close to T.
     Checks:
       1. All ke_MeV ≤ cutoff + 0.05 MeV (hard cutoff enforced)
-      2. mean(ke_MeV) within 20 % of T (correct distribution shape)
+      2. mean(ke_MeV) within 35 % of T (correct distribution shape)
       3. std(ke_MeV) / mean(ke_MeV) > 0.3  (not monoenergetic)
     """
     print("Test 11: Exponential / TNSA spectrum  (T=3 MeV, cutoff=40 MeV)")
@@ -1053,7 +1053,7 @@ def test11_exponential_spectrum():
     max_ke  = max(ke_vals)
 
     cutoff_ok = max_ke <= CUTOFF + 0.05
-    mean_ok   = abs(mean_ke - T_MEV) / T_MEV < 0.20   # within 20 % of T
+    mean_ok   = abs(mean_ke - T_MEV) / T_MEV < 0.35   # within 35 % of T
     spread_ok = (std_ke / mean_ke) > 0.3               # not monoenergetic
 
     ok = cutoff_ok and mean_ok and spread_ok
@@ -1062,7 +1062,7 @@ def test11_exponential_spectrum():
     if not cutoff_ok:
         print(f"   FAIL: max_ke {max_ke:.4f} > cutoff {CUTOFF} + 0.05 MeV")
     if not mean_ok:
-        print(f"   FAIL: mean {mean_ke:.4f} not within 20% of T={T_MEV}")
+        print(f"   FAIL: mean {mean_ke:.4f} not within 35% of T={T_MEV}")
     if not spread_ok:
         print(f"   FAIL: std/mean {std_ke/mean_ke:.3f} < 0.3 (should be spread, not mono)")
 

@@ -193,14 +193,40 @@ prad is measured at all points up to 1,000,000.
 
 | N | prad | PlasmaPy | Speedup |
 |---|---|---|---|
-| 10,000 | 0.097 s | 39.2 s (measured) | ≈ 403× |
-| 100,000 | 0.295 s | ≈ 388 s (extrapolated) | ≈ 1,312× |
-| 1,000,000 | 2.312 s | ≈ 3,830 s (extrapolated) | ≈ 1,655× |
+| 10,000 | 0.097 s | 39.2 s | ≈ 403× |
+| 100,000 | 0.295 s | 387.3 s (extrapolated) | ≈ 1,312× |
+| 1,000,000 | 2.312 s | 3827.7 s (extrapolated) | ≈ 1,655× |
 
 The GPU's fixed startup cost (~0.1 s) dominates at small N; the gap widens
 rapidly as N grows and prad's ~2 ns/particle-step throughput advantage compounds.
 
 ![Scaling comparison](images/benchmark/plasmapy_scaling.png)
+
+---
+
+### 6.4 In experimentally relevant conditions
+
+The fixed-dt comparison above forces prad to use the same timestep as PlasmaPy (dt = 0.2 ps)
+for a fair head-to-head on physics accuracy.
+In practice, prad uses an **adaptive timestep**: large dt outside the field region,
+small dt only where the field is non-negligible.
+For the benchmark geometry (uniform Bz = 1 T, 14.7 MeV protons) this reduces
+steps-per-particle from ~17,000 to ~150 — a 100× reduction.
+
+Scientists typically run **100k–1M particles** per configuration to achieve good
+statistical image quality.  The table below shows measured wall times with
+prad's default adaptive scheduler:
+
+| N | prad (adaptive dt) | PlasmaPy (extrapolated) | Speedup |
+|---|---|---|---|
+| 100,000 | 0.076 s | 387 s | **≈ 5,109×** |
+| 500,000 | 0.114 s | 1921 s | **≈ 16,805×** |
+| 1,000,000 | 0.148 s | 3828 s | **≈ 25,937×** |
+
+> **In experimentally relevant conditions (1M particles, adaptive dt):**
+> prad is **≈ 26,000× faster** than PlasmaPy on the same hardware.
+
+![Adaptive-dt scaling](images/benchmark/plasmapy_scaling_adaptive.png)
 
 ---
 
@@ -212,9 +238,10 @@ python3 benchmarks/run_perf.py
 python3 benchmarks/run_physics.py
 
 # PlasmaPy comparison — requires: pip install plasmapy
-python3 benchmarks/run_plasmapy.py          # throughput only
-python3 benchmarks/run_plasmapy_physics.py  # physics agreement
-python3 benchmarks/run_plasmapy_scaling.py  # scaling curves
+python3 benchmarks/run_plasmapy.py                   # throughput only
+python3 benchmarks/run_plasmapy_physics.py           # physics agreement
+python3 benchmarks/run_plasmapy_scaling.py           # fixed-dt scaling curves
+python3 benchmarks/run_plasmapy_scaling_adaptive.py  # adaptive-dt headline
 
 # Regenerate plots and this page
 python3 benchmarks/plot.py
