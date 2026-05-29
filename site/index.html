@@ -287,6 +287,26 @@
     
     
       <li class="md-tabs__item">
+        <a href="validation/" class="md-tabs__link">
+          
+  
+  
+  Validation & Performance
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="file_formats/" class="md-tabs__link">
           
   
@@ -717,14 +737,14 @@
   
   
     <li class="md-nav__item">
-      <a href="validation/" class="md-nav__link">
+      <a href="adaptive_timestep/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Validation
+    Adaptive Timestep
   
 
     
@@ -745,14 +765,42 @@
   
   
     <li class="md-nav__item">
-      <a href="benchmark/" class="md-nav__link">
+      <a href="field_compositing/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Benchmarks
+    Field Compositing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="stopping_power/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stopping Power
   
 
     
@@ -831,7 +879,7 @@
   <span class="md-ellipsis">
     
   
-    Reference
+    Validation & Performance
   
 
     
@@ -844,6 +892,149 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Validation & Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation (24/24)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="convergence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Numerical Robustness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="benchmark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1097,8 +1288,8 @@
 <div class="hero-header">
   <img src="images/logo_text.png" alt="prad" class="hero-logo-side" />
   <div class="hero-text">
-    <p><strong>Forward-model proton radiographs from measured or simulated plasma fields.</strong></p>
-    <p>Full relativistic Boris orbit — not a paraxial approximation. Runs on the GPU in seconds.</p>
+    <p><strong>GPU Proton Radiography — a forward model for laser-plasma and HEDP experiments.</strong></p>
+    <p>prad traces synthetic proton beams through measured or simulated electromagnetic fields and produces radiographs for direct comparison with experimental RCF data. Full relativistic Boris orbit — not a paraxial approximation. 10⁶ particles in under 2 seconds on a laptop GPU. 24 validation tests covering EM deflection, detector geometry, adaptive timestepping, field compositing, per-hit export, and Bethe-Bloch energy loss.</p>
     <div class="install-block">pip install prad</div>
   </div>
 </div>
@@ -1121,10 +1312,11 @@ with configurable temperature and hard cutoff.</p>
 <p><a href="spectra/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Energy spectra</a></p>
 </li>
 <li>
-<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M.41 13.41 6 19l1.41-1.42L1.83 12m20.41-6.42L11.66 16.17 7.5 12l-1.43 1.41L11.66 19l12-12M18 7l-1.41-1.42-6.35 6.35 1.42 1.41z"/></svg></span> <strong>12/12 Validation Tests</strong></p>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M.41 13.41 6 19l1.41-1.42L1.83 12m20.41-6.42L11.66 16.17 7.5 12l-1.43 1.41L11.66 19l12-12M18 7l-1.41-1.42-6.35 6.35 1.42 1.41z"/></svg></span> <strong>24/24 Validation Tests</strong></p>
 <hr />
-<p>Energy conservation to &lt; 10⁻¹² relative error.
-Correct impact KE. Spectrum shape and cutoff enforced.</p>
+<p>EM deflection, analytic Larmor radius, E×B force balance, detector
+geometry, geometry invariance, field compositing, per-hit export,
+Bethe-Bloch ρL equivalence, and vacuum regression.</p>
 <p><a href="validation/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> See tests</a></p>
 </li>
 <li>
@@ -1133,6 +1325,38 @@ Correct impact KE. Spectrum shape and cutoff enforced.</p>
 <p>~9 B steps/s on Apple M4 · ~34 B steps/s on NVIDIA RTX 4090.
 1M particles traced end-to-end in under 2 s on a laptop GPU.</p>
 <p><a href="benchmark/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Benchmarks</a></p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m16 11.78 4.24-7.33 1.73 1-5.23 9.05-6.51-3.75L5.46 19H22v2H2V3h2v14.54L9.5 8z"/></svg></span> <strong>Numerical Robustness</strong></p>
+<hr />
+<p>Timestep, particle-count, and field-grid convergence studies.
+Field-grid resolution identified as the dominant sensitivity.
+One-command figure reproduction.</p>
+<p><a href="convergence/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Convergence studies</a></p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 16a3 3 0 0 1-3-3c0-1.12.61-2.1 1.5-2.61l9.71-5.62-5.53 9.58c-.5.98-1.51 1.65-2.68 1.65m0-13c1.81 0 3.5.5 4.97 1.32l-2.1 1.21C14 5.19 13 5 12 5a8 8 0 0 0-8 8c0 2.21.89 4.21 2.34 5.65h.01c.39.39.39 1.02 0 1.41s-1.03.39-1.42.01A9.97 9.97 0 0 1 2 13 10 10 0 0 1 12 3m10 10c0 2.76-1.12 5.26-2.93 7.07-.39.38-1.02.38-1.41-.01a.996.996 0 0 1 0-1.41A7.95 7.95 0 0 0 20 13c0-1-.19-2-.54-2.9L20.67 8C21.5 9.5 22 11.18 22 13"/></svg></span> <strong>Adaptive Timestep</strong></p>
+<hr />
+<p>Large dt in vacuum, small Larmor-constrained dt inside the field.
+5–20× speedup with no change to the physics. Automatic — no
+configuration required.</p>
+<p><a href="adaptive_timestep/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> How it works</a></p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 14h2v3h3v2h-3v3h-2v-3h-3v-2h3zm-6 2L2 9l9-7 9 7zm0 2.54 1-.79V18c0 .71.12 1.39.35 2L11 21.07l-9-7 1.62-1.26z"/></svg></span> <strong>Field Compositing</strong></p>
+<hr />
+<p>Superimpose any number of <code>.bfld</code> grids with independent scale
+factors. Overlay plasma fields, coil fields, and background fields
+in a single TOML deck.</p>
+<p><a href="field_compositing/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Compositing guide</a></p>
+</li>
+<li>
+<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a6 6 0 0 1-6-6c0-4 6-10.75 6-10.75S18 10 18 14a6 6 0 0 1-6 6"/></svg></span> <strong>Bethe-Bloch Energy Loss</strong></p>
+<hr />
+<p>CSDA proton stopping via the relativistic Bethe-Bloch formula.
+Scalar density grids (<code>.dens</code>) drive spatially-varying energy loss.
+Built-in material presets for water, plastic, Be, Al.</p>
+<p><a href="stopping_power/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Stopping power</a></p>
 </li>
 </ul>
 </div>
@@ -1198,7 +1422,7 @@ path-integrated field topology — no paraxial assumptions.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">B</span><span class="p">,</span> <span class="n">bounds_m</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">)</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># Monoenergetic — 14.7 MeV (D–T fusion protons)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># Monoenergetic — 14.7 MeV (D–³He fusion protons)</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">prad</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">field</span><span class="p">,</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">energy_MeV</span><span class="o">=</span><span class="mf">14.7</span><span class="p">,</span>
@@ -1248,21 +1472,31 @@ path-integrated field topology — no paraxial assumptions.</p>
 </div>
 <hr />
 <h2 id="why-this-tool">Why this tool?<a class="headerlink" href="#why-this-tool" title="Permanent link">&para;</a></h2>
-<p>Proton radiography is sensitive to the path-integrated field, not just its peak value.
-The mapping from field structure to film pattern is nonlinear and depends on geometry —
-magnification, detector distance, source divergence.</p>
-<p><strong>Paraxial approximations fail</strong> in the strong-field, large-deflection regimes common
-in modern pulsed-power and laser-plasma experiments.</p>
-<p>prad runs the full relativistic Boris orbit, so you can:</p>
-<ul>
-<li>See where paraxial approximations break down and by how much</li>
-<li>Forward-model field topologies and compare directly to experimental RCF films</li>
-<li>Sweep source and geometry parameters before committing to a shot</li>
-<li>Use TNSA-like energy spectra that match real laser-accelerated proton sources</li>
-</ul>
+<p><strong>Speed that changes what's practical.</strong> The full-orbit Boris integrator runs 10⁶ particles
+in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. In a matched
+simplified particle-tracing test (10,000 particles, uniform field, single core), prad is
+<strong>214× faster</strong> than a CPU Boris implementation via PlasmaPy, with GPU utilisation
+increasing further at larger particle counts. That gap makes workflows practical that
+previously required paraxial shortcuts: broad parameter sweeps, interactive geometry design,
+comparison of field topologies, and large synthetic dataset generation for ML inverse solvers.</p>
+<p><strong>No approximations.</strong> Every fast alternative uses the paraxial approximation — integrating
+the field kick along an unperturbed straight-line trajectory. In the strong-field regimes
+common in pulsed-power and high-intensity laser experiments, it fails badly. At just 20%
+of the kink instability field amplitude the paraxial model produces streaks spanning the
+entire detector; the full-orbit result shows the correct helical kink signature. prad traces
+the complete relativistic orbit in all cases.</p>
+<p><strong>A complete research environment.</strong> prad ships with a Python API (<code>pip install prad</code>,
+numpy arrays in and out), a parameter sweep engine, a GUI for interactive deck editing,
+TNSA exponential spectrum sampling, and self-documenting run directories with SHA-256 field
+hashes for exact reproducibility. You can go from a numpy field array to a synthetic
+radiograph with three lines of Python, or run a multi-point energy sweep from the command line
+in one command. Bethe-Bloch energy loss, field compositing, and adaptive timestepping are
+available out of the box — no extra dependencies.</p>
 <p><a class="md-button md-button--primary" href="quickstart/">Get started <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span></a>
 <a class="md-button" href="python_api/">Python API <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span></a>
 <a class="md-button" href="validation/">Validation <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span></a></p>
+<hr />
+<p>Built by <a href="https://jonasdolezal.com">Jonas Dolezal</a>.</p>
 
 
 
@@ -1331,7 +1565,7 @@ in modern pulsed-power and laser-plasma experiments.</p>
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      © 2025 Jonas Dolezal — MIT Licence
+      © 2025 <a href='https://jonasdolezal.com'>Jonas Dolezal</a> — MIT Licence
     </div>
   
   
@@ -1351,6 +1585,14 @@ in modern pulsed-power and laser-plasma experiments.</p>
     
     <a href="https://github.com/JonasDolezal07/gpu-proton-radiography" target="_blank" rel="noopener" title="Source on GitHub" class="md-social__link">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://jonasdolezal.com" target="_blank" rel="noopener" title="jonasdolezal.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg>
     </a>
   
 </div>

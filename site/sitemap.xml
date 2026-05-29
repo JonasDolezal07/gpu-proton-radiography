@@ -2,58 +2,74 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
+    </url>
+    <url>
+         <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/adaptive_timestep/</loc>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/benchmark/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
+    </url>
+    <url>
+         <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/convergence/</loc>
+         <lastmod>2026-05-29</lastmod>
+    </url>
+    <url>
+         <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/field_compositing/</loc>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/file_formats/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/geometry/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/gui/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/input_decks/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/limitations/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/python_api/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/quickstart/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/rendering/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/run_artifacts/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/spectra/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
+    </url>
+    <url>
+         <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/stopping_power/</loc>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/sweeps/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
     <url>
          <loc>https://jonasdolezal07.github.io/gpu-proton-radiography/validation/</loc>
-         <lastmod>2026-05-21</lastmod>
+         <lastmod>2026-05-29</lastmod>
     </url>
 </urlset>

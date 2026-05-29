@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://jonasdolezal07.github.io/gpu-proton-radiography/limitations/">
+        <link rel="canonical" href="https://jonasdolezal07.github.io/gpu-proton-radiography/field_compositing/">
       
       
-        <link rel="prev" href="../stopping_power/">
+        <link rel="prev" href="../adaptive_timestep/">
       
       
-        <link rel="next" href="../validation/">
+        <link rel="next" href="../stopping_power/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Limitations - prad</title>
+        <title>Field Compositing - prad</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#limitations" class="md-skip">
+        <a href="#field-compositing" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Limitations
+              Field Compositing
             
           </span>
         </div>
@@ -680,10 +680,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../field_compositing/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Field Compositing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -699,6 +726,142 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#toml-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOML syntax
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TOML syntax">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-per-field-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available per-field keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grid-independence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grid independence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#field-amplitude-scans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field amplitude scans
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worked-example-z-pinch-instability-in-an-axial-guide-field" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worked example: z-pinch instability in an axial guide field
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-extra-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generating extra fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-test14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation — test14
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -736,37 +899,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Limitations
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../limitations/" class="md-nav__link">
         
   
   
@@ -782,81 +918,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#physics-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Physics model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#detector-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Detector model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#platform" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Platform
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Software architecture
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1238,10 +1299,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#physics-model" class="md-nav__link">
+  <a href="#motivation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Physics model
+        Motivation
       
     </span>
   </a>
@@ -1249,10 +1310,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#detector-model" class="md-nav__link">
+  <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Detector model
+        How it works
       
     </span>
   </a>
@@ -1260,10 +1321,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validation" class="md-nav__link">
+  <a href="#toml-syntax" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Validation
+        TOML syntax
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TOML syntax">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-per-field-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available per-field keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grid-independence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grid independence
       
     </span>
   </a>
@@ -1271,10 +1360,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#platform" class="md-nav__link">
+  <a href="#field-amplitude-scans" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Platform
+        Field amplitude scans
       
     </span>
   </a>
@@ -1282,10 +1371,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
+  <a href="#worked-example-z-pinch-instability-in-an-axial-guide-field" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Software architecture
+        Worked example: z-pinch instability in an axial guide field
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generating-extra-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generating extra fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-test14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation — test14
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
       
     </span>
   </a>
@@ -1312,52 +1434,178 @@
   
 
 
-<h1 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h1>
-<p>This is research-grade software. The following constraints are known and deliberate.</p>
-<h2 id="physics-model">Physics model<a class="headerlink" href="#physics-model" title="Permanent link">&para;</a></h2>
-<p><strong>Static fields only.</strong> The field is loaded once at startup and does not evolve during the
-simulation. There is no field–particle feedback.</p>
-<p><strong>Single species.</strong> Only protons are supported. No multi-species or ion mixture support.</p>
-<p><strong>Relativistic Boris integrator.</strong> Particles are pushed in specific-momentum space
-(<code>u = γv</code>) with γ recomputed each step. This is exact at all energies — there is no
-non-relativistic approximation in the integrator.</p>
-<p><strong>Adaptive or fixed timestep.</strong> By default, prad uses a large dt in vacuum and a
-Larmor-constrained dt inside the field (see <a href="../adaptive_timestep/">adaptive timestep</a>).
-A fixed dt can be specified with <code>dt_ps</code>. There is no per-particle or sub-step
-adaptive control.</p>
-<p><strong>CSDA energy loss only.</strong> When a <code>[density]</code> block is configured, proton energy loss
-follows the Bethe-Bloch CSDA (mean energy loss per step). Energy-loss straggling
-(Bohr / Landau-Vavilov fluctuations), nuclear stopping (relevant below ~100 keV), and
-range straggling are not modelled. No energy loss occurs without a density grid —
-the simulation is fully collisionless by default.</p>
-<h2 id="detector-model">Detector model<a class="headerlink" href="#detector-model" title="Permanent link">&para;</a></h2>
-<p><strong>Flat detector plane.</strong> The detector is a rectangular plane — no curved or cylindrical
-geometry.</p>
-<p><strong>Simple detector response.</strong> Blur, background, and Poisson noise are modelled. More
-sophisticated response functions (energy-dependent efficiency, absolute dose calibration)
-are not implemented. The energy deposited in RCF film layers is not computed — only the
-geometric hit position and exit kinetic energy are recorded.</p>
-<h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
-<p><strong>Not validated against experimental shot data.</strong> The physics tests cover integrator
-correctness and source geometry, but no comparison against real radiograph film data
-has been performed.</p>
-<p><strong>GPU hardware coverage.</strong> The validation suite passes on Apple Silicon (MoltenVK) and
-NVIDIA RTX 4090 (Ubuntu 22.04, driver 550, Vulkan 1.3.277). AMD hardware has not been
-tested. The Vulkan compute path uses standard features with no vendor-specific extensions.</p>
-<h2 id="platform">Platform<a class="headerlink" href="#platform" title="Permanent link">&para;</a></h2>
-<p><strong>macOS / MoltenVK is the primary development platform.</strong> Linux with NVIDIA Vulkan is
-validated (see <code>benchmarks/validation/</code>). CI runs a build + schema-check pass on Linux
-via Mesa software Vulkan; GPU compute tests require real hardware.</p>
-<p><strong>Single GPU.</strong> No multi-GPU or distributed simulation.</p>
-<h2 id="software-architecture">Software architecture<a class="headerlink" href="#software-architecture" title="Permanent link">&para;</a></h2>
-<p><strong>Legacy <code>config.rs</code> retained.</strong> <code>rust/src/config.rs</code> contains a legacy GUI editing system
-that is not part of the run pipeline. It is retained for compatibility while the deck override
-system matures. See <code>rust/src/loaders/config.rs</code> for the authoritative configuration layer.</p>
-<p><strong>JSON configs are legacy.</strong> The JSON config format is accepted but not recommended. TOML
-decks are the canonical format.</p>
-<p><strong><code>prad</code> Python package.</strong> <code>pip install prad</code> gives a subprocess-based Python API
-(<code>prad.run()</code>, <code>prad.Field</code>) wrapping the Rust CLI. Full pyo3/native bindings are not
-implemented.</p>
+<h1 id="field-compositing">Field compositing<a class="headerlink" href="#field-compositing" title="Permanent link">&para;</a></h1>
+<p>prad can superimpose any number of <code>.bfld</code> field grids onto the primary field at load time.
+Each extra grid has its own scale factors and can have a different spatial extent or resolution
+than the primary. Compositing is CPU-side and transparent to the GPU — no shader or Vulkan
+changes are required.</p>
+<hr />
+<h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h2>
+<p>Most experimental geometries are not a single monolithic field. Common cases:</p>
+<ul>
+<li><strong>Background field + plasma insert.</strong> A background solenoid or Helmholtz coil provides a
+  uniform base field; the plasma-generated turbulent or structured field is overlaid.</li>
+<li><strong>MHD simulation + external coil.</strong> A simulated instability field superimposed on a
+  separately-calculated external drive field.</li>
+<li><strong>Field strength scans.</strong> One grid provides the spatial structure; <code>scale_B</code> sweeps
+  the amplitude without re-running MHD.</li>
+<li><strong>Null-field baseline.</strong> Set a zero-magnitude primary grid and add only the fields of
+  interest, keeping the grid geometry independent from the physics.</li>
+</ul>
+<hr />
+<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>At load time, after the primary field is loaded and scaled:</p>
+<ol>
+<li>Each <code>[[field.extra_b]]</code> entry is loaded from disk.</li>
+<li>Its own <code>scale_B</code> / <code>scale_E</code> factors are applied.</li>
+<li>Every voxel of the <strong>primary</strong> grid samples the extra field at the corresponding world
+   position via trilinear interpolation.</li>
+<li>The sampled value is added in-place to the primary grid.</li>
+</ol>
+<p>Extra-field voxels that fall <strong>outside</strong> the extra field's declared bounds contribute zero —
+the extra field is implicitly zero-padded outside its volume. There is no extrapolation.</p>
+<p>The final composite grid is what the GPU sees. The process is $O(N_\text{extra} \times N_\text{primary})$
+where $N$ is the number of voxels in the respective grid.</p>
+<hr />
+<h2 id="toml-syntax">TOML syntax<a class="headerlink" href="#toml-syntax" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[field]</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/background.bfld&quot;</span><span class="w">   </span><span class="c1"># primary — defines the GPU grid</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">[[field.extra_b]]</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/plasma_insert.bfld&quot;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">scale_E</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">[[field.extra_b]]</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/external_solenoid.bfld&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0</span>
+</code></pre></div>
+<p>The <code>[[field.extra_b]]</code> syntax is a TOML array-of-tables — add as many blocks as needed.</p>
+<h3 id="available-per-field-keys">Available per-field keys<a class="headerlink" href="#available-per-field-keys" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>path</code></td>
+<td>required</td>
+<td>Path to <code>.bfld</code> file, relative to deck</td>
+</tr>
+<tr>
+<td><code>scale_B</code></td>
+<td>1.0</td>
+<td>Multiplicative scale applied to B components</td>
+</tr>
+<tr>
+<td><code>scale_E</code></td>
+<td>0.0</td>
+<td>Multiplicative scale applied to E components</td>
+</tr>
+<tr>
+<td><code>e_path</code></td>
+<td>—</td>
+<td>Separate <code>.bfld</code> for E-field (version-1 field files)</td>
+</tr>
+</tbody>
+</table>
+<p>The primary <code>[field]</code> block also accepts <code>scale_B</code>, <code>scale_E</code>, and <code>e_path</code>.</p>
+<hr />
+<h2 id="grid-independence">Grid independence<a class="headerlink" href="#grid-independence" title="Permanent link">&para;</a></h2>
+<p>Each extra field can have a completely different resolution, grid dimensions, and spatial
+extent from the primary. The resampling uses trilinear interpolation onto the primary grid's
+world coordinates:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>extra_B_at_primary_voxel = trilinear_interp(extra_field, world_pos)
+</code></pre></div>
+<p>If an extra field covers only part of the primary grid (e.g. a small plasma insert inside a
+larger background solenoid), the regions outside the insert contribute zero.</p>
+<p>The GPU grid dimensions, bounds, and voxel spacing are always determined by the primary field.</p>
+<hr />
+<h2 id="field-amplitude-scans">Field amplitude scans<a class="headerlink" href="#field-amplitude-scans" title="Permanent link">&para;</a></h2>
+<p><code>scale_B</code> is applied before compositing. To scan the instability field amplitude while
+keeping a fixed background:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Fixed background at 1 T, scan plasma field from 10% to 100%</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>proton_tracer<span class="w"> </span>run<span class="w"> </span>deck.toml<span class="w"> </span>--set<span class="w"> </span>field.extra_b<span class="o">[</span><span class="m">0</span><span class="o">]</span>.scale_B<span class="o">=</span><span class="m">0</span>.1
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>proton_tracer<span class="w"> </span>run<span class="w"> </span>deck.toml<span class="w"> </span>--set<span class="w"> </span>field.extra_b<span class="o">[</span><span class="m">0</span><span class="o">]</span>.scale_B<span class="o">=</span><span class="m">0</span>.5
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>proton_tracer<span class="w"> </span>run<span class="w"> </span>deck.toml<span class="w"> </span>--set<span class="w"> </span>field.extra_b<span class="o">[</span><span class="m">0</span><span class="o">]</span>.scale_B<span class="o">=</span><span class="m">1</span>.0
+</code></pre></div>
+<p>Or use a sweep:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># sweep.toml</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">[[sweep]]</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;field.extra_b[0].scale_B&quot;</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">values</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="mf">0.25</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.75</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>proton_tracer<span class="w"> </span>sweep<span class="w"> </span>deck.toml<span class="w"> </span>sweep.toml<span class="w"> </span>-o<span class="w"> </span>runs/amplitude_scan/
+</code></pre></div>
+<hr />
+<h2 id="worked-example-z-pinch-instability-in-an-axial-guide-field">Worked example: z-pinch instability in an axial guide field<a class="headerlink" href="#worked-example-z-pinch-instability-in-an-axial-guide-field" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[field]</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/instabilities/zpinch.bfld&quot;</span><span class="w">  </span><span class="c1"># MHD simulation output</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">[[field.extra_b]]</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/guide_field_Bx.bfld&quot;</span><span class="w">        </span><span class="c1"># uniform axial Bx from external coil</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w">                               </span><span class="c1"># 50% of coil&#39;s nominal amplitude</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">validate</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_bfld</span>   <span class="c1"># or your own writer</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Guide field: uniform Bx = 1 T over the full simulation volume</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">B_guide</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">B_guide</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>   <span class="c1"># Bx component</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.06</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.06</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.06</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">)</span>   <span class="c1"># same extent as zpinch field</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">write_bfld</span><span class="p">(</span><span class="s2">&quot;data/guide_field_Bx.bfld&quot;</span><span class="p">,</span> <span class="n">B_guide</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="generating-extra-fields">Generating extra fields<a class="headerlink" href="#generating-extra-fields" title="Permanent link">&para;</a></h2>
+<p>Any <code>.bfld</code> file is a valid extra field. Common approaches:</p>
+<p><strong>Analytic fields</strong> — generate in Python and write with the <code>.bfld</code> writer:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="o">,</span><span class="w"> </span><span class="nn">struct</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">write_bfld</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">bounds</span><span class="p">):</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">version</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">E</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">E</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">xmn</span><span class="p">,</span> <span class="n">xmx</span><span class="p">,</span> <span class="n">ymn</span><span class="p">,</span> <span class="n">ymx</span><span class="p">,</span> <span class="n">zmn</span><span class="p">,</span> <span class="n">zmx</span> <span class="o">=</span> <span class="n">bounds</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;BFLD&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;I&quot;</span><span class="p">,</span> <span class="n">version</span><span class="p">))</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;III&quot;</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">))</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;6f&quot;</span><span class="p">,</span> <span class="n">xmn</span><span class="p">,</span> <span class="n">xmx</span><span class="p">,</span> <span class="n">ymn</span><span class="p">,</span> <span class="n">ymx</span><span class="p">,</span> <span class="n">zmn</span><span class="p">,</span> <span class="n">zmx</span><span class="p">))</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;&lt;f4&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">E</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;&lt;f4&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+</code></pre></div>
+<p><strong>MHD simulation output</strong> — convert your simulation's field array into a <code>.bfld</code> using the same writer, ensuring the bounds are in metres and the data is in Tesla.</p>
+<p><strong>Resampling from a coarser grid</strong> — the compositing step handles different resolutions automatically; no manual interpolation is required before writing.</p>
+<hr />
+<h2 id="validation-test14">Validation — test14<a class="headerlink" href="#validation-test14" title="Permanent link">&para;</a></h2>
+<p>The test verifies field addition by compositing:</p>
+<ul>
+<li><strong>Primary:</strong> zero field (all components = 0)</li>
+<li><strong>Extra:</strong> uniform $B_z = 1$ T</li>
+</ul>
+<p>The composite must equal a standalone uniform $B_z = 1$ T field. Energy conservation is
+checked (std/mean &lt; 10⁻⁸ on impact kinetic energy — pure magnetic field does no work).</p>
+<p>Result: std/mean = 6.5 × 10⁻⁸ (numerical noise only).</p>
+<hr />
+<h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
+<p><strong>CPU-side cost.</strong> Compositing loops over the full primary grid once per extra field. For
+a 256³ primary grid and 5 extra fields this takes ~1–2 seconds. It is a one-time load-time
+cost, not a per-dispatch cost.</p>
+<p><strong>Memory.</strong> All extra fields must fit in CPU memory simultaneously. Each nx × ny × nz × 3
+f32 grid uses <code>nx × ny × nz × 12</code> bytes (~750 MB for 256³).</p>
+<p><strong>Grid orientation.</strong> Fields are composited in the shared world coordinate frame defined by
+the bounds in each header. If an extra field's coordinate system differs from the primary
+(e.g. different x-axis convention), correct the field data before writing the <code>.bfld</code> file.</p>
+<p><strong>Legacy JSON configs.</strong> The <code>[[field.extra_b]]</code> syntax is TOML-only. JSON configs
+use a flat <code>field_path</code> key and do not support compositing.</p>
 
 
 
@@ -1395,7 +1643,7 @@ implemented.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../stopping_power/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Stopping Power">
+          <a href="../adaptive_timestep/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Adaptive Timestep">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1405,20 +1653,20 @@ implemented.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Stopping Power
+                Adaptive Timestep
               </div>
             </div>
           </a>
         
         
           
-          <a href="../validation/" class="md-footer__link md-footer__link--next" aria-label="Next: Validation (24/24)">
+          <a href="../stopping_power/" class="md-footer__link md-footer__link--next" aria-label="Next: Stopping Power">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Validation (24/24)
+                Stopping Power
               </div>
             </div>
             <div class="md-footer__button md-icon">

@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://jonasdolezal07.github.io/gpu-proton-radiography/limitations/">
+        <link rel="canonical" href="https://jonasdolezal07.github.io/gpu-proton-radiography/convergence/">
       
       
-        <link rel="prev" href="../stopping_power/">
+        <link rel="prev" href="../validation/">
       
       
-        <link rel="next" href="../validation/">
+        <link rel="next" href="../benchmark/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Limitations - prad</title>
+        <title>Numerical Robustness - prad</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#limitations" class="md-skip">
+        <a href="#numerical-robustness" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Limitations
+              Numerical Robustness
             
           </span>
         </div>
@@ -263,12 +263,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../geometry/" class="md-tabs__link">
           
   
@@ -285,10 +283,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../validation/" class="md-tabs__link">
           
   
@@ -539,31 +539,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -581,7 +576,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -736,37 +731,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Limitations
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../limitations/" class="md-nav__link">
         
   
   
@@ -782,81 +750,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#physics-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Physics model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#detector-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Detector model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#platform" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Platform
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Software architecture
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -873,26 +766,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -910,7 +808,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -953,10 +851,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../convergence/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Numerical Robustness
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -972,6 +897,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#timestep-convergence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timestep convergence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#particle-count-convergence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Particle-count convergence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#field-grid-sensitivity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field-grid sensitivity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reproducibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1238,10 +1227,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#physics-model" class="md-nav__link">
+  <a href="#timestep-convergence" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Physics model
+        Timestep convergence
       
     </span>
   </a>
@@ -1249,10 +1238,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#detector-model" class="md-nav__link">
+  <a href="#particle-count-convergence" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Detector model
+        Particle-count convergence
       
     </span>
   </a>
@@ -1260,10 +1249,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validation" class="md-nav__link">
+  <a href="#field-grid-sensitivity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Validation
+        Field-grid sensitivity
       
     </span>
   </a>
@@ -1271,21 +1260,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#platform" class="md-nav__link">
+  <a href="#reproducibility" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Platform
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Software architecture
+        Reproducibility
       
     </span>
   </a>
@@ -1312,52 +1290,81 @@
   
 
 
-<h1 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h1>
-<p>This is research-grade software. The following constraints are known and deliberate.</p>
-<h2 id="physics-model">Physics model<a class="headerlink" href="#physics-model" title="Permanent link">&para;</a></h2>
-<p><strong>Static fields only.</strong> The field is loaded once at startup and does not evolve during the
-simulation. There is no field–particle feedback.</p>
-<p><strong>Single species.</strong> Only protons are supported. No multi-species or ion mixture support.</p>
-<p><strong>Relativistic Boris integrator.</strong> Particles are pushed in specific-momentum space
-(<code>u = γv</code>) with γ recomputed each step. This is exact at all energies — there is no
-non-relativistic approximation in the integrator.</p>
-<p><strong>Adaptive or fixed timestep.</strong> By default, prad uses a large dt in vacuum and a
-Larmor-constrained dt inside the field (see <a href="../adaptive_timestep/">adaptive timestep</a>).
-A fixed dt can be specified with <code>dt_ps</code>. There is no per-particle or sub-step
-adaptive control.</p>
-<p><strong>CSDA energy loss only.</strong> When a <code>[density]</code> block is configured, proton energy loss
-follows the Bethe-Bloch CSDA (mean energy loss per step). Energy-loss straggling
-(Bohr / Landau-Vavilov fluctuations), nuclear stopping (relevant below ~100 keV), and
-range straggling are not modelled. No energy loss occurs without a density grid —
-the simulation is fully collisionless by default.</p>
-<h2 id="detector-model">Detector model<a class="headerlink" href="#detector-model" title="Permanent link">&para;</a></h2>
-<p><strong>Flat detector plane.</strong> The detector is a rectangular plane — no curved or cylindrical
-geometry.</p>
-<p><strong>Simple detector response.</strong> Blur, background, and Poisson noise are modelled. More
-sophisticated response functions (energy-dependent efficiency, absolute dose calibration)
-are not implemented. The energy deposited in RCF film layers is not computed — only the
-geometric hit position and exit kinetic energy are recorded.</p>
-<h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
-<p><strong>Not validated against experimental shot data.</strong> The physics tests cover integrator
-correctness and source geometry, but no comparison against real radiograph film data
-has been performed.</p>
-<p><strong>GPU hardware coverage.</strong> The validation suite passes on Apple Silicon (MoltenVK) and
-NVIDIA RTX 4090 (Ubuntu 22.04, driver 550, Vulkan 1.3.277). AMD hardware has not been
-tested. The Vulkan compute path uses standard features with no vendor-specific extensions.</p>
-<h2 id="platform">Platform<a class="headerlink" href="#platform" title="Permanent link">&para;</a></h2>
-<p><strong>macOS / MoltenVK is the primary development platform.</strong> Linux with NVIDIA Vulkan is
-validated (see <code>benchmarks/validation/</code>). CI runs a build + schema-check pass on Linux
-via Mesa software Vulkan; GPU compute tests require real hardware.</p>
-<p><strong>Single GPU.</strong> No multi-GPU or distributed simulation.</p>
-<h2 id="software-architecture">Software architecture<a class="headerlink" href="#software-architecture" title="Permanent link">&para;</a></h2>
-<p><strong>Legacy <code>config.rs</code> retained.</strong> <code>rust/src/config.rs</code> contains a legacy GUI editing system
-that is not part of the run pipeline. It is retained for compatibility while the deck override
-system matures. See <code>rust/src/loaders/config.rs</code> for the authoritative configuration layer.</p>
-<p><strong>JSON configs are legacy.</strong> The JSON config format is accepted but not recommended. TOML
-decks are the canonical format.</p>
-<p><strong><code>prad</code> Python package.</strong> <code>pip install prad</code> gives a subprocess-based Python API
-(<code>prad.run()</code>, <code>prad.Field</code>) wrapping the Rust CLI. Full pyo3/native bindings are not
-implemented.</p>
+<h1 id="numerical-robustness">Numerical Robustness<a class="headerlink" href="#numerical-robustness" title="Permanent link">&para;</a></h1>
+<p>Quantitative convergence studies for the three independent sources of numerical error
+in prad: integrator timestep, particle statistics, and field-grid resolution.
+All results use the z-pinch instability field (B_max = 37 T) with 14.7 MeV protons
+unless noted.</p>
+<hr />
+<h2 id="timestep-convergence">Timestep convergence<a class="headerlink" href="#timestep-convergence" title="Permanent link">&para;</a></h2>
+<p>Radiographs are converged across more than two orders of magnitude in timestep
+for representative HED conditions, with degradation appearing only once the
+proton rotation per Boris step becomes large.</p>
+<p><img alt="Timestep convergence" src="../images/benchmark/convergence_dt.png" /></p>
+<p>The default <code>dt = 0.2 ps</code> sits 250× inside the converged regime.
+For fields stronger than ~100 T the timestep criterion should be checked explicitly;
+see the <a href="../limitations/">Limitations</a> page.</p>
+<hr />
+<h2 id="particle-count-convergence">Particle-count convergence<a class="headerlink" href="#particle-count-convergence" title="Permanent link">&para;</a></h2>
+<p>Statistical (shot-noise) error scales exactly as 1/N — confirmed against the
+theoretical prediction within 10% across four decades.</p>
+<p><img alt="Particle-count convergence" src="../images/benchmark/convergence_N.png" /></p>
+<p><strong>Practical guidance for the z-pinch field:</strong></p>
+<table>
+<thead>
+<tr>
+<th>N</th>
+<th>Image correlation</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10,000</td>
+<td>0.75</td>
+<td>Quick topology check</td>
+</tr>
+<tr>
+<td>100,000</td>
+<td>0.96</td>
+<td>Morphology comparison</td>
+</tr>
+<tr>
+<td>500,000</td>
+<td>0.99</td>
+<td>Quantitative analysis</td>
+</tr>
+<tr>
+<td>1,000,000</td>
+<td>reference</td>
+<td>Publication quality</td>
+</tr>
+</tbody>
+</table>
+<p>Runtime on Apple M4 scales linearly: 500k takes ~1 s, 1M takes ~2 s.</p>
+<hr />
+<h2 id="field-grid-sensitivity">Field-grid sensitivity<a class="headerlink" href="#field-grid-sensitivity" title="Permanent link">&para;</a></h2>
+<p>Field-grid resolution is the dominant numerical sensitivity and does not saturate
+the way timestep and particle-count errors do.</p>
+<p><img alt="Grid convergence — zpinch" src="../images/benchmark/convergence_grid.png" /></p>
+<p>Halving the native 64×64×128 zpinch grid causes a 21% drop in image correlation.
+For imported MHD fields, users should verify that at least 5–10 grid cells span
+the minimum feature of physical interest.</p>
+<p><strong>Analytical cross-check.</strong> An independent test using a Gaussian B_z filament
+(exact analytical form, no downsampling) confirms the convergence threshold:
+at r₀/dx ≈ 6 (the native transverse spacing), correlation with the overresolved
+reference is 0.91; at r₀/dx ≈ 13 it reaches 0.96.</p>
+<p><img alt="Grid convergence — analytic" src="../images/benchmark/convergence_grid_analytic.png" /></p>
+<p>Field-grid resolution was found to be the dominant numerical sensitivity,
+motivating careful resolution studies for imported MHD fields.</p>
+<hr />
+<h2 id="reproducibility">Reproducibility<a class="headerlink" href="#reproducibility" title="Permanent link">&para;</a></h2>
+<p>All paper figures regenerate from scratch with one command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python3<span class="w"> </span>scripts/reproduce_paper.py<span class="w">          </span><span class="c1"># full reproduction</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>python3<span class="w"> </span>scripts/reproduce_paper.py<span class="w"> </span>--fast<span class="w">   </span><span class="c1"># sanity check (~10 s)</span>
+</code></pre></div>
+<p>The <code>--fast</code> mode uses cached convergence data and reduced particle counts
+for paper figures; suitable for CI or iterating on plot styling.</p>
 
 
 
@@ -1395,7 +1402,7 @@ implemented.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../stopping_power/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Stopping Power">
+          <a href="../validation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Validation (24/24)">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1405,20 +1412,20 @@ implemented.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Stopping Power
+                Validation (24/24)
               </div>
             </div>
           </a>
         
         
           
-          <a href="../validation/" class="md-footer__link md-footer__link--next" aria-label="Next: Validation (24/24)">
+          <a href="../benchmark/" class="md-footer__link md-footer__link--next" aria-label="Next: Benchmarks">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Validation (24/24)
+                Benchmarks
               </div>
             </div>
             <div class="md-footer__button md-icon">

@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://jonasdolezal07.github.io/gpu-proton-radiography/limitations/">
+        <link rel="canonical" href="https://jonasdolezal07.github.io/gpu-proton-radiography/adaptive_timestep/">
       
       
-        <link rel="prev" href="../stopping_power/">
+        <link rel="prev" href="../spectra/">
       
       
-        <link rel="next" href="../validation/">
+        <link rel="next" href="../field_compositing/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Limitations - prad</title>
+        <title>Adaptive Timestep - prad</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#limitations" class="md-skip">
+        <a href="#adaptive-timestep" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Limitations
+              Adaptive Timestep
             
           </span>
         </div>
@@ -652,10 +652,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../adaptive_timestep/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adaptive Timestep
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -671,6 +698,142 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-problem-with-a-fixed-timestep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The problem with a fixed timestep
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-three-phase-schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The three-phase schedule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-boundary-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase boundary detection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#speedup-estimate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Speedup estimate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed (override)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction-with-max_steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction with max_steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-test15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation — test15
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use-adaptive-dt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When not to use adaptive dt
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -736,37 +899,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Limitations
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../limitations/" class="md-nav__link">
         
   
   
@@ -782,81 +918,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#physics-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Physics model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#detector-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Detector model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#validation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#platform" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Platform
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Software architecture
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1238,10 +1299,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#physics-model" class="md-nav__link">
+  <a href="#the-problem-with-a-fixed-timestep" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Physics model
+        The problem with a fixed timestep
       
     </span>
   </a>
@@ -1249,10 +1310,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#detector-model" class="md-nav__link">
+  <a href="#the-three-phase-schedule" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Detector model
+        The three-phase schedule
       
     </span>
   </a>
@@ -1260,10 +1321,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#validation" class="md-nav__link">
+  <a href="#phase-boundary-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Validation
+        Phase boundary detection
       
     </span>
   </a>
@@ -1271,10 +1332,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#platform" class="md-nav__link">
+  <a href="#speedup-estimate" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Platform
+        Speedup estimate
       
     </span>
   </a>
@@ -1282,10 +1343,71 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
+  <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Software architecture
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed (override)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interaction-with-max_steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction with max_steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-test15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation — test15
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-not-to-use-adaptive-dt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When not to use adaptive dt
       
     </span>
   </a>
@@ -1312,52 +1434,169 @@
   
 
 
-<h1 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h1>
-<p>This is research-grade software. The following constraints are known and deliberate.</p>
-<h2 id="physics-model">Physics model<a class="headerlink" href="#physics-model" title="Permanent link">&para;</a></h2>
-<p><strong>Static fields only.</strong> The field is loaded once at startup and does not evolve during the
-simulation. There is no field–particle feedback.</p>
-<p><strong>Single species.</strong> Only protons are supported. No multi-species or ion mixture support.</p>
-<p><strong>Relativistic Boris integrator.</strong> Particles are pushed in specific-momentum space
-(<code>u = γv</code>) with γ recomputed each step. This is exact at all energies — there is no
-non-relativistic approximation in the integrator.</p>
-<p><strong>Adaptive or fixed timestep.</strong> By default, prad uses a large dt in vacuum and a
-Larmor-constrained dt inside the field (see <a href="../adaptive_timestep/">adaptive timestep</a>).
-A fixed dt can be specified with <code>dt_ps</code>. There is no per-particle or sub-step
-adaptive control.</p>
-<p><strong>CSDA energy loss only.</strong> When a <code>[density]</code> block is configured, proton energy loss
-follows the Bethe-Bloch CSDA (mean energy loss per step). Energy-loss straggling
-(Bohr / Landau-Vavilov fluctuations), nuclear stopping (relevant below ~100 keV), and
-range straggling are not modelled. No energy loss occurs without a density grid —
-the simulation is fully collisionless by default.</p>
-<h2 id="detector-model">Detector model<a class="headerlink" href="#detector-model" title="Permanent link">&para;</a></h2>
-<p><strong>Flat detector plane.</strong> The detector is a rectangular plane — no curved or cylindrical
-geometry.</p>
-<p><strong>Simple detector response.</strong> Blur, background, and Poisson noise are modelled. More
-sophisticated response functions (energy-dependent efficiency, absolute dose calibration)
-are not implemented. The energy deposited in RCF film layers is not computed — only the
-geometric hit position and exit kinetic energy are recorded.</p>
-<h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
-<p><strong>Not validated against experimental shot data.</strong> The physics tests cover integrator
-correctness and source geometry, but no comparison against real radiograph film data
-has been performed.</p>
-<p><strong>GPU hardware coverage.</strong> The validation suite passes on Apple Silicon (MoltenVK) and
-NVIDIA RTX 4090 (Ubuntu 22.04, driver 550, Vulkan 1.3.277). AMD hardware has not been
-tested. The Vulkan compute path uses standard features with no vendor-specific extensions.</p>
-<h2 id="platform">Platform<a class="headerlink" href="#platform" title="Permanent link">&para;</a></h2>
-<p><strong>macOS / MoltenVK is the primary development platform.</strong> Linux with NVIDIA Vulkan is
-validated (see <code>benchmarks/validation/</code>). CI runs a build + schema-check pass on Linux
-via Mesa software Vulkan; GPU compute tests require real hardware.</p>
-<p><strong>Single GPU.</strong> No multi-GPU or distributed simulation.</p>
-<h2 id="software-architecture">Software architecture<a class="headerlink" href="#software-architecture" title="Permanent link">&para;</a></h2>
-<p><strong>Legacy <code>config.rs</code> retained.</strong> <code>rust/src/config.rs</code> contains a legacy GUI editing system
-that is not part of the run pipeline. It is retained for compatibility while the deck override
-system matures. See <code>rust/src/loaders/config.rs</code> for the authoritative configuration layer.</p>
-<p><strong>JSON configs are legacy.</strong> The JSON config format is accepted but not recommended. TOML
-decks are the canonical format.</p>
-<p><strong><code>prad</code> Python package.</strong> <code>pip install prad</code> gives a subprocess-based Python API
-(<code>prad.run()</code>, <code>prad.Field</code>) wrapping the Rust CLI. Full pyo3/native bindings are not
-implemented.</p>
+<h1 id="adaptive-timestep">Adaptive timestep<a class="headerlink" href="#adaptive-timestep" title="Permanent link">&para;</a></h1>
+<p>By default prad automatically chooses a small timestep inside the field and a larger one
+in vacuum on either side. For typical geometries this reduces the total number of GPU
+dispatches by 5–20× with no change to the physics.</p>
+<hr />
+<h2 id="the-problem-with-a-fixed-timestep">The problem with a fixed timestep<a class="headerlink" href="#the-problem-with-a-fixed-timestep" title="Permanent link">&para;</a></h2>
+<p>A proton radiography geometry has three dynamically distinct regions:</p>
+<ol>
+<li><strong>Pre-field vacuum</strong> — source to field entry. No forces. Any step size is physically valid;
+   small steps here are pure waste.</li>
+<li><strong>Inside the field</strong> — the physical region of interest. Steps must resolve the Larmor
+   radius and the field grid spacing.</li>
+<li><strong>Post-field vacuum</strong> — field exit to detector. Again, no forces; small steps waste time.</li>
+</ol>
+<p>With a fixed <code>dt_ps</code> tuned for accuracy inside the field, the vast majority of steps
+(often &gt; 95%) are spent in vacuum where nothing physically interesting happens.</p>
+<hr />
+<h2 id="the-three-phase-schedule">The three-phase schedule<a class="headerlink" href="#the-three-phase-schedule" title="Permanent link">&para;</a></h2>
+<p>When no explicit <code>dt_ps</code> is supplied in <code>[numerics]</code>, prad computes a schedule at load time
+based on the source position, beam direction, and field bounds:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>  source              field entry         field exit           detector
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    │                     │                   │                    │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    ●──── dt_large ────────●─── dt_small ───── ●──── dt_large ──── ◎
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    │← t_entry_s (vacuum) →│← field transit   →│← post-field vacuum→│
+</code></pre></div>
+<p><strong>dt_small</strong> governs integration accuracy inside the field. Two constraints are applied, and
+the tighter one wins:</p>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Formula</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Larmor criterion</td>
+<td>$dt_\text{small} \leq T_\text{Larmor} / 20$</td>
+<td>Resolves the Larmor orbit to 1/20th of a revolution</td>
+</tr>
+<tr>
+<td>Grid-crossing criterion</td>
+<td>$dt_\text{small} \leq \Delta x_\text{min} / (4v)$</td>
+<td>No particle crosses more than one voxel per 4 steps</td>
+</tr>
+</tbody>
+</table>
+<p>where $T_\text{Larmor} = 2\pi / (\vert q/m \vert \cdot B_\text{max})$ and $\Delta x_\text{min}$
+is the smallest grid cell dimension.</p>
+<p><strong>dt_large</strong> governs the vacuum regions. It is the minimum of:</p>
+<ul>
+<li>$20 \times dt_\text{small}$ — keeps the ratio bounded so the field crossing is not missed</li>
+<li>$t_\text{entry} / 10$ — at least 10 steps before the field, so the entry transition is clean</li>
+</ul>
+<p><strong>t_exit</strong> gets a 30% safety margin over the geometric field-transit time to account for
+deflected paths that spend longer inside the field than a straight-line estimate predicts.</p>
+<hr />
+<h2 id="phase-boundary-detection">Phase boundary detection<a class="headerlink" href="#phase-boundary-detection" title="Permanent link">&para;</a></h2>
+<p>The entry and exit times are computed from a ray-slab intersection of the beam direction
+against the field bounding box:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>t_entry = time for beam to travel from source to nearest field face
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>t_exit  = time to travel to farthest field face × 1.30
+</code></pre></div>
+<p>Both are computed in simulated time coordinates and compared to the accumulated simulation
+time <code>t_sim</code> at each GPU dispatch. The schedule selection is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>dt = dt_small   if t_entry ≤ t_sim ≤ t_exit
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>dt = dt_large   otherwise
+</code></pre></div>
+<p>This is evaluated on the CPU before each dispatch and pushed as part of <code>SimParams.dt</code>.</p>
+<hr />
+<h2 id="speedup-estimate">Speedup estimate<a class="headerlink" href="#speedup-estimate" title="Permanent link">&para;</a></h2>
+<p>The approximate speedup over a fixed-dt run is:</p>
+<p>$$
+\text{speedup} \approx \frac{dt_\text{large}}{dt_\text{small}}
+$$</p>
+<p>which is capped at 20× by construction. In practice:</p>
+<table>
+<thead>
+<tr>
+<th>Geometry</th>
+<th>Source distance</th>
+<th>dt ratio</th>
+<th>Typical speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>zpinch, source 80 mm</td>
+<td>80 mm from field</td>
+<td>~20×</td>
+<td>15–20×</td>
+</tr>
+<tr>
+<td>zpinch, source 200 mm</td>
+<td>200 mm from field</td>
+<td>capped at $t_\text{entry}/10$</td>
+<td>5–10×</td>
+</tr>
+<tr>
+<td>Source touching field</td>
+<td>0 mm</td>
+<td>1× (dt_small throughout)</td>
+<td>1×</td>
+</tr>
+</tbody>
+</table>
+<p>The speedup is most pronounced for large source-to-field distances relative to the field
+transit length.</p>
+<hr />
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<h3 id="automatic-recommended">Automatic (recommended)<a class="headerlink" href="#automatic-recommended" title="Permanent link">&para;</a></h3>
+<p>Omit <code>dt_ps</code> from <code>[numerics]</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[numerics]</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">max_steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">25000</span>
+</code></pre></div>
+<p>prad will log the computed schedule at startup:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>dt adaptive: large=4.21e-12 s  small=2.11e-13 s  (≈20.0× speedup in vacuum)
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  t_entry=3.81e-10 s  t_exit=4.19e-10 s
+</code></pre></div>
+<h3 id="fixed-override">Fixed (override)<a class="headerlink" href="#fixed-override" title="Permanent link">&para;</a></h3>
+<p>Supply <code>dt_ps</code> to disable the adaptive schedule and use a single timestep throughout:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[numerics]</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">dt_ps</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mf">0.2</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">max_steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">25000</span>
+</code></pre></div>
+<p>Use fixed dt when:
+- Benchmarking against a reference run
+- The source is already inside or immediately adjacent to the field
+- You need bit-exact reproducibility across different geometries</p>
+<hr />
+<h2 id="interaction-with-max_steps">Interaction with <code>max_steps</code><a class="headerlink" href="#interaction-with-max_steps" title="Permanent link">&para;</a></h2>
+<p>The step budget (<code>max_steps</code>) counts individual integration steps, not dispatches. With the
+adaptive schedule the vacuum regions now consume far fewer steps, so the same <code>max_steps</code>
+covers a much larger total simulated time.</p>
+<p><strong>Rule of thumb with adaptive dt:</strong> <code>max_steps</code> needs to cover only the field-transit steps
+(where dt is small). The vacuum budget is provided essentially for free. A value of 10 000–
+20 000 is usually sufficient for most geometries.</p>
+<p>With fixed dt, follow the guidance in <code>explain</code> which estimates the minimum required steps
+from source-to-detector distance:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>proton_tracer<span class="w"> </span>explain<span class="w"> </span>my_run.toml
+</code></pre></div>
+<hr />
+<h2 id="validation-test15">Validation — test15<a class="headerlink" href="#validation-test15" title="Permanent link">&para;</a></h2>
+<p>A pencil beam in uniform B_z = 1 T is run twice: once with <code>dt_ps = 1.0</code> (fixed) and once
+without (adaptive). The adaptive schedule selects dt_large ≈ 1 ns in vacuum and
+dt_small ≈ 1 ps inside the 12 cm field cube.</p>
+<p>Checks:
+- Both runs produce ≥ 10 000 hits
+- Mean y-deflection agrees to &lt; 1 mm (same physics, same orbit)
+- Energy conservation holds in both: std/mean &lt; 10⁻⁴ (B-only → no energy loss)</p>
+<p>Result: Δmean_y = 0.73 mm at 20× speedup.</p>
+<hr />
+<h2 id="when-not-to-use-adaptive-dt">When not to use adaptive dt<a class="headerlink" href="#when-not-to-use-adaptive-dt" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Source inside or touching the field.</strong> <code>t_entry ≈ 0</code>, so <code>dt_large = dt_small</code> and there is no
+  benefit.</li>
+<li><strong>Very short vacuum gaps.</strong> If the source-to-field distance is &lt; 10 × dt_small × v, the phase
+  transition happens in the first few steps and speedup is negligible.</li>
+<li><strong>Comparing to a reference simulation.</strong> Fixed dt gives identical results independent of geometry;
+  adaptive dt introduces a rounding difference (&lt; 0.1% on deflection angle) from the phase
+  transition point.</li>
+</ul>
 
 
 
@@ -1395,7 +1634,7 @@ implemented.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../stopping_power/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Stopping Power">
+          <a href="../spectra/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Energy Spectra">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1405,20 +1644,20 @@ implemented.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Stopping Power
+                Energy Spectra
               </div>
             </div>
           </a>
         
         
           
-          <a href="../validation/" class="md-footer__link md-footer__link--next" aria-label="Next: Validation (24/24)">
+          <a href="../field_compositing/" class="md-footer__link md-footer__link--next" aria-label="Next: Field Compositing">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Validation (24/24)
+                Field Compositing
               </div>
             </div>
             <div class="md-footer__button md-icon">
