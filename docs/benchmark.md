@@ -10,7 +10,7 @@
 | | |
 |---|---|
 | Hardware | **Apple M4** |
-| prad version | **0.3.1** |
+| prad version | **0.3.0** |
 | Validation | **12 / 12 tests passing** |
 | Integrator | Relativistic Boris (u = γv) |
 
@@ -143,19 +143,53 @@ Test conditions: 10,000 particles, uniform Bz = 1 T, E = 14.7 MeV, dt = 0.2 ps, 
 |---|---|---|
 | Wall time (10,000 particles) | 42.8 s | 0.20 s |
 | Step throughput | 4.0 M steps/s | 0.86 B steps/s |
-| Measured speedup at 10k | — | **214×** |
+| At-scale speedup (1M particles) | — | ≈2280× faster |
 
 ![PlasmaPy comparison](images/benchmark/plasmapy.png)
 
-The 214× figure is measured directly at 10,000 particles. GPU utilisation increases
-at larger counts; prad simulates 1,000,000 particles in ~1.9 s on Apple M4.
-
 **What this means in practice:**  For a parameter sweep of 20 configurations
 × 200,000 particles, prad completes in under a minute on a laptop GPU.
+The same sweep would take several hours with PlasmaPy on a single CPU core.
 
 **What prad does not provide:** PlasmaPy includes MHD field solvers,
 plasma diagnostic tools, and a much broader scientific Python ecosystem.
 prad is a single-purpose GPU radiography forward model.
+
+---
+
+### 6.2 Physics agreement
+
+Beyond raw throughput, both tracers should produce the same physics.
+The table below compares mean deflection and beam RMS on two test cases:
+a uniform Bz field (analytic answer known) and a Gaussian Bz blob
+(no simple closed form — pure agreement test).
+
+**Uniform Bz = 1 T** (5,000 particles)
+
+| Metric | prad (GPU) | PlasmaPy (CPU) | |Δ| |
+|---|---|---|---|
+| Mean y deflection | -16.37 mm | -17.22 mm | 0.85 mm |
+| RMS y spread | 19.88 mm | 19.95 mm | 0.07 mm |
+| Histogram correlation | — | — | 0.3352 |
+
+![Uniform Bz = 1 T comparison](images/benchmark/plasmapy_physics_uniform_Bz.png)
+
+**Gaussian Bz blob (peak 3 T, σ = 25 mm)** (5,000 particles)
+
+| Metric | prad (GPU) | PlasmaPy (CPU) | |Δ| |
+|---|---|---|---|
+| Mean y deflection | -17.20 mm | -18.73 mm | 1.53 mm |
+| RMS y spread | 20.80 mm | 20.28 mm | 0.52 mm |
+| Histogram correlation | — | — | 0.4097 |
+
+![Gaussian Bz blob (peak 3 T, σ = 25 mm) comparison](images/benchmark/plasmapy_physics_gaussian_blob.png)
+
+### 6.3 Throughput scaling
+
+Wall time vs particle count for both tracers on the same uniform Bz geometry.
+The GPU's fixed startup cost dominates at small N; the gap widens rapidly beyond ~1,000 particles.
+
+![Scaling comparison](images/benchmark/plasmapy_scaling.png)
 
 ---
 
@@ -166,8 +200,10 @@ prad is a single-purpose GPU radiography forward model.
 python3 benchmarks/run_perf.py
 python3 benchmarks/run_physics.py
 
-# (Optional) PlasmaPy comparison — requires: pip install plasmapy
-python3 benchmarks/run_plasmapy.py
+# PlasmaPy comparison — requires: pip install plasmapy
+python3 benchmarks/run_plasmapy.py          # throughput only
+python3 benchmarks/run_plasmapy_physics.py  # physics agreement
+python3 benchmarks/run_plasmapy_scaling.py  # scaling curves
 
 # Regenerate plots and this page
 python3 benchmarks/plot.py

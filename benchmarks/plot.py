@@ -312,9 +312,130 @@ def plot_plasmapy(pp_data, perf_records):
     print(f"  {out.name}")
 
 
+# ── 7. PlasmaPy physics agreement ─────────────────────────────────────────────
+
+def plot_plasmapy_physics(phys_data):
+    """Side-by-side histograms for each physics comparison case."""
+    if phys_data is None:
+        print("  plasmapy_physics.json missing — run run_plasmapy_physics.py"); return
+
+    cases = [
+        ("uniform_Bz",    "Uniform $B_z$ = 1 T"),
+        ("gaussian_blob", "Gaussian $B_z$ blob (peak 3 T, σ = 25 mm)"),
+    ]
+
+    DET_HALF = 100.0   # mm — must match run_plasmapy_physics.py
+
+    for key, title in cases:
+        if key not in phys_data:
+            continue
+        stats = phys_data[key]
+
+        prad_H = np.load(RESULTS / f"pp_physics_{key}_prad.npy")
+        pp_H   = np.load(RESULTS / f"pp_physics_{key}_plasmapy.npy")
+
+        vmax = max(prad_H.max(), pp_H.max())
+        diff = (prad_H - pp_H) / (vmax + 1e-9)   # relative difference
+
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+        extent = [-DET_HALF, DET_HALF, -DET_HALF, DET_HALF]
+
+        for ax, H, label in [(axes[0], prad_H, "prad (GPU)"),
+                              (axes[1], pp_H,   "PlasmaPy (CPU)")]:
+            im = ax.imshow(H.T, origin="lower", extent=extent,
+                           cmap="hot", vmin=0, vmax=vmax, aspect="equal")
+            ax.set_title(label, fontsize=12)
+            ax.set_xlabel("y (mm)"); ax.set_ylabel("z (mm)")
+            fig.colorbar(im, ax=ax, shrink=0.75, label="hits")
+
+            pr = stats["prad"] if label.startswith("prad") else stats["plasmapy"]
+            ax.axhline(pr["mean_z"], color="cyan", lw=0.8, ls="--")
+            ax.axvline(pr["mean_y"], color="cyan", lw=0.8, ls="--")
+            ax.text(0.03, 0.97,
+                    f"$\\langle y \\rangle$ = {pr['mean_y']:+.1f} mm\n"
+                    f"$\\sigma_y$ = {pr['rms_y']:.1f} mm",
+                    transform=ax.transAxes, va="top", fontsize=8.5,
+                    color="white", bbox=dict(fc="black", alpha=0.5, pad=2))
+
+        # Difference panel
+        ax = axes[2]
+        lim = max(abs(diff.min()), abs(diff.max()), 0.01)
+        im2 = ax.imshow(diff.T, origin="lower", extent=extent,
+                        cmap="RdBu_r", vmin=-lim, vmax=lim, aspect="equal")
+        ax.set_title("(prad − PlasmaPy) / peak", fontsize=12)
+        ax.set_xlabel("y (mm)"); ax.set_ylabel("z (mm)")
+        fig.colorbar(im2, ax=ax, shrink=0.75, label="relative diff")
+
+        corr = stats.get("histogram_corr", float("nan"))
+        dy   = stats.get("delta_mean_y_mm", float("nan"))
+        ax.text(0.03, 0.97,
+                f"histogram corr = {corr:.4f}\n$|\\Delta\\langle y \\rangle|$ = {dy:.2f} mm",
+                transform=ax.transAxes, va="top", fontsize=8.5,
+                color="black", bbox=dict(fc="white", alpha=0.7, pad=2))
+
+        fig.suptitle(title, fontsize=13, y=1.01)
+        fig.tight_layout()
+        out = PLOTS / f"plasmapy_physics_{key}.png"
+        fig.savefig(out, dpi=150, bbox_inches="tight"); plt.close()
+        print(f"  {out.name}")
+
+
+# ── 8. PlasmaPy scaling curve ─────────────────────────────────────────────────
+
+def plot_plasmapy_scaling(scaling_data):
+    """Two-line log-log plot: particles vs wall time for prad and PlasmaPy."""
+    if scaling_data is None:
+        print("  plasmapy_scaling.json missing — run run_plasmapy_scaling.py"); return
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    prad = scaling_data.get("prad", [])
+    pp   = scaling_data.get("plasmapy", [])
+
+    if prad:
+        ns = [r["n"] for r in prad]
+        ts = [r["wall_s"] for r in prad]
+        ax.plot(ns, ts, "o-", color="#5b9bd5", lw=2, ms=7, label="prad (GPU, Apple M4)")
+
+    if pp:
+        ns = [r["n"] for r in pp]
+        ts = [r["wall_s"] for r in pp]
+        ax.plot(ns, ts, "s--", color="#e05c5c", lw=2, ms=7, label="PlasmaPy (CPU, Apple M4)")
+
+    ax.set_xscale("log"); ax.set_yscale("log")
+    ax.set_xlabel("Particle count", fontsize=12)
+    ax.set_ylabel("Wall time (s)", fontsize=12)
+    ax.set_title("Scaling: prad vs PlasmaPy — uniform $B_z$ = 1 T", fontsize=13)
+    ax.legend(fontsize=11)
+    ax.grid(True, which="both", alpha=0.3)
+
+    # Annotate speedup at the last shared N
+    if prad and pp:
+        shared = {r["n"]: r["wall_s"] for r in prad}
+        for r in reversed(pp):
+            if r["n"] in shared:
+                n_ref   = r["n"]
+                pp_wall = r["wall_s"]
+                gpu_wall = shared[n_ref]
+                speedup  = pp_wall / gpu_wall
+                ax.annotate(
+                    f"{speedup:.0f}× faster\n@ N={n_ref:,}",
+                    xy=(n_ref, gpu_wall),
+                    xytext=(n_ref * 1.5, gpu_wall * 8),
+                    fontsize=9, color="#2255aa",
+                    arrowprops=dict(arrowstyle="->", color="#2255aa", lw=1.2),
+                )
+                break
+
+    fig.tight_layout()
+    out = PLOTS / "plasmapy_scaling.png"
+    fig.savefig(out, dpi=150); plt.close()
+    print(f"  {out.name}")
+
+
 # ── docs/benchmark.md ────────────────────────────────────────────────────────
 
-def write_md(perf, phys, pp_data):
+def write_md(perf, phys, pp_data, pp_phys_data=None):
     gpu = perf[0].get("gpu", "GPU") if perf else "GPU"
 
     by_field = defaultdict(dict)
@@ -556,6 +677,56 @@ def write_md(perf, phys, pp_data):
         "",
         "---",
         "",
+        "### 6.2 Physics agreement",
+        "",
+        "Beyond raw throughput, both tracers should produce the same physics.",
+        "The table below compares mean deflection and beam RMS on two test cases:",
+        "a uniform Bz field (analytic answer known) and a Gaussian Bz blob",
+        "(no simple closed form — pure agreement test).",
+        "",
+    ]
+
+    pp_phys = pp_phys_data
+    if pp_phys:
+        for case_key, case_title in [
+            ("uniform_Bz",    "Uniform Bz = 1 T"),
+            ("gaussian_blob", "Gaussian Bz blob (peak 3 T, σ = 25 mm)"),
+        ]:
+            c = pp_phys.get(case_key)
+            if not c:
+                continue
+            n = c["n_particles"]
+            pr, pp = c["prad"], c["plasmapy"]
+            L += [
+                f"**{case_title}** ({n:,} particles)",
+                "",
+                "| Metric | prad (GPU) | PlasmaPy (CPU) | |Δ| |",
+                "|---|---|---|---|",
+                f"| Mean y deflection | {pr['mean_y']:+.2f} mm | {pp['mean_y']:+.2f} mm "
+                f"| {c['delta_mean_y_mm']:.2f} mm |",
+                f"| RMS y spread | {pr['rms_y']:.2f} mm | {pp['rms_y']:.2f} mm "
+                f"| {c['delta_rms_y_mm']:.2f} mm |",
+                f"| Histogram correlation | — | — | {c['histogram_corr']:.4f} |",
+                "",
+                f"![{case_title} comparison](images/benchmark/plasmapy_physics_{case_key}.png)",
+                "",
+            ]
+    else:
+        L += [
+            "Run `python3 benchmarks/run_plasmapy_physics.py` to generate this data.",
+            "",
+        ]
+
+    L += [
+        "### 6.3 Throughput scaling",
+        "",
+        "Wall time vs particle count for both tracers on the same uniform Bz geometry.",
+        "The GPU's fixed startup cost dominates at small N; the gap widens rapidly beyond ~1,000 particles.",
+        "",
+        "![Scaling comparison](images/benchmark/plasmapy_scaling.png)",
+        "",
+        "---",
+        "",
         "## 7. Reproduce",
         "",
         "```bash",
@@ -563,8 +734,10 @@ def write_md(perf, phys, pp_data):
         "python3 benchmarks/run_perf.py",
         "python3 benchmarks/run_physics.py",
         "",
-        "# (Optional) PlasmaPy comparison — requires: pip install plasmapy",
-        "python3 benchmarks/run_plasmapy.py",
+        "# PlasmaPy comparison — requires: pip install plasmapy",
+        "python3 benchmarks/run_plasmapy.py          # throughput only",
+        "python3 benchmarks/run_plasmapy_physics.py  # physics agreement",
+        "python3 benchmarks/run_plasmapy_scaling.py  # scaling curves",
         "",
         "# Regenerate plots and this page",
         "python3 benchmarks/plot.py",
@@ -585,9 +758,11 @@ def write_md(perf, phys, pp_data):
 def main():
     PLOTS.mkdir(parents=True, exist_ok=True)
 
-    perf    = load(RESULTS / "perf_results.json") or []
-    phys    = load(RESULTS / "physics_results.json") or {}
-    pp_data = load(utils.BENCH_DIR / "plasmapy" / "comparison.json")
+    perf         = load(RESULTS / "perf_results.json") or []
+    phys         = load(RESULTS / "physics_results.json") or {}
+    pp_data      = load(utils.BENCH_DIR / "plasmapy" / "comparison.json")
+    pp_phys_data = load(RESULTS / "plasmapy_physics.json")
+    pp_scale     = load(RESULTS / "plasmapy_scaling.json")
 
     spp = pp_data["steps_per_particle"] if pp_data else None
 
@@ -609,8 +784,14 @@ def main():
     print("PlasmaPy comparison:")
     plot_plasmapy(pp_data, perf)
 
+    print("PlasmaPy physics agreement:")
+    plot_plasmapy_physics(pp_phys_data)
+
+    print("PlasmaPy scaling curve:")
+    plot_plasmapy_scaling(pp_scale)
+
     print("Writing docs/benchmark.md:")
-    write_md(perf, phys, pp_data)
+    write_md(perf, phys, pp_data, pp_phys_data=pp_phys_data)
 
     print("Done.")
 

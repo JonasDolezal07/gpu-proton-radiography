@@ -75,6 +75,20 @@ def run_tracer(deck_path, out_dir, overrides=None, overwrite=True, verbose=False
         return json.load(f)
 
 
+def read_hits_bin(run_dir):
+    """
+    Read hits.bin from a run directory.
+    Returns (y_mm, z_mm, energy_MeV) as (N,3) float32 array, or empty array.
+    Format: u32 count | (y_mm f32, z_mm f32, energy_MeV f32) × count
+    """
+    path = Path(run_dir) / "counts" / "hits.bin"
+    data = path.read_bytes()
+    n = np.frombuffer(data[:4], dtype="<u4")[0]
+    if n == 0:
+        return np.zeros((0, 3), dtype="<f4")
+    return np.frombuffer(data[4:], dtype="<f4").reshape(n, 3).copy()
+
+
 def read_raw_counts(run_dir):
     """
     Read raw_counts.bin from a run directory. Returns (H, W) uint32 array.
