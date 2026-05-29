@@ -187,7 +187,18 @@ a uniform Bz field (analytic answer known) and a Gaussian Bz blob
 ### 6.3 Throughput scaling
 
 Wall time vs particle count for both tracers on the same uniform Bz geometry.
-The GPU's fixed startup cost dominates at small N; the gap widens rapidly beyond ~1,000 particles.
+PlasmaPy is measured up to 10,000 particles and extrapolated beyond (linear fit through
+the 5,000 and 10,000 particle points, where O(N) CPU scaling is clean).
+prad is measured at all points up to 1,000,000.
+
+| N | prad | PlasmaPy | Speedup |
+|---|---|---|---|
+| 10,000 | 0.097 s | 39.2 s (measured) | ≈ 403× |
+| 100,000 | 0.295 s | ≈ 388 s (extrapolated) | ≈ 1,312× |
+| 1,000,000 | 2.312 s | ≈ 3,830 s (extrapolated) | ≈ 1,655× |
+
+The GPU's fixed startup cost (~0.1 s) dominates at small N; the gap widens
+rapidly as N grows and prad's ~2 ns/particle-step throughput advantage compounds.
 
 ![Scaling comparison](images/benchmark/plasmapy_scaling.png)
 

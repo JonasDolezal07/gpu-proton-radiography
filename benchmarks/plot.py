@@ -383,49 +383,77 @@ def plot_plasmapy_physics(phys_data):
 # ── 8. PlasmaPy scaling curve ─────────────────────────────────────────────────
 
 def plot_plasmapy_scaling(scaling_data):
-    """Two-line log-log plot: particles vs wall time for prad and PlasmaPy."""
+    """Two-line log-log plot: particles vs wall time for prad and PlasmaPy.
+
+    PlasmaPy data is measured up to ~10k particles; beyond that the line is
+    extrapolated from the measured linear slope (clearly labelled).
+    """
     if scaling_data is None:
         print("  plasmapy_scaling.json missing — run run_plasmapy_scaling.py"); return
 
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(9, 5.5))
 
     prad = scaling_data.get("prad", [])
     pp   = scaling_data.get("plasmapy", [])
 
+    EXTRAP_MAX = 1_000_000   # extend extrapolation to 1M particles
+
     if prad:
         ns = [r["n"] for r in prad]
         ts = [r["wall_s"] for r in prad]
-        ax.plot(ns, ts, "o-", color="#5b9bd5", lw=2, ms=7, label="prad (GPU, Apple M4)")
+        ax.plot(ns, ts, "o-", color="#5b9bd5", lw=2, ms=7,
+                label="prad (GPU, Apple M4)", zorder=3)
 
+    pp_fit_slope = None
     if pp:
-        ns = [r["n"] for r in pp]
-        ts = [r["wall_s"] for r in pp]
-        ax.plot(ns, ts, "s--", color="#e05c5c", lw=2, ms=7, label="PlasmaPy (CPU, Apple M4)")
+        ns_pp = np.array([r["n"] for r in pp], dtype=float)
+        ts_pp = np.array([r["wall_s"] for r in pp])
+        ax.plot(ns_pp, ts_pp, "s", color="#e05c5c", ms=7,
+                label="PlasmaPy (CPU, Apple M4) — measured", zorder=3)
+        ax.plot(ns_pp, ts_pp, "-", color="#e05c5c", lw=2, zorder=2)
+
+        # Fit linear slope on the last 2 measured points — these are in the
+        # pure-compute regime where PlasmaPy scales O(N). Using more points
+        # would include overhead-dominated low-N data and underestimate the slope.
+        fit_ns = ns_pp[-2:]
+        fit_ts = ts_pp[-2:]
+        coeffs = np.polyfit(np.log(fit_ns), np.log(fit_ts), 1)
+        pp_fit_slope = coeffs
+
+        extrap_ns = np.logspace(np.log10(ns_pp[-1]), np.log10(EXTRAP_MAX), 80)
+        extrap_ts = np.exp(np.polyval(coeffs, np.log(extrap_ns)))
+        ax.plot(extrap_ns, extrap_ts, "--", color="#e05c5c", lw=2, alpha=0.55,
+                label="PlasmaPy (extrapolated, linear fit)", zorder=2)
 
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlabel("Particle count", fontsize=12)
     ax.set_ylabel("Wall time (s)", fontsize=12)
     ax.set_title("Scaling: prad vs PlasmaPy — uniform $B_z$ = 1 T", fontsize=13)
-    ax.legend(fontsize=11)
+    ax.legend(fontsize=10, loc="upper left")
     ax.grid(True, which="both", alpha=0.3)
 
-    # Annotate speedup at the last shared N
-    if prad and pp:
-        shared = {r["n"]: r["wall_s"] for r in prad}
-        for r in reversed(pp):
-            if r["n"] in shared:
-                n_ref   = r["n"]
-                pp_wall = r["wall_s"]
-                gpu_wall = shared[n_ref]
-                speedup  = pp_wall / gpu_wall
-                ax.annotate(
-                    f"{speedup:.0f}× faster\n@ N={n_ref:,}",
-                    xy=(n_ref, gpu_wall),
-                    xytext=(n_ref * 1.5, gpu_wall * 8),
-                    fontsize=9, color="#2255aa",
-                    arrowprops=dict(arrowstyle="->", color="#2255aa", lw=1.2),
-                )
-                break
+    # Annotate speedup at 100k and 1M using extrapolated PlasmaPy time
+    if prad and pp and pp_fit_slope is not None:
+        prad_by_n = {r["n"]: r["wall_s"] for r in prad}
+        prad_ns   = np.array([r["n"] for r in prad], dtype=float)
+        prad_ts   = np.array([r["wall_s"] for r in prad])
+
+        annotations = [
+            (100_000,   "N = 100k",  2e4,  80),
+            (1_000_000, "N = 1M",    1e5, 600),
+        ]
+        for n_ref, label, tx, ty in annotations:
+            gpu_wall = prad_by_n.get(n_ref,
+                           float(np.interp(n_ref, prad_ns, prad_ts)))
+            pp_wall  = float(np.exp(np.polyval(pp_fit_slope, np.log(n_ref))))
+            speedup  = pp_wall / gpu_wall
+            ax.annotate(
+                f"≈{speedup:,.0f}× faster\n({label})",
+                xy=(n_ref, gpu_wall),
+                xytext=(tx, ty),
+                fontsize=9, color="#2255aa", ha="center",
+                arrowprops=dict(arrowstyle="->", color="#2255aa", lw=1.2),
+            )
 
     fig.tight_layout()
     out = PLOTS / "plasmapy_scaling.png"
