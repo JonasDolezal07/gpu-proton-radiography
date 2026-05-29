@@ -2643,6 +2643,132 @@ max_steps = 20000
     return ok
 
 
+# ── test 25: opaque absorber ─────────────────────────────────────────────────
+
+def test25_opaque_absorber():
+    """
+    Binary opaque stopping: a dense slab (ρ = 5 g/cm³) fully blocks the beam.
+
+    Geometry: pencil beam → opaque slab covering the full beam aperture.
+
+    Checks:
+      1. Zero hits on detector (all particles absorbed, none pass through)
+      2. metadata.json n_absorbed == n_particles (every particle stopped)
+
+    A second run with mode = "csda" on the same slab confirms particles DO reach
+    the detector (validates the slab geometry is correct, not a miss).
+    """
+    print("Test 25: Opaque absorber  (binary dead-stop, zero detector hits)")
+    VALDATA.mkdir(parents=True, exist_ok=True)
+
+    N     = 5_000
+    E_MEV = 14.7
+
+    # Zero B/E field
+    B_arr = np.zeros((4, 8, 8, 3), dtype=np.float32)
+    E_arr = np.zeros_like(B_arr)
+    bfld_path = VALDATA / "t25_zero.bfld"
+    write_bfld(bfld_path, B_arr, E_arr, (-0.01, 0.16, -0.05, 0.05, -0.05, 0.05))
+
+    # Dense slab for opaque run: 10 mm thick, ρ = 5 g/cm³ (>> threshold 0.1)
+    dens_opaque = np.full((4, 8, 8), 5.0, dtype=np.float32)
+    dens_path_opaque = VALDATA / "t25_slab_dense.dens"
+    write_dens(dens_path_opaque, dens_opaque, (0.0, 0.01, -0.05, 0.05, -0.05, 0.05))
+
+    # Sparse slab for CSDA run: same geometry, ρ = 0.001 g/cm³ (< threshold; negligible ΔE)
+    dens_thin = np.full((4, 8, 8), 0.001, dtype=np.float32)
+    dens_path_thin = VALDATA / "t25_slab_thin.dens"
+    write_dens(dens_path_thin, dens_thin, (0.0, 0.01, -0.05, 0.05, -0.05, 0.05))
+
+    def make_deck(mode, dens_path, threshold=0.1):
+        return f"""\
+[field]
+path = "t25_zero.bfld"
+scale_B = 0.0
+scale_E = 0.0
+
+[density]
+path = "{dens_path.name}"
+material = "water"
+mode = "{mode}"
+opaque_threshold_g_cm3 = {threshold}
+
+[source]
+type = "pencil"
+n_particles = {N}
+energy_MeV = {E_MEV}
+position_mm = [-50.0, 0.0, 0.0]
+aim_at_mm = [5.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 100.0
+height_mm = 100.0
+pixels = [128, 128]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 30000
+"""
+
+    # ── Run A: opaque mode — expect 0 hits ─────────────────────────────────
+    deck_a = VALDATA / "t25_opaque.toml"
+    deck_a.write_text(make_deck("opaque", dens_path_opaque, threshold=0.1))
+    out_a = VALOUT / "t25_opaque"
+    if not run_deck(deck_a, out_a):
+        REPORT["test25_opaque_absorber"] = {"pass": False, "error": "sim failed (opaque)"}
+        return False
+
+    hits_a = read_hits_bin(out_a)
+    n_hits_a = len(hits_a)
+
+    # Read n_absorbed from metadata.json
+    import json as _json
+    meta_path = out_a / "metadata.json"
+    n_absorbed = 0
+    if meta_path.exists():
+        meta = _json.loads(meta_path.read_text())
+        n_absorbed = meta.get("diagnostics", {}).get("n_absorbed", 0)
+
+    hits_zero  = (n_hits_a == 0)
+    all_absorbed = (n_absorbed == N)
+
+    print(f"   [opaque]  hits={n_hits_a}  n_absorbed={n_absorbed}  (expect 0 hits, {N} absorbed)")
+    if not hits_zero:
+        print(f"   FAIL: expected 0 detector hits, got {n_hits_a}")
+    if not all_absorbed:
+        print(f"   FAIL: expected {N} absorbed, got {n_absorbed}")
+
+    # ── Run B: csda mode with very thin slab — particles pass through ─────────
+    # Uses ρ = 0.001 g/cm³ (well below opaque threshold); ρL ≈ 0.001 g/cm²
+    # → ΔE ≈ 0.004 MeV, protons easily reach detector at 14.7 MeV.
+    deck_b = VALDATA / "t25_csda.toml"
+    deck_b.write_text(make_deck("csda", dens_path_thin))
+    out_b = VALOUT / "t25_csda"
+    if not run_deck(deck_b, out_b):
+        REPORT["test25_opaque_absorber"] = {"pass": False, "error": "sim failed (csda)"}
+        return False
+
+    hits_b = read_hits_bin(out_b)
+    csda_hits = (len(hits_b) > 0)
+
+    print(f"   [csda]    hits={len(hits_b)}  (expect > 0, same slab, energy-loss only)")
+    if not csda_hits:
+        print("   FAIL: csda run should have detector hits")
+
+    ok = hits_zero and all_absorbed and csda_hits
+    REPORT["test25_opaque_absorber"] = {
+        "pass": ok,
+        "n_particles": N,
+        "opaque_hits": n_hits_a,
+        "n_absorbed":  n_absorbed,
+        "csda_hits":   len(hits_b),
+    }
+    return ok
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -2677,6 +2803,7 @@ if __name__ == "__main__":
         test22_field_compositing_linearity,
         test23_density_scaling,
         test24_vacuum_regression,
+        test25_opaque_absorber,
     ]
 
     results = {}

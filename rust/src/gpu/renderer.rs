@@ -465,8 +465,8 @@ impl Renderer {
             n_particles: 0,
             steps_per_dispatch: STEPS_PER_DISPATCH,
             max_steps: 25_000,
-            _pad_a: 0,
-            _pad_b: 0,
+            density_mode: 0,
+            opaque_threshold: 0.0,
             _pad_c: 0,
             field_min: [0.0; 4],
             field_max: [1.0, 1.0, 1.0, 0.0],
@@ -568,8 +568,8 @@ impl Renderer {
             n_particles: 0,
             steps_per_dispatch: STEPS_PER_DISPATCH,
             max_steps: 25_000,
-            _pad_a: 0,
-            _pad_b: 0,
+            density_mode: 0,
+            opaque_threshold: 0.0,
             _pad_c: 0,
             field_min: [0.0; 4],
             field_max: [1.0, 1.0, 1.0, 0.0],
@@ -1168,6 +1168,13 @@ impl Renderer {
         self.sim_params.detector_extent = [detector_extent[0], detector_extent[1], 0.0, 0.0];
     }
 
+    /// Configure density absorption mode.
+    /// mode 0 = CSDA energy loss (default), mode 1 = opaque absorber.
+    pub fn set_density_mode(&mut self, mode: u32, opaque_threshold_g_cm3: f32) {
+        self.sim_params.density_mode = mode;
+        self.sim_params.opaque_threshold = opaque_threshold_g_cm3;
+    }
+
     /// Install an adaptive-dt schedule. Called from load_simulation when dt_was_supplied=false.
     pub fn set_dt_schedule(&mut self, schedule: DtSchedule) {
         self.sim_params.dt = schedule.dt_large_s as f32; // start in vacuum phase
@@ -1754,20 +1761,25 @@ impl Renderer {
             if let Some(detector) = &self.detector_buffer {
                 let mut header = [0u32; 4];
                 if detector.read(&mut header).is_ok() {
-                    let hits  = header[0];
-                    let exits = header[1];  // particles that left domain without hitting
-                    let accounted = hits.saturating_add(exits);
+                    let hits    = header[0];
+                    let exits   = header[1];  // particles that left domain without hitting
+                    let stopped = header[2];  // particles absorbed by opaque material
+                    let accounted = hits.saturating_add(exits).saturating_add(stopped);
                     let pct = 100.0 * accounted as f32 / self.particle_count.max(1) as f32;
 
                     // Log progress periodically
                     if self.frame_count % 10 == 0 {
-                        log::info!("Batch frame {}: {:.1}% complete ({} hits, {} domain exits)",
-                            self.frame_count, pct, hits, exits);
+                        if stopped > 0 {
+                            log::info!("Batch frame {}: {:.1}% complete ({} hits, {} domain exits, {} absorbed)",
+                                self.frame_count, pct, hits, exits, stopped);
+                        } else {
+                            log::info!("Batch frame {}: {:.1}% complete ({} hits, {} domain exits)",
+                                self.frame_count, pct, hits, exits);
+                        }
                     }
 
-                    // Simulation is complete when every particle has either hit the
-                    // detector or left the domain.  This is an exact count — no
-                    // heuristic needed.
+                    // Simulation is complete when every particle has hit the detector,
+                    // left the domain, or been absorbed by opaque material.
                     if accounted >= self.particle_count {
                         device.device_wait_idle()?;
                         return Ok(true);
@@ -1781,22 +1793,22 @@ impl Renderer {
         }
     }
 
-    /// Return (hits, exits) from the GPU detector buffer header.
-    pub fn hit_exit_counts(&self) -> (u32, u32) {
-        let Some(detector) = &self.detector_buffer else { return (0, 0) };
+    /// Return (hits, exits, stopped) from the GPU detector buffer header.
+    pub fn hit_exit_counts(&self) -> (u32, u32, u32) {
+        let Some(detector) = &self.detector_buffer else { return (0, 0, 0) };
         let mut header = [0u32; 4];
         if detector.read(&mut header).is_ok() {
-            (header[0], header[1])
+            (header[0], header[1], header[2])
         } else {
-            (0, 0)
+            (0, 0, 0)
         }
     }
 
-    /// True once every particle has either hit the detector or left the domain.
+    /// True once every particle has either hit the detector, left the domain, or been absorbed.
     pub fn is_simulation_complete(&self) -> bool {
         if self.particle_count == 0 { return false; }
-        let (hits, exits) = self.hit_exit_counts();
-        hits.saturating_add(exits) >= self.particle_count
+        let (hits, exits, stopped) = self.hit_exit_counts();
+        hits.saturating_add(exits).saturating_add(stopped) >= self.particle_count
     }
 
     /// True while the simulation is actively stepping particles.
@@ -1990,27 +2002,30 @@ impl Renderer {
     /// Compute hit distribution statistics without logging, for metadata.json.
     pub fn compute_hit_diagnostics(&self) -> Option<RunDiagnostics> {
         let hits = self.read_detector_hits().ok()?;
-        if hits.is_empty() {
-            return None;
-        }
+        let (_h, _e, stopped) = self.hit_exit_counts();
 
         let n = hits.len() as u64;
-        let mut sum_y = 0.0f64;
-        let mut sum_z = 0.0f64;
-        let mut sum_y2 = 0.0f64;
-        let mut sum_z2 = 0.0f64;
-
-        for hit in &hits {
-            let y = hit.position[0] as f64;
-            let z = hit.position[1] as f64;
-            sum_y  += y;  sum_z  += z;
-            sum_y2 += y * y; sum_z2 += z * z;
-        }
-
-        let mean_y = sum_y / n as f64;
-        let mean_z = sum_z / n as f64;
-        let std_y  = ((sum_y2 / n as f64) - mean_y * mean_y).max(0.0).sqrt();
-        let std_z  = ((sum_z2 / n as f64) - mean_z * mean_z).max(0.0).sqrt();
+        let (mean_y, mean_z, std_y, std_z) = if n > 0 {
+            let mut sum_y = 0.0f64;
+            let mut sum_z = 0.0f64;
+            let mut sum_y2 = 0.0f64;
+            let mut sum_z2 = 0.0f64;
+            for hit in &hits {
+                let y = hit.position[0] as f64;
+                let z = hit.position[1] as f64;
+                sum_y  += y;  sum_z  += z;
+                sum_y2 += y * y; sum_z2 += z * z;
+            }
+            let my = sum_y / n as f64;
+            let mz = sum_z / n as f64;
+            let sy = ((sum_y2 / n as f64) - my * my).max(0.0).sqrt();
+            let sz = ((sum_z2 / n as f64) - mz * mz).max(0.0).sqrt();
+            (my, mz, sy, sz)
+        } else if stopped == 0 {
+            return None;  // nothing happened at all — no hits, no absorbed
+        } else {
+            (0.0, 0.0, 0.0, 0.0)
+        };
 
         Some(RunDiagnostics {
             n_particles: self.sim_params.n_particles,
@@ -2020,6 +2035,7 @@ impl Renderer {
             std_y_m: std_y,
             mean_z_m: mean_z,
             std_z_m: std_z,
+            n_absorbed: stopped as u64,
         })
     }
 

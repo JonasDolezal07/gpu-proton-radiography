@@ -335,6 +335,10 @@ pub struct SimDensityConfig {
     pub z_over_a: Option<f64>,
     /// For material = "custom": mean excitation energy [eV].
     pub i_ev: Option<f64>,
+    /// Absorption mode: "csda" (Bethe-Bloch energy loss) or "opaque" (binary absorber).
+    pub mode: String,
+    /// Density threshold [g/cm³] above which opaque mode kills the particle.
+    pub opaque_threshold_g_cm3: f32,
 }
 
 impl SimConfig {
@@ -768,9 +772,17 @@ pub struct DeckDensityBlock {
     pub material: String,
     pub z_over_a: Option<f64>,
     pub i_ev: Option<f64>,
+    /// "csda" (default) or "opaque".
+    #[serde(default = "deck_csda")]
+    pub mode: String,
+    /// Density threshold [g/cm³] for opaque mode. Default 0.1.
+    #[serde(default = "deck_opaque_threshold")]
+    pub opaque_threshold_g_cm3: f32,
 }
 
 fn deck_water() -> String { "water".to_string() }
+fn deck_csda()  -> String { "csda".to_string() }
+fn deck_opaque_threshold() -> f32 { 0.1 }
 
 /// One entry in `[[field.extra_b]]`.
 #[derive(Debug, Deserialize)]
@@ -968,6 +980,8 @@ impl TryFrom<DeckConfig> for SimConfig {
             material: d.material,
             z_over_a: d.z_over_a,
             i_ev: d.i_ev,
+            mode: d.mode,
+            opaque_threshold_g_cm3: d.opaque_threshold_g_cm3,
         });
 
         Ok(SimConfig {

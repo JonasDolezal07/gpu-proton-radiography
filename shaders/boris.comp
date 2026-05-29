@@ -54,9 +54,9 @@ layout(push_constant) uniform SimParams {
     uint n_particles;
     uint steps_per_dispatch; // Number of steps to run per dispatch (batching)
     uint max_steps;          // Hard per-particle step budget (exits when exhausted)
-    uint _pad_a;             // explicit pads to reach 32-byte boundary before field_min
-    uint _pad_b;
-    uint _pad_c;
+    uint density_mode;       // 0 = CSDA energy loss, 1 = opaque absorber
+    float opaque_threshold;  // density [g/cm³] above which opaque mode kills particle
+    uint _pad_c;             // pad to reach 32-byte boundary before field_min
     vec4 field_min;          // Field bounds min (xyz)
     vec4 field_max;          // Field bounds max (xyz)
     vec4 detector_pos;       // Point on detector plane
@@ -93,8 +93,8 @@ layout(std430, binding = 6) readonly buffer StoppingPower {
 
 layout(std430, binding = 2) buffer DetectorBuffer {
     uint hit_count;
-    uint exit_count;  // particles that left the domain without hitting
-    uint _pad2;
+    uint exit_count;    // particles that left the domain without hitting
+    uint stopped_count; // particles absorbed by an opaque density region
     uint _pad3;
     DetectorHit hits[];
 };
@@ -283,10 +283,16 @@ void main() {
         vec3 v_phys = vel / gamma_new;           // physical velocity [m/s]
         pos = pos + v_phys * dt;
 
-        // CSDA energy loss (Bethe-Bloch). No-op when density is 0.
+        // Density: opaque absorber or CSDA energy loss.
         float rho = sample_density(pos);
         if (rho > 0.0) {
-            apply_energy_loss(rho, length(v_phys) * dt, vel);
+            if (params.density_mode == 1u && rho >= params.opaque_threshold) {
+                atomicAdd(stopped_count, 1u);
+                is_alive = false;
+                break;
+            } else {
+                apply_energy_loss(rho, length(v_phys) * dt, vel);
+            }
         }
 
         // Check detector hit

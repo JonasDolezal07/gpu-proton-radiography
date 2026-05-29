@@ -480,6 +480,14 @@ impl App {
         {
             let (density, stopping) = load_density_and_stopping(&config, config_dir)?;
             renderer.upload_density(&density, &stopping)?;
+            if let Some(ref dcfg) = config.density {
+                let mode = if dcfg.mode == "opaque" { 1u32 } else { 0u32 };
+                renderer.set_density_mode(mode, dcfg.opaque_threshold_g_cm3);
+                if mode == 1 {
+                    log::info!("  Density mode: opaque absorber (threshold = {} g/cm³)",
+                               dcfg.opaque_threshold_g_cm3);
+                }
+            }
         }
 
         const BORIS_SHADER: &[u8] = include_bytes!("../../shaders/boris.spv");
@@ -824,7 +832,7 @@ impl ApplicationHandler for App {
                     if !self.gui_run_finalized {
                         if let (Some(renderer), Some(rc)) = (&self.renderer, &self.resolved_config) {
                             if renderer.is_running() {
-                                let (hits, exits) = renderer.hit_exit_counts();
+                                let (hits, exits, _stopped) = renderer.hit_exit_counts();
                                 let n = rc.source.n_particles;
                                 if let Some(gui) = &mut self.gui {
                                     gui.update_progress(hits, exits, n);
@@ -1102,6 +1110,10 @@ fn finalize_run_dir_export(
         Ok((raw, _)) => {
             let hits: u64 = raw.iter().map(|&c| c as u64).sum();
             log::info!("Total detector hits: {}", hits);
+            let (_h, _e, stopped) = renderer.hit_exit_counts();
+            if stopped > 0 {
+                log::info!("Absorbed by opaque material: {}", stopped);
+            }
             meta.outputs.raw_counts = Some("counts/raw_counts.bin".to_string());
             meta.outputs.processed_counts = Some("counts/processed_counts.bin".to_string());
             meta.outputs.radiograph_png = Some("images/radiograph.png".to_string());

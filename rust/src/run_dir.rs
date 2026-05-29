@@ -327,7 +327,11 @@ pub struct RunDiagnostics {
     pub std_y_m: f64,
     pub mean_z_m: f64,
     pub std_z_m: f64,
+    #[serde(skip_serializing_if = "is_zero_u64")]
+    pub n_absorbed: u64,
 }
+
+fn is_zero_u64(v: &u64) -> bool { *v == 0 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerfInfo {
