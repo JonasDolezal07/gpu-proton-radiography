@@ -1897,9 +1897,7 @@ a uniform Bz field (analytic answer known) and a Gaussian Bz blob
 <p><img alt="Gaussian Bz blob (peak 3 T, σ = 25 mm) comparison" src="../images/benchmark/plasmapy_physics_gaussian_blob.png" /></p>
 <h3 id="63-throughput-scaling">6.3 Throughput scaling<a class="headerlink" href="#63-throughput-scaling" title="Permanent link">&para;</a></h3>
 <p>Wall time vs particle count for both tracers on the same uniform Bz geometry.
-PlasmaPy is measured up to 10,000 particles and extrapolated beyond (linear fit through
-the 5,000 and 10,000 particle points, where O(N) CPU scaling is clean).
-prad is measured at all points up to 1,000,000.</p>
+Both tracers are measured at all points up to 1,000,000.</p>
 <table>
 <thead>
 <tr>
@@ -1912,21 +1910,21 @@ prad is measured at all points up to 1,000,000.</p>
 <tbody>
 <tr>
 <td>10,000</td>
-<td>0.097 s</td>
+<td>0.104 s</td>
 <td>39.2 s</td>
-<td>≈ 403×</td>
+<td>≈ 378×</td>
 </tr>
 <tr>
 <td>100,000</td>
 <td>0.295 s</td>
-<td>387.3 s (extrapolated)</td>
-<td>≈ 1,312×</td>
+<td>424.6 s</td>
+<td>≈ 1,439×</td>
 </tr>
 <tr>
 <td>1,000,000</td>
-<td>2.312 s</td>
-<td>3827.7 s (extrapolated)</td>
-<td>≈ 1,655×</td>
+<td>2.257 s</td>
+<td>4919.6 s</td>
+<td>≈ 2,179×</td>
 </tr>
 </tbody>
 </table>
@@ -1949,7 +1947,7 @@ prad's default adaptive scheduler:</p>
 <tr>
 <th>N</th>
 <th>prad (adaptive dt)</th>
-<th>PlasmaPy (extrapolated)</th>
+<th>PlasmaPy (measured)</th>
 <th>Speedup</th>
 </tr>
 </thead>
@@ -1957,26 +1955,26 @@ prad's default adaptive scheduler:</p>
 <tr>
 <td>100,000</td>
 <td>0.076 s</td>
-<td>387 s</td>
-<td><strong>≈ 5,109×</strong></td>
+<td>425 s</td>
+<td><strong>≈ 5,601×</strong></td>
 </tr>
 <tr>
 <td>500,000</td>
 <td>0.114 s</td>
-<td>1921 s</td>
-<td><strong>≈ 16,805×</strong></td>
+<td>2332 s</td>
+<td><strong>≈ 20,401×</strong></td>
 </tr>
 <tr>
 <td>1,000,000</td>
 <td>0.148 s</td>
-<td>3828 s</td>
-<td><strong>≈ 25,937×</strong></td>
+<td>4920 s</td>
+<td><strong>≈ 33,336×</strong></td>
 </tr>
 </tbody>
 </table>
 <blockquote>
 <p><strong>In experimentally relevant conditions (1M particles, adaptive dt):</strong>
-prad is <strong>≈ 26,000× faster</strong> than PlasmaPy on the same hardware.</p>
+prad is <strong>≈ 33,000× faster</strong> than PlasmaPy on the same hardware.</p>
 </blockquote>
 <p><img alt="Adaptive-dt scaling" src="../images/benchmark/plasmapy_scaling_adaptive.png" /></p>
 <hr />
