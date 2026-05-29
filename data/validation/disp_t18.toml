@@ -1,0 +1,28 @@
+[field]
+path="t18_Bz.bfld"
+scale_B=1.0
+scale_E=0.0
+
+[source]
+type="parallel"
+n_particles=10000
+energy_MeV=14.7
+center_mm=[-65.0,0.0,0.0]
+beam_radius_mm=3.0
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 30.0
+height_mm = 30.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 20000
+
+[render]
+scale = "log"
+colormap = "hot"
+exposure = 1.0

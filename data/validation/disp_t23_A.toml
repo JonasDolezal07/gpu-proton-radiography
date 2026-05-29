@@ -1,0 +1,32 @@
+[field]
+path="t23_zero.bfld"
+scale_B=0.0
+scale_E=0.0
+
+[density]
+path="t23_A_1mm_rho1.dens"
+material="water"
+
+[source]
+type="parallel"
+n_particles=10000
+energy_MeV=14.7
+center_mm=[-20.0,0.0,0.0]
+beam_radius_mm=3.0
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 30.0
+height_mm = 30.0
+pixels = [256, 256]
+
+[numerics]
+dt_ps=0.5
+max_steps=30000
+
+[render]
+scale = "log"
+colormap = "hot"
+exposure = 1.0

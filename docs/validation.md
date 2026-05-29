@@ -112,7 +112,7 @@ corresponds to the expected geometric deflection at the detector plane.
 
 <figure markdown>
   ![Test 5 — pencil tilt](images/validation/t05_pencil_tilt.png)
-  <figcaption>Test 5 — pencil beam, 2° off-axis. Single-pixel spot displaced from detector centre by the geometric projection.</figcaption>
+  <figcaption>Test 5 — zero field, 3mm parallel display beam. Actual test validates pencil beam direction via hit position. 30 mm display detector.</figcaption>
 </figure>
 
 ---
@@ -148,7 +148,7 @@ energies matches a Gaussian with the expected standard deviation.
 
 <figure markdown>
   ![Test 8 — energy spread](images/validation/t08_energy_spread.png)
-  <figcaption>Test 8 — Gaussian energy spread, zero field. Spatial image is a pencil spot; the physics check is on the hit KE distribution in hits.bin.</figcaption>
+  <figcaption>Test 8 — Gaussian energy spread, zero field. 3mm parallel display beam; the physics check is on the KE distribution in hits.bin. 30 mm display detector.</figcaption>
 </figure>
 
 ---
@@ -189,7 +189,7 @@ A pencil source with `temperature_MeV = 3.0` and `cutoff_MeV = 40.0` in zero fie
 
 <figure markdown>
   ![Test 11 — TNSA spectrum](images/validation/t11_tnsa_spectrum.png)
-  <figcaption>Test 11 — TNSA exponential spectrum. Spatial image is a pencil spot; the physics check is on the hit KE distribution confirming exponential shape and hard cutoff.</figcaption>
+  <figcaption>Test 11 — TNSA exponential spectrum, zero field. 3mm parallel display beam; the physics check is on the KE distribution confirming exponential shape and hard cutoff. 30 mm display detector.</figcaption>
 </figure>
 
 ---
@@ -202,7 +202,7 @@ would give an impact KE of ~58.17 MeV — a 1.8 MeV shortfall. Checks mean(KE) =
 
 <figure markdown>
   ![Test 12 — relativistic 60 MeV](images/validation/t12_relativistic_60mev.png)
-  <figcaption>Test 12 — 60 MeV pencil beam, zero field. Exit KE = 60.000 MeV confirms correct relativistic momentum initialisation.</figcaption>
+  <figcaption>Test 12 — 60 MeV, zero field. 3mm parallel display beam; exit KE = 60.000 MeV confirms correct relativistic u = γv momentum initialisation. 30 mm display detector.</figcaption>
 </figure>
 
 ---
@@ -246,11 +246,11 @@ Result: Δmean_y = 0.73 mm at ≈ 20× speedup.
 
 <div class="radiograph-gallery">
   <figure>
-    <img src="images/validation/t15_fixed_dt.png" alt="Fixed dt">
+    <img src="../images/validation/t15_fixed_dt.png" alt="Fixed dt">
     <figcaption><strong>Fixed dt</strong> — 1.0 ps throughout</figcaption>
   </figure>
   <figure>
-    <img src="images/validation/t15_adaptive_dt.png" alt="Adaptive dt">
+    <img src="../images/validation/t15_adaptive_dt.png" alt="Adaptive dt">
     <figcaption><strong>Adaptive dt</strong> — large in vacuum, small in field</figcaption>
   </figure>
 </div>
@@ -270,7 +270,7 @@ Result: simulation 10.868 MeV vs analytic 10.944 MeV — relative error 0.7%.
 
 <figure markdown>
   ![Test 16 — Bethe-Bloch](images/validation/t16_bethe_bloch.png)
-  <figcaption>Test 16 — pencil beam through 1 mm water slab. Spatial image shows the stopped beam; the energy check is on exit KE in hits.bin.</figcaption>
+  <figcaption>Test 16 — 3mm parallel beam through 1 mm water slab. Exit KE = 10.87 MeV vs analytic 10.94 MeV (0.7% error). 30 mm display detector.</figcaption>
 </figure>
 
 ---
@@ -290,7 +290,7 @@ Result: y diff = 0.003 mm, z diff = −0.001 mm.
 
 <figure markdown>
   ![Test 17 — analytic hit](images/validation/t17_analytic_hit.png)
-  <figcaption>Test 17 — off-axis pencil beam, zero field. Single spot at (+51.5, −31.8) mm in detector-local coordinates, matching the analytic ray–plane intersection to 0.003 mm.</figcaption>
+  <figcaption>Test 17 — off-axis beam, zero field. Disk at (+51.5, −31.8) mm in detector-local coordinates, matching the analytic ray–plane intersection to 0.003 mm. 8mm parallel display beam, 150×100 mm detector — spot is deliberately far off-centre.</figcaption>
 </figure>
 
 ---
@@ -308,7 +308,7 @@ Result: analytic −4.82 mm, GPU −4.82 mm, relative error 0.04%.
 
 <figure markdown>
   ![Test 18 — Larmor radius](images/validation/t18_larmor.png)
-  <figcaption>Test 18 — uniform B_z, pencil beam. Spot deflected to −4.82 mm in y, matching the analytic Larmor cycloid to 0.04%.</figcaption>
+  <figcaption>Test 18 — uniform B_z = 0.1 T, 3mm parallel display beam. Disk deflected in −y, matching the analytic Larmor cycloid to 0.04%. 30 mm display detector.</figcaption>
 </figure>
 
 ---
@@ -324,12 +324,12 @@ Result: B-only mean_y = −2.37 mm; B+E mean_y = +0.11 mm.
 
 <div class="radiograph-gallery">
   <figure>
-    <img src="images/validation/t19_B_only.png" alt="B only">
-    <figcaption><strong>B only</strong> — Lorentz force deflects beam to −2.37 mm</figcaption>
+    <img src="../images/validation/t19_B_only.png" alt="B only">
+    <figcaption><strong>B only</strong> — Lorentz force deflects beam to −2.37 mm. 3mm parallel display beam, 30 mm detector.</figcaption>
   </figure>
   <figure>
-    <img src="images/validation/t19_B_plus_E.png" alt="B + E balanced">
-    <figcaption><strong>B + E</strong> — force balance; beam returns to centre (+0.11 mm)</figcaption>
+    <img src="../images/validation/t19_B_plus_E.png" alt="B + E balanced">
+    <figcaption><strong>B + E</strong> — force balance; beam returns to centre (+0.11 mm). Same display run.</figcaption>
   </figure>
 </div>
 
@@ -364,12 +364,12 @@ Result: A = −2.37 mm, B = −2.36 mm, difference = 0.01 mm.
 
 <div class="radiograph-gallery">
   <figure>
-    <img src="images/validation/t21_beam_x.png" alt="Case A: beam +x">
-    <figcaption><strong>Case A</strong> — beam along +x; spot at −2.37 mm local y</figcaption>
+    <img src="../images/validation/t21_beam_x.png" alt="Case A: beam +x">
+    <figcaption><strong>Case A</strong> — beam along +x; disk deflected to −2.21 mm local y</figcaption>
   </figure>
   <figure>
-    <img src="images/validation/t21_beam_y.png" alt="Case B: beam +y">
-    <figcaption><strong>Case B</strong> — beam along +y; spot at −2.36 mm local y</figcaption>
+    <img src="../images/validation/t21_beam_y.png" alt="Case B: beam +y">
+    <figcaption><strong>Case B</strong> — beam along +y; disk deflected to −2.32 mm local y</figcaption>
   </figure>
 </div>
 
@@ -389,16 +389,16 @@ Result: y channel error 0.0%; z channel error 0.0%.
 
 <div class="radiograph-gallery">
   <figure>
-    <img src="images/validation/t22_Bz_only.png" alt="Bz only">
-    <figcaption><strong>Bz only</strong> — deflects in −y</figcaption>
+    <img src="../images/validation/t22_Bz_only.png" alt="Bz only">
+    <figcaption><strong>Bz only</strong> — deflects in −y. 3mm parallel display beam, 30 mm detector.</figcaption>
   </figure>
   <figure>
-    <img src="images/validation/t22_By_only.png" alt="By only">
-    <figcaption><strong>By only</strong> — deflects in +z</figcaption>
+    <img src="../images/validation/t22_By_only.png" alt="By only">
+    <figcaption><strong>By only</strong> — deflects in +z. Same display setup.</figcaption>
   </figure>
   <figure>
-    <img src="images/validation/t22_both.png" alt="Bz + By">
-    <figcaption><strong>Bz + By</strong> — diagonal deflection; channels independent</figcaption>
+    <img src="../images/validation/t22_both.png" alt="Bz + By">
+    <figcaption><strong>Bz + By</strong> — diagonal deflection; channels independent.</figcaption>
   </figure>
 </div>
 
@@ -422,16 +422,16 @@ Result: B vs C relative difference = 0.08%.
 
 <div class="radiograph-gallery">
   <figure>
-    <img src="images/validation/t23_slab_A.png" alt="Slab A — 1 mm, ρ=1">
-    <figcaption><strong>Slab A</strong> — 1 mm, ρ = 1 g/cm³ (ρL = 0.1 g/cm²)</figcaption>
+    <img src="../images/validation/t23_slab_A.png" alt="Slab A — 1 mm, ρ=1">
+    <figcaption><strong>Slab A</strong> — 1 mm, ρ = 1 g/cm³ (ρL = 0.1 g/cm²). 3mm parallel display beam. Brighter = more energy remaining.</figcaption>
   </figure>
   <figure>
-    <img src="images/validation/t23_slab_B.png" alt="Slab B — 2 mm, ρ=1">
-    <figcaption><strong>Slab B</strong> — 2 mm, ρ = 1 g/cm³ (ρL = 0.2 g/cm²)</figcaption>
+    <img src="../images/validation/t23_slab_B.png" alt="Slab B — 2 mm, ρ=1">
+    <figcaption><strong>Slab B</strong> — 2 mm, ρ = 1 g/cm³ (ρL = 0.2 g/cm²). Dimmer = more energy lost.</figcaption>
   </figure>
   <figure>
-    <img src="images/validation/t23_slab_C.png" alt="Slab C — 1 mm, ρ=2">
-    <figcaption><strong>Slab C</strong> — 1 mm, ρ = 2 g/cm³ (ρL = 0.2 g/cm²)</figcaption>
+    <img src="../images/validation/t23_slab_C.png" alt="Slab C — 1 mm, ρ=2">
+    <figcaption><strong>Slab C</strong> — 1 mm, ρ = 2 g/cm³ (ρL = 0.2 g/cm²). Identical to B — same ρL, same loss.</figcaption>
   </figure>
 </div>
 
