@@ -153,7 +153,8 @@ def main():
 
     prad_ns = [500, 1_000, 2_000, 5_000, 10_000,
                50_000, 100_000, 500_000, 1_000_000]
-    pp_ns   = [n for n in [500, 1_000, 2_000, 5_000, 10_000]
+    pp_ns   = [n for n in [500, 1_000, 2_000, 5_000, 10_000,
+                           50_000, 100_000, 500_000, 1_000_000]
                if n <= args.pp_max_particles]
 
     prad_records = []
@@ -164,6 +165,8 @@ def main():
         prad_records.append({"n": n, "wall_s": wall})
         print(f"{wall:.3f} s")
 
+    out = OUT_DIR / "plasmapy_scaling.json"
+
     pp_records = []
     print("\nPlasmaPy runs:")
     for n in pp_ns:
@@ -171,10 +174,9 @@ def main():
         wall = time_plasmapy(bfld_path, n, verbose=args.verbose)
         pp_records.append({"n": n, "wall_s": wall})
         print(f"{wall:.1f} s")
+        # write after each point so Ctrl+C doesn't lose data
+        out.write_text(json.dumps({"prad": prad_records, "plasmapy": pp_records}, indent=2))
 
-    results = {"prad": prad_records, "plasmapy": pp_records}
-    out = OUT_DIR / "plasmapy_scaling.json"
-    out.write_text(json.dumps(results, indent=2))
     print(f"\nResults → {out}")
 
 

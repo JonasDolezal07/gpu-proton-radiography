@@ -187,15 +187,13 @@ a uniform Bz field (analytic answer known) and a Gaussian Bz blob
 ### 6.3 Throughput scaling
 
 Wall time vs particle count for both tracers on the same uniform Bz geometry.
-PlasmaPy is measured up to 10,000 particles and extrapolated beyond (linear fit through
-the 5,000 and 10,000 particle points, where O(N) CPU scaling is clean).
-prad is measured at all points up to 1,000,000.
+Both tracers are measured at all points up to 1,000,000.
 
 | N | prad | PlasmaPy | Speedup |
 |---|---|---|---|
-| 10,000 | 0.097 s | 39.2 s | ≈ 403× |
-| 100,000 | 0.295 s | 387.3 s (extrapolated) | ≈ 1,312× |
-| 1,000,000 | 2.312 s | 3827.7 s (extrapolated) | ≈ 1,655× |
+| 10,000 | 0.104 s | 39.2 s | ≈ 378× |
+| 100,000 | 0.295 s | 424.6 s | ≈ 1,439× |
+| 1,000,000 | 2.257 s | 4919.6 s | ≈ 2,179× |
 
 The GPU's fixed startup cost (~0.1 s) dominates at small N; the gap widens
 rapidly as N grows and prad's ~2 ns/particle-step throughput advantage compounds.
@@ -217,14 +215,14 @@ Scientists typically run **100k–1M particles** per configuration to achieve go
 statistical image quality.  The table below shows measured wall times with
 prad's default adaptive scheduler:
 
-| N | prad (adaptive dt) | PlasmaPy (extrapolated) | Speedup |
+| N | prad (adaptive dt) | PlasmaPy (measured) | Speedup |
 |---|---|---|---|
-| 100,000 | 0.076 s | 387 s | **≈ 5,109×** |
-| 500,000 | 0.114 s | 1921 s | **≈ 16,805×** |
-| 1,000,000 | 0.148 s | 3828 s | **≈ 25,937×** |
+| 100,000 | 0.076 s | 425 s | **≈ 5,601×** |
+| 500,000 | 0.114 s | 2332 s | **≈ 20,401×** |
+| 1,000,000 | 0.148 s | 4920 s | **≈ 33,336×** |
 
 > **In experimentally relevant conditions (1M particles, adaptive dt):**
-> prad is **≈ 26,000× faster** than PlasmaPy on the same hardware.
+> prad is **≈ 33,000× faster** than PlasmaPy on the same hardware.
 
 ![Adaptive-dt scaling](images/benchmark/plasmapy_scaling_adaptive.png)
 

@@ -412,18 +412,17 @@ def plot_plasmapy_scaling(scaling_data):
                 label="PlasmaPy (CPU, Apple M4) — measured", zorder=3)
         ax.plot(ns_pp, ts_pp, "-", color="#e05c5c", lw=2, zorder=2)
 
-        # Fit linear slope on the last 2 measured points — these are in the
-        # pure-compute regime where PlasmaPy scales O(N). Using more points
-        # would include overhead-dominated low-N data and underestimate the slope.
+        # Fit linear slope on the last 2 measured points for annotation fallback.
         fit_ns = ns_pp[-2:]
         fit_ts = ts_pp[-2:]
         coeffs = np.polyfit(np.log(fit_ns), np.log(fit_ts), 1)
         pp_fit_slope = coeffs
 
-        extrap_ns = np.logspace(np.log10(ns_pp[-1]), np.log10(EXTRAP_MAX), 80)
-        extrap_ts = np.exp(np.polyval(coeffs, np.log(extrap_ns)))
-        ax.plot(extrap_ns, extrap_ts, "--", color="#e05c5c", lw=2, alpha=0.55,
-                label="PlasmaPy (extrapolated, linear fit)", zorder=2)
+        if ns_pp[-1] < EXTRAP_MAX:
+            extrap_ns = np.logspace(np.log10(ns_pp[-1]), np.log10(EXTRAP_MAX), 80)
+            extrap_ts = np.exp(np.polyval(coeffs, np.log(extrap_ns)))
+            ax.plot(extrap_ns, extrap_ts, "--", color="#e05c5c", lw=2, alpha=0.55,
+                    label="PlasmaPy (extrapolated, linear fit)", zorder=2)
 
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlabel("Particle count", fontsize=12)
@@ -442,10 +441,12 @@ def plot_plasmapy_scaling(scaling_data):
             (100_000,   "N = 100k",  2e4,  80),
             (1_000_000, "N = 1M",    1e5, 600),
         ]
+        pp_by_n = {r["n"]: r["wall_s"] for r in pp}
         for n_ref, label, tx, ty in annotations:
             gpu_wall = prad_by_n.get(n_ref,
                            float(np.interp(n_ref, prad_ns, prad_ts)))
-            pp_wall  = float(np.exp(np.polyval(pp_fit_slope, np.log(n_ref))))
+            pp_wall  = pp_by_n.get(n_ref,
+                           float(np.exp(np.polyval(pp_fit_slope, np.log(n_ref)))))
             speedup  = pp_wall / gpu_wall
             ax.annotate(
                 f"≈{speedup:,.0f}× faster\n({label})",
@@ -508,10 +509,11 @@ def plot_plasmapy_scaling_adaptive(adaptive_data, fixed_scaling_data):
             fit_ts = ts_pp[-2:]
             pp_fit_slope = np.polyfit(np.log(fit_ns), np.log(fit_ts), 1)
 
-            extrap_ns = np.logspace(np.log10(ns_pp[-1]), np.log10(EXTRAP_MAX), 80)
-            extrap_ts = np.exp(np.polyval(pp_fit_slope, np.log(extrap_ns)))
-            ax.plot(extrap_ns, extrap_ts, "--", color="#e05c5c", lw=2, alpha=0.55,
-                    label="PlasmaPy (extrapolated)", zorder=3)
+            if ns_pp[-1] < EXTRAP_MAX:
+                extrap_ns = np.logspace(np.log10(ns_pp[-1]), np.log10(EXTRAP_MAX), 80)
+                extrap_ts = np.exp(np.polyval(pp_fit_slope, np.log(extrap_ns)))
+                ax.plot(extrap_ns, extrap_ts, "--", color="#e05c5c", lw=2, alpha=0.55,
+                        label="PlasmaPy (extrapolated)", zorder=3)
 
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlabel("Particle count", fontsize=12)
@@ -525,9 +527,12 @@ def plot_plasmapy_scaling_adaptive(adaptive_data, fixed_scaling_data):
     if adaptive and pp_fit_slope is not None:
         adaptive_by_n = {r["n"]: r["wall_s"] for r in adaptive}
         n_ref = 1_000_000
+        pp_by_n = {r["n"]: r["wall_s"] for r in fixed_scaling_data.get("plasmapy", [])} \
+                  if fixed_scaling_data else {}
         if n_ref in adaptive_by_n:
             gpu_wall = adaptive_by_n[n_ref]
-            pp_wall  = float(np.exp(np.polyval(pp_fit_slope, np.log(n_ref))))
+            pp_wall  = pp_by_n.get(n_ref,
+                           float(np.exp(np.polyval(pp_fit_slope, np.log(n_ref)))))
             speedup  = pp_wall / gpu_wall
             # Shaded region between the two lines
             if fixed_scaling_data:
@@ -845,9 +850,7 @@ def write_md(perf, phys, pp_data, pp_phys_data=None, pp_adaptive_data=None,
         "### 6.3 Throughput scaling",
         "",
         "Wall time vs particle count for both tracers on the same uniform Bz geometry.",
-        "PlasmaPy is measured up to 10,000 particles and extrapolated beyond (linear fit through",
-        "the 5,000 and 10,000 particle points, where O(N) CPU scaling is clean).",
-        "prad is measured at all points up to 1,000,000.",
+        "Both tracers are measured at all points up to 1,000,000.",
         "",
     ]
 
@@ -912,21 +915,25 @@ def write_md(perf, phys, pp_data, pp_phys_data=None, pp_adaptive_data=None,
         ts_pp_fit = np.array([r["wall_s"] for r in pp_list[-2:]])
         coeffs = np.polyfit(np.log(ns_pp_fit), np.log(ts_pp_fit), 1)
         adaptive_by_n = {r["n"]: r["wall_s"] for r in adaptive}
+        pp_measured_by_n = {r["n"]: r["wall_s"] for r in pp_list}
         table_ns = [100_000, 500_000, 1_000_000]
-        L += ["| N | prad (adaptive dt) | PlasmaPy (extrapolated) | Speedup |",
+        L += ["| N | prad (adaptive dt) | PlasmaPy (measured) | Speedup |",
               "|---|---|---|---|"]
         for n in table_ns:
             gpu_wall = adaptive_by_n.get(n)
             if gpu_wall is None:
                 continue
-            pp_wall = float(np.exp(np.polyval(coeffs, np.log(n))))
+            pp_wall = pp_measured_by_n.get(n,
+                float(np.exp(np.polyval(coeffs, np.log(n)))))
+            meas = "" if n in pp_measured_by_n else " (extrapolated)"
             L.append(f"| {n:,} | {gpu_wall:.3f} s | "
-                     f"{pp_wall:.0f} s | **≈ {pp_wall/gpu_wall:,.0f}×** |")
+                     f"{pp_wall:.0f} s{meas} | **≈ {pp_wall/gpu_wall:,.0f}×** |")
         # Headline number
         n_headline = 1_000_000
         if n_headline in adaptive_by_n:
             gpu_wall = adaptive_by_n[n_headline]
-            pp_wall  = float(np.exp(np.polyval(coeffs, np.log(n_headline))))
+            pp_wall = pp_measured_by_n.get(n_headline,
+                float(np.exp(np.polyval(coeffs, np.log(n_headline)))))
             headline = int(round(pp_wall / gpu_wall / 1000)) * 1000
             L += [
                 "",
