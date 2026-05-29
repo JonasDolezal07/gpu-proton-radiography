@@ -1095,6 +1095,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="6. PlasmaPy comparison">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#62-physics-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Physics agreement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-throughput-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Throughput scaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1503,6 +1531,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="6. PlasmaPy comparison">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#62-physics-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Physics agreement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-throughput-scaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Throughput scaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1557,7 +1613,7 @@ Refresh data: <code>python3 benchmarks/run_perf.py &amp;&amp; python3 benchmarks
 </tr>
 <tr>
 <td>prad version</td>
-<td><strong>0.3.1</strong></td>
+<td><strong>0.3.0</strong></td>
 </tr>
 <tr>
 <td>Validation</td>
@@ -1784,31 +1840,90 @@ matched simplified conditions (uniform Bz, monoenergetic protons, same geometry)
 <td>0.86 B steps/s</td>
 </tr>
 <tr>
-<td>Measured speedup at 10k</td>
+<td>At-scale speedup (1M particles)</td>
 <td>—</td>
-<td><strong>214×</strong></td>
+<td>≈2280× faster</td>
 </tr>
 </tbody>
 </table>
 <p><img alt="PlasmaPy comparison" src="../images/benchmark/plasmapy.png" /></p>
-<p>The 214× figure is measured directly at 10,000 particles. GPU utilisation increases
-at larger counts; prad simulates 1,000,000 particles in ~1.9 s on Apple M4.</p>
 <p><strong>What this means in practice:</strong>  For a parameter sweep of 20 configurations
-× 200,000 particles, prad completes in under a minute on a laptop GPU.</p>
+× 200,000 particles, prad completes in under a minute on a laptop GPU.
+The same sweep would take several hours with PlasmaPy on a single CPU core.</p>
 <p><strong>What prad does not provide:</strong> PlasmaPy includes MHD field solvers,
 plasma diagnostic tools, and a much broader scientific Python ecosystem.
 prad is a single-purpose GPU radiography forward model.</p>
+<hr />
+<h3 id="62-physics-agreement">6.2 Physics agreement<a class="headerlink" href="#62-physics-agreement" title="Permanent link">&para;</a></h3>
+<p>Beyond raw throughput, both tracers should produce the same physics.
+The table below compares mean deflection and beam RMS on two test cases:
+a uniform Bz field (analytic answer known) and a Gaussian Bz blob
+(no simple closed form — pure agreement test).</p>
+<p><strong>Uniform Bz = 1 T</strong> (5,000 particles)</p>
+<p>| Metric | prad (GPU) | PlasmaPy (CPU) | |Δ| |
+|---|---|---|---|
+| Mean y deflection | -16.37 mm | -17.22 mm | 0.85 mm |
+| RMS y spread | 19.88 mm | 19.95 mm | 0.07 mm |
+| Histogram correlation | — | — | 0.3352 |</p>
+<p><img alt="Uniform Bz = 1 T comparison" src="../images/benchmark/plasmapy_physics_uniform_Bz.png" /></p>
+<p><strong>Gaussian Bz blob (peak 3 T, σ = 25 mm)</strong> (5,000 particles)</p>
+<p>| Metric | prad (GPU) | PlasmaPy (CPU) | |Δ| |
+|---|---|---|---|
+| Mean y deflection | -17.20 mm | -18.73 mm | 1.53 mm |
+| RMS y spread | 20.80 mm | 20.28 mm | 0.52 mm |
+| Histogram correlation | — | — | 0.4097 |</p>
+<p><img alt="Gaussian Bz blob (peak 3 T, σ = 25 mm) comparison" src="../images/benchmark/plasmapy_physics_gaussian_blob.png" /></p>
+<h3 id="63-throughput-scaling">6.3 Throughput scaling<a class="headerlink" href="#63-throughput-scaling" title="Permanent link">&para;</a></h3>
+<p>Wall time vs particle count for both tracers on the same uniform Bz geometry.
+PlasmaPy is measured up to 10,000 particles and extrapolated beyond (linear fit through
+the 5,000 and 10,000 particle points, where O(N) CPU scaling is clean).
+prad is measured at all points up to 1,000,000.</p>
+<table>
+<thead>
+<tr>
+<th>N</th>
+<th>prad</th>
+<th>PlasmaPy</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10,000</td>
+<td>0.097 s</td>
+<td>39.2 s (measured)</td>
+<td>≈ 403×</td>
+</tr>
+<tr>
+<td>100,000</td>
+<td>0.295 s</td>
+<td>≈ 388 s (extrapolated)</td>
+<td>≈ 1,312×</td>
+</tr>
+<tr>
+<td>1,000,000</td>
+<td>2.312 s</td>
+<td>≈ 3,830 s (extrapolated)</td>
+<td>≈ 1,655×</td>
+</tr>
+</tbody>
+</table>
+<p>The GPU's fixed startup cost (~0.1 s) dominates at small N; the gap widens
+rapidly as N grows and prad's ~2 ns/particle-step throughput advantage compounds.</p>
+<p><img alt="Scaling comparison" src="../images/benchmark/plasmapy_scaling.png" /></p>
 <hr />
 <h2 id="7-reproduce">7. Reproduce<a class="headerlink" href="#7-reproduce" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Run benchmarks (requires built binary)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python3<span class="w"> </span>benchmarks/run_perf.py
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>python3<span class="w"> </span>benchmarks/run_physics.py
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># (Optional) PlasmaPy comparison — requires: pip install plasmapy</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>python3<span class="w"> </span>benchmarks/run_plasmapy.py
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># Regenerate plots and this page</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>python3<span class="w"> </span>benchmarks/plot.py
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># PlasmaPy comparison — requires: pip install plasmapy</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>python3<span class="w"> </span>benchmarks/run_plasmapy.py<span class="w">          </span><span class="c1"># throughput only</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>python3<span class="w"> </span>benchmarks/run_plasmapy_physics.py<span class="w">  </span><span class="c1"># physics agreement</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>python3<span class="w"> </span>benchmarks/run_plasmapy_scaling.py<span class="w">  </span><span class="c1"># scaling curves</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Regenerate plots and this page</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>python3<span class="w"> </span>benchmarks/plot.py
 </code></pre></div>
 <p>All results are written to <code>benchmarks/results/</code> (gitignored).
 Plots are written to <code>docs/images/benchmark/</code> and committed to the repository.</p>
