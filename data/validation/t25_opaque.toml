@@ -1,0 +1,29 @@
+[field]
+path = "t25_zero.bfld"
+scale_B = 0.0
+scale_E = 0.0
+
+[density]
+path = "t25_slab_dense.dens"
+material = "water"
+mode = "opaque"
+opaque_threshold_g_cm3 = 0.1
+
+[source]
+type = "pencil"
+n_particles = 5000
+energy_MeV = 14.7
+position_mm = [-50.0, 0.0, 0.0]
+aim_at_mm = [5.0, 0.0, 0.0]
+
+[detector]
+center_mm = [110.0, 0.0, 0.0]
+normal = [1.0, 0.0, 0.0]
+up = [0.0, 1.0, 0.0]
+width_mm = 100.0
+height_mm = 100.0
+pixels = [128, 128]
+
+[numerics]
+dt_ps = 0.5
+max_steps = 30000
