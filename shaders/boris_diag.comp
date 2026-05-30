@@ -1,0 +1,99 @@
+
+#version 450
+
+// Diagnostic Boris shader for canonical angular momentum conservation test.
+//
+// Traces N_DIAG particles in a uniform analytic Bz field (no texture sampling)
+// and writes the full (x, y, z, ux, uy, uz) state at every step to an output buffer.
+//
+// E = 0. No detector. No density. No domain exit. Pure integrator test.
+//
+// Output buffer layout: records[particle_index * n_steps + step]
+//
+// Used by: proton_tracer diag-canonical
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+const float C_M_S    = 299792458.0;
+const float INV_C_SQ = 1.0 / (C_M_S * C_M_S);
+
+// Push constants — must match DiagPushConst in diagnostic.rs
+layout(push_constant) uniform DiagParams {
+    float dt;          // timestep [s]
+    float q_over_m;    // charge/mass ratio [C/kg]
+    uint  n_particles;
+    uint  n_steps;
+    float bz;          // uniform Bz field [T]
+    uint  _pad0;
+    uint  _pad1;
+    uint  _pad2;
+} params;
+
+// Initial particle state — 8 floats (32 bytes) per particle
+struct InitState {
+    float x,  y,  z,  _p0;
+    float ux, uy, uz, _p1;  // u = γv (specific relativistic momentum)
+};
+
+// Per-step record — 8 floats (32 bytes)
+struct StepRecord {
+    float x, y, z;
+    float ux, uy, uz;
+    uint  step;
+    uint  _pad;
+};
+
+layout(std430, binding = 0) readonly buffer InitBuffer {
+    InitState init_states[];
+};
+
+layout(std430, binding = 1) buffer TraceBuffer {
+    StepRecord trace[];
+};
+
+void main() {
+    uint pid = gl_GlobalInvocationID.x;
+    if (pid >= params.n_particles) return;
+
+    float x  = init_states[pid].x;
+    float y  = init_states[pid].y;
+    float z  = init_states[pid].z;
+    float ux = init_states[pid].ux;
+    float uy = init_states[pid].uy;
+    float uz = init_states[pid].uz;
+
+    float dt  = params.dt;
+    float qm  = params.q_over_m;
+    vec3  B   = vec3(0.0, 0.0, params.bz);  // uniform Bz, analytic (no texture)
+
+    for (uint s = 0; s < params.n_steps; s++) {
+        // Record state before push
+        uint rec = pid * params.n_steps + s;
+        trace[rec].x    = x;
+        trace[rec].y    = y;
+        trace[rec].z    = z;
+        trace[rec].ux   = ux;
+        trace[rec].uy   = uy;
+        trace[rec].uz   = uz;
+        trace[rec].step = s;
+        trace[rec]._pad = 0u;
+
+        // Relativistic Boris push (E = 0 → half-E-kicks vanish)
+        vec3 u = vec3(ux, uy, uz);
+        float gamma = sqrt(1.0 + dot(u, u) * INV_C_SQ);
+
+        float half_qm_dt = 0.5 * qm * dt;
+        vec3  t_vec   = (half_qm_dt / gamma) * B;
+        float t_sq    = dot(t_vec, t_vec);
+        vec3  s_vec   = (2.0 / (1.0 + t_sq)) * t_vec;
+        vec3  u_prime = u + cross(u, t_vec);
+        u = u + cross(u_prime, s_vec);
+
+        // Position update with physical velocity v = u/γ
+        gamma = sqrt(1.0 + dot(u, u) * INV_C_SQ);
+        x += (u.x / gamma) * dt;
+        y += (u.y / gamma) * dt;
+        z += (u.z / gamma) * dt;
+        ux = u.x; uy = u.y; uz = u.z;
+    }
+}

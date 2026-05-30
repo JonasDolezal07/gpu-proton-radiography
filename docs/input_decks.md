@@ -177,6 +177,22 @@ data           nx×ny×nz f32 values [g/cm³]
 Values outside the declared grid bounds contribute zero (vacuum) — the density grid does not
 need to cover the full simulation volume.
 
+#### Opaque absorber mode
+
+Instead of continuous energy loss, `mode = "opaque"` treats the density grid as a binary
+absorber: any particle entering a voxel above the threshold is immediately removed from the
+simulation (not recorded as a detector hit).
+
+```toml
+[density]
+path = "data/target.dens"
+mode = "opaque"                  # "csda" (default) or "opaque"
+opaque_threshold_g_cm3 = 0.1    # threshold [g/cm³]; default 0.1
+```
+
+`material`, `z_over_a`, and `i_ev` are ignored in opaque mode. This is the right choice for
+solid targets or mesh grids where geometric shadowing is the effect of interest.
+
 #### Custom material
 
 ```toml

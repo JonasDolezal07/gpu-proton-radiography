@@ -37,3 +37,17 @@ data/gorgon/
 
 # MAGPIE experimental field data: ~48 MB per file — store separately
 data/magpie/*.bfld
+
+# ── Diagnostic outputs (one-off verification, not tracked) ────────────────────
+diag_canonical.csv
+
+# ── LaTeX build artifacts ─────────────────────────────────────────────────────
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.spl
+paper/*.synctex.gz

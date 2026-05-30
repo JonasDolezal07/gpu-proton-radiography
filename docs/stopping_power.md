@@ -106,6 +106,26 @@ i_ev     = 78.0     # mean excitation energy I [eV]
 
 The `[density]` block is entirely optional. Without it the simulation is purely electromagnetic.
 
+### Opaque absorber mode
+
+Instead of continuous energy loss, the density grid can act as a **binary absorber**: any
+particle that enters a voxel above a density threshold is immediately removed from the simulation
+(recorded as absorbed, not as a detector hit).
+
+```toml
+[density]
+path = "data/target.dens"
+mode = "opaque"                  # "csda" (default) or "opaque"
+opaque_threshold_g_cm3 = 0.1    # density threshold [g/cm³]; default 0.1
+```
+
+In opaque mode the `material`, `z_over_a`, and `i_ev` keys are ignored — no stopping power
+table is needed. The threshold applies to the sampled voxel density at each Boris step.
+
+This mode is useful for modelling solid targets, mesh grids, or any object that is
+geometrically opaque to protons without caring about the exact energy-loss physics.
+Validation test 25 demonstrates a fiducial mesh radiograph using this mode.
+
 ---
 
 ## Built-in materials

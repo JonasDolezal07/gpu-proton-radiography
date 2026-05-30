@@ -96,6 +96,7 @@ fn print_help() {
     println!("  proton-tracer sweep   <deck> --param k=v1,v2   Parameter sweep");
     println!("  proton-tracer inspect <run_dir|sweep_dir>       Print run/sweep summary");
     println!("  proton-tracer analyze <run_dir> [--raw]         Count statistics");
+    println!("  proton-tracer diag-canonical [opts]             Boris P_φ conservation test");
     println!();
     println!("Demo presets: zpinch, sausage-weak, sausage-strong, kink-weak, kink-strong, mixed");
     println!("Init presets: blank, zpinch, kink-strong");
@@ -2442,6 +2443,76 @@ fn run_batch_headless(
     Ok(())
 }
 
+// ── diag-canonical subcommand ─────────────────────────────────────────────────
+
+fn run_diag_canonical_subcommand(argv: &[String]) -> Result<()> {
+    let mut bz: f32 = 1.0;
+    let mut energy_mev: f32 = 14.7;
+    let mut n_particles: usize = 4;
+    let mut n_steps: u32 = 1000;
+    let mut dt_ps: f32 = 0.1;
+    let mut output = PathBuf::from("diag_canonical.csv");
+
+    let mut i = 0;
+    while i < argv.len() {
+        match argv[i].as_str() {
+            "--bz"         => { i += 1; if let Some(v) = argv.get(i) { bz = v.parse()?; } }
+            "--energy-mev" => { i += 1; if let Some(v) = argv.get(i) { energy_mev = v.parse()?; } }
+            "--n"          => { i += 1; if let Some(v) = argv.get(i) { n_particles = v.parse()?; } }
+            "--steps"      => { i += 1; if let Some(v) = argv.get(i) { n_steps = v.parse()?; } }
+            "--dt-ps"      => { i += 1; if let Some(v) = argv.get(i) { dt_ps = v.parse()?; } }
+            "--output"|"-o"=> { i += 1; if let Some(v) = argv.get(i) { output = PathBuf::from(v); } }
+            "--help"|"-h"  => {
+                println!("proton-tracer diag-canonical [options]");
+                println!("  Trace N particles in uniform Bz, write per-step CSV.");
+                println!("  Post-process with: python3 scripts/check_canonical_momentum.py <csv>");
+                println!();
+                println!("Options:");
+                println!("  --bz <T>          Uniform Bz field [T]      (default: 1.0)");
+                println!("  --energy-mev <E>  Proton kinetic energy [MeV] (default: 14.7)");
+                println!("  --n <N>           Number of particles          (default: 4)");
+                println!("  --steps <N>       Steps per particle           (default: 1000)");
+                println!("  --dt-ps <dt>      Timestep [ps]               (default: 0.1)");
+                println!("  --output <path>   Output CSV path              (default: diag_canonical.csv)");
+                return Ok(());
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+
+    // Build initial conditions: N particles on a circle in the x-y plane,
+    // each with purely tangential velocity corresponding to the given kinetic energy.
+    // This gives circular Larmor orbits where P_φ is easily checked.
+    let mp_kg: f32 = 1.672_621_9e-27;
+    let c_ms: f32 = 299_792_458.0;
+    let ke_j: f32 = energy_mev * 1e6 * 1.602_176_6e-19;
+    // γ from kinetic energy: KE = (γ-1)m c²
+    let gamma0: f32 = 1.0 + ke_j / (mp_kg * c_ms * c_ms);
+    let speed: f32 = c_ms * (1.0 - 1.0 / (gamma0 * gamma0)).sqrt();
+    let u_mag: f32 = gamma0 * speed;  // |u| = γ|v|
+
+    // Place particles at different radii to sample the conserved quantity at different values.
+    // Radius: 1 cm, 2 cm, 3 cm, ... (tangential velocity = u_mag)
+    let init: Vec<(f32, f32, f32, f32, f32, f32)> = (0..n_particles).map(|k| {
+        let r_m: f32 = (k as f32 + 1.0) * 0.01;  // 1 cm, 2 cm, ...
+        // Start on +x axis, velocity in +y direction (tangential → circular orbit)
+        (r_m, 0.0, 0.0, 0.0, u_mag, 0.0)
+    }).collect();
+
+    let dt_s: f32 = dt_ps * 1e-12;
+
+    log::info!("diag-canonical: Bz={} T, E={} MeV, γ={:.4}, N={}, steps={}, dt={}",
+        bz, energy_mev, gamma0, n_particles, n_steps, units::fmt_time(dt_s as f64));
+
+    let ctx = gpu::VulkanContext::new_headless()?;
+    gpu::diagnostic::run_canonical_diag(&ctx, &init, bz, dt_s, n_steps, &output)?;
+
+    println!("CSV written: {}", output.display());
+    println!("Check conservation: python3 scripts/check_canonical_momentum.py {}", output.display());
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let argv: Vec<String> = std::env::args().collect();
     let subcommand = argv.get(1).map(|s| s.as_str());
@@ -2449,19 +2520,20 @@ fn main() -> Result<()> {
     // Non-GPU subcommands: init logger now and dispatch immediately.
     let is_nongpu = matches!(
         subcommand,
-        Some("render" | "init" | "validate" | "explain" | "inspect" | "sweep" | "analyze")
+        Some("render" | "init" | "validate" | "explain" | "inspect" | "sweep" | "analyze" | "diag-canonical")
     );
     if is_nongpu {
         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
             .init();
         return match subcommand {
-            Some("render")   => run_render_subcommand(&argv[2..]),
-            Some("init")     => run_init_subcommand(&argv[2..]),
-            Some("validate") => run_validate_subcommand(&argv[2..]),
-            Some("explain")  => run_explain_subcommand(&argv[2..]),
-            Some("inspect")  => run_inspect_subcommand(&argv[2..]),
-            Some("analyze")  => run_analyze_subcommand(&argv[2..]),
-            Some("sweep")    => {
+            Some("render")         => run_render_subcommand(&argv[2..]),
+            Some("init")           => run_init_subcommand(&argv[2..]),
+            Some("validate")       => run_validate_subcommand(&argv[2..]),
+            Some("explain")        => run_explain_subcommand(&argv[2..]),
+            Some("inspect")        => run_inspect_subcommand(&argv[2..]),
+            Some("analyze")        => run_analyze_subcommand(&argv[2..]),
+            Some("diag-canonical") => run_diag_canonical_subcommand(&argv[2..]),
+            Some("sweep")          => {
                 let spec = sweep::parse_sweep_args(&argv[2..])?;
                 sweep::run_sweep(&spec)
             }

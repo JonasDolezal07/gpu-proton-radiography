@@ -7,7 +7,7 @@ python3 validate.py           # uses existing binary
 python3 validate.py --build   # cargo build --release first, then validate
 ```
 
-Current status: **24/24 passing**.
+Current status: **25/25 passing**.
 
 Output: `output/validation/` (per-test run directories) and `output/validation_report.json`.
 
@@ -41,6 +41,7 @@ Output: `output/validation/` (per-test run directories) and `output/validation_r
 | 22 | Field compositing linearity | Orthogonal B superposition | Bz and By channels deflect independently; cross-coupling < 5% |
 | 23 | Density scaling | ΔE ∝ ρL; ρL equivalence | Three slabs: energy loss scales with column depth, not density alone |
 | 24 | Vacuum regression | No `[density]` block | Bethe-Bloch path is a no-op when density is absent |
+| 25 | Binary opaque absorber | Opaque + CSDA thin slab | Opaque mode kills all particles; CSDA slab is transparent |
 
 ---
 
@@ -496,6 +497,45 @@ the experimental fiducial mesh technique used on real RCF detectors.
 | 25 | Opaque: hits | == 0 | All particles absorbed before reaching detector |
 | 25 | Opaque: n_absorbed | == N | Completion counter must equal particle count |
 | 25 | CSDA thin slab: hits | > 0 | Low-density slab must be transparent |
+
+---
+
+## Boris integrator: canonical angular momentum diagnostic
+
+In addition to the numbered test suite, prad ships a standalone diagnostic tool that
+verifies the Boris integrator conserves the **canonical angular momentum** of a proton
+in a uniform magnetic field:
+
+$$P_\varphi = m(x\,u_y - y\,u_x) + \frac{qB_z}{2}(x^2 + y^2)$$
+
+This quantity is exactly conserved for a charged particle in a uniform axial B field with
+no electric field. The relativistic Boris algorithm is symplectic under these conditions,
+so the drift should stay at or below float32 rounding (~10⁻⁵ relative).
+
+```bash
+# Run the diagnostic (4 particles, 2000 steps, 1 T uniform Bz)
+proton-tracer diag-canonical --bz 1.0 --energy-mev 14.7 --n 4 --steps 2000
+
+# Check conservation and report pass/fail
+python3 scripts/check_canonical_momentum.py diag_canonical.csv --bz 1.0 --plot
+```
+
+Example output (14.7 MeV protons, particles at r = 1–4 cm):
+
+```
+Particle      P_φ(0) [kg·m²/s]     max |ΔP_φ/P_φ(0)|    status
+----------------------------------------------------------------------
+       0          8.991017e-22          3.187e-05           PASS
+       1          1.814225e-21          3.140e-05           PASS
+       2          2.745370e-21          3.104e-05           PASS
+       3          3.692537e-21          2.861e-05           PASS
+
+RESULT: PASS — P_φ conserved to within tolerance for all particles.
+```
+
+The diagnostic uses a separate GPU compute shader (`boris_diag.comp`) that runs the same
+Boris push in a clean analytic uniform-Bz environment, recording full (x, y, z, uₓ, u_y, u_z)
+state at every step. It does not touch the main run pipeline.
 
 ---
 

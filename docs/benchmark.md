@@ -164,23 +164,23 @@ The table below compares mean deflection and beam RMS on two test cases:
 a uniform Bz field (analytic answer known) and a Gaussian Bz blob
 (no simple closed form — pure agreement test).
 
-**Uniform Bz = 1 T** (5,000 particles)
+**Uniform Bz = 1 T** (50,000 particles)
 
 | Metric | prad (GPU) | PlasmaPy (CPU) | |Δ| |
 |---|---|---|---|
-| Mean y deflection | -16.37 mm | -17.22 mm | 0.85 mm |
-| RMS y spread | 19.88 mm | 19.95 mm | 0.07 mm |
-| Histogram correlation | — | — | 0.3352 |
+| Mean y deflection | -16.25 mm | -17.07 mm | 0.82 mm |
+| RMS y spread | 20.00 mm | 20.04 mm | 0.04 mm |
+| Histogram correlation | — | — | 0.8399 |
 
 ![Uniform Bz = 1 T comparison](images/benchmark/plasmapy_physics_uniform_Bz.png)
 
-**Gaussian Bz blob (peak 3 T, σ = 25 mm)** (5,000 particles)
+**Gaussian Bz blob (peak 3 T, σ = 25 mm)** (50,000 particles)
 
 | Metric | prad (GPU) | PlasmaPy (CPU) | |Δ| |
 |---|---|---|---|
-| Mean y deflection | -17.20 mm | -18.73 mm | 1.53 mm |
-| RMS y spread | 20.80 mm | 20.28 mm | 0.52 mm |
-| Histogram correlation | — | — | 0.4097 |
+| Mean y deflection | -17.30 mm | -18.46 mm | 1.17 mm |
+| RMS y spread | 20.54 mm | 20.46 mm | 0.07 mm |
+| Histogram correlation | — | — | 0.8706 |
 
 ![Gaussian Bz blob (peak 3 T, σ = 25 mm) comparison](images/benchmark/plasmapy_physics_gaussian_blob.png)
 

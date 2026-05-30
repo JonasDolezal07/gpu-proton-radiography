@@ -1211,6 +1211,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#boris-integrator-canonical-angular-momentum-diagnostic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boris integrator: canonical angular momentum diagnostic
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-not-validated" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1844,6 +1855,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#boris-integrator-canonical-angular-momentum-diagnostic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Boris integrator: canonical angular momentum diagnostic
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-not-validated" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1879,7 +1901,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python3<span class="w"> </span>validate.py<span class="w">           </span><span class="c1"># uses existing binary</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>python3<span class="w"> </span>validate.py<span class="w"> </span>--build<span class="w">   </span><span class="c1"># cargo build --release first, then validate</span>
 </code></pre></div>
-<p>Current status: <strong>24/24 passing</strong>.</p>
+<p>Current status: <strong>25/25 passing</strong>.</p>
 <p>Output: <code>output/validation/</code> (per-test run directories) and <code>output/validation_report.json</code>.</p>
 <hr />
 <h2 id="test-summary">Test summary<a class="headerlink" href="#test-summary" title="Permanent link">&para;</a></h2>
@@ -2036,6 +2058,12 @@
 <td>Vacuum regression</td>
 <td>No <code>[density]</code> block</td>
 <td>Bethe-Bloch path is a no-op when density is absent</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Binary opaque absorber</td>
+<td>Opaque + CSDA thin slab</td>
+<td>Opaque mode kills all particles; CSDA slab is transparent</td>
 </tr>
 </tbody>
 </table>
@@ -2514,6 +2542,34 @@ the experimental fiducial mesh technique used on real RCF detectors.</p>
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="boris-integrator-canonical-angular-momentum-diagnostic">Boris integrator: canonical angular momentum diagnostic<a class="headerlink" href="#boris-integrator-canonical-angular-momentum-diagnostic" title="Permanent link">&para;</a></h2>
+<p>In addition to the numbered test suite, prad ships a standalone diagnostic tool that
+verifies the Boris integrator conserves the <strong>canonical angular momentum</strong> of a proton
+in a uniform magnetic field:</p>
+<p>$$P_\varphi = m(x\,u_y - y\,u_x) + \frac{qB_z}{2}(x^2 + y^2)$$</p>
+<p>This quantity is exactly conserved for a charged particle in a uniform axial B field with
+no electric field. The relativistic Boris algorithm is symplectic under these conditions,
+so the drift should stay at or below float32 rounding (~10⁻⁵ relative).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Run the diagnostic (4 particles, 2000 steps, 1 T uniform Bz)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>proton-tracer<span class="w"> </span>diag-canonical<span class="w"> </span>--bz<span class="w"> </span><span class="m">1</span>.0<span class="w"> </span>--energy-mev<span class="w"> </span><span class="m">14</span>.7<span class="w"> </span>--n<span class="w"> </span><span class="m">4</span><span class="w"> </span>--steps<span class="w"> </span><span class="m">2000</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Check conservation and report pass/fail</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>python3<span class="w"> </span>scripts/check_canonical_momentum.py<span class="w"> </span>diag_canonical.csv<span class="w"> </span>--bz<span class="w"> </span><span class="m">1</span>.0<span class="w"> </span>--plot
+</code></pre></div>
+<p>Example output (14.7 MeV protons, particles at r = 1–4 cm):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Particle      P_φ(0) [kg·m²/s]     max |ΔP_φ/P_φ(0)|    status
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>----------------------------------------------------------------------
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>       0          8.991017e-22          3.187e-05           PASS
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>       1          1.814225e-21          3.140e-05           PASS
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>       2          2.745370e-21          3.104e-05           PASS
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>       3          3.692537e-21          2.861e-05           PASS
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>RESULT: PASS — P_φ conserved to within tolerance for all particles.
+</code></pre></div>
+<p>The diagnostic uses a separate GPU compute shader (<code>boris_diag.comp</code>) that runs the same
+Boris push in a clean analytic uniform-Bz environment, recording full (x, y, z, uₓ, u_y, u_z)
+state at every step. It does not touch the main run pipeline.</p>
 <hr />
 <h2 id="what-is-not-validated">What is not validated<a class="headerlink" href="#what-is-not-validated" title="Permanent link">&para;</a></h2>
 <ul>

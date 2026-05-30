@@ -8,6 +8,7 @@ mod renderer;
 mod graphics;
 mod timing;
 mod egui_renderer;
+pub mod diagnostic;
 
 pub use context::VulkanContext;
 pub use buffers::{GpuBuffer, FieldTexture, StagingBuffer, DetectorTexture};

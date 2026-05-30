@@ -10,6 +10,7 @@ fn main() {
 
     // Rerun if shaders change
     println!("cargo:rerun-if-changed=../shaders/boris.comp");
+    println!("cargo:rerun-if-changed=../shaders/boris_diag.comp");
     println!("cargo:rerun-if-changed=../shaders/fullscreen.vert");
     println!("cargo:rerun-if-changed=../shaders/detector3d.vert");
     println!("cargo:rerun-if-changed=../shaders/detector.frag");
@@ -31,6 +32,7 @@ fn main() {
     // Compile all shaders
     let shaders = [
         ("boris.comp", "boris.spv"),
+        ("boris_diag.comp", "boris_diag.spv"),
         ("fullscreen.vert", "fullscreen.vert.spv"),
         ("detector3d.vert", "detector3d.vert.spv"),
         ("detector.frag", "detector.frag.spv"),

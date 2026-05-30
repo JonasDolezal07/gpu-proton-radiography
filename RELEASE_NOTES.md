@@ -1,5 +1,34 @@
 # Release notes
 
+## v0.4.0-dev — unreleased
+
+Features added after the v0.3.0-rc1 freeze:
+
+- **Adaptive timestep schedule** — large dt in vacuum, Larmor/grid-constrained dt inside the
+  field; ~20–33,000× speedup over a conservative fixed dt (see `docs/adaptive_timestep.md`)
+- **Per-particle hit export** (`counts/hits.bin`) — (y_mm, z_mm, energy_MeV) per detected
+  proton; re-bin or reweight offline without re-running
+- **Field compositing** (`field.extra_b`) — superimpose any number of supplemental `.bfld`
+  grids on the primary field with independent scale factors
+- **Bethe-Bloch CSDA energy loss** — relativistic stopping power via a 256-entry GPU lookup
+  table; material presets (water, CH₂, Be, Al, H); 0.7% agreement with NIST PSTAR at 14.7 MeV
+- **Binary opaque absorber mode** (`mode = "opaque"`) — density grid as geometric shadow mask,
+  no stopping power calculation required
+- **Detector response** — Gaussian PSF blur, flat background, Poisson noise with seeded RNG
+- **Tilted/off-axis detector planes** — arbitrary `normal` and `up` vectors; no re-gridding
+- **`diag-canonical` subcommand** — CPU Boris P_φ conservation diagnostic for integrator
+  verification; post-process with `scripts/check_canonical_momentum.py`
+- Validation suite extended to **25 tests** (was 12 at rc1)
+
+### Known limitations
+
+- Python API is subprocess-based (PyO3 bindings are future work)
+- AMD/Windows not yet validated
+- No comparison against experimental shot data; tests cover integrator correctness and source
+  geometry only
+
+---
+
 ## v0.3.0-rc1 — 2026-05-21
 
 Feature freeze for the v0.3.0 manuscript submission.
@@ -48,10 +77,10 @@ Feature freeze for the v0.3.0 manuscript submission.
 
 None. JSON config format remains accepted (with deprecation warnings). TOML is canonical.
 
-### Known limitations (see `docs/limitations.md`)
+### Known limitations at rc1 (see `docs/limitations.md`)
 
-- Static fields only; no adaptive time step
-- Flat detector plane only
+- Static fields only; adaptive timestep added in v0.4.0-dev
+- Flat detector plane only (tilted planes added in v0.4.0-dev)
 - Python API is subprocess-based (PyO3 bindings are future work)
 - AMD/Windows not yet validated
 - No comparison against experimental shot data
