@@ -7,7 +7,7 @@ hide:
   <img src="images/logo_text.png" alt="prad" class="hero-logo-side" />
   <div class="hero-text">
     <p><strong>GPU Proton Radiography — a forward model for laser-plasma and HEDP experiments.</strong></p>
-    <p>prad traces synthetic proton beams through measured or simulated electromagnetic fields and produces radiographs for direct comparison with experimental RCF data. Full relativistic Boris orbit — not a paraxial approximation. 10⁶ particles in under 2 seconds on a laptop GPU. 24 validation tests covering EM deflection, detector geometry, adaptive timestepping, field compositing, per-hit export, and Bethe-Bloch energy loss.</p>
+    <p>prad traces synthetic proton beams through measured or simulated electromagnetic fields and produces radiographs for direct comparison with experimental RCF data. Full relativistic Boris orbit — not a paraxial approximation. 1M particles in 0.148 s on a laptop GPU — <strong>33,000× faster than PlasmaPy</strong> in a measured 1M-particle benchmark. 25 validation tests covering EM deflection, detector geometry, adaptive timestepping, field compositing, per-hit export, and Bethe-Bloch energy loss.</p>
     <div class="install-block">pip install prad</div>
   </div>
 </div>
@@ -34,7 +34,7 @@ hide:
 
     [:octicons-arrow-right-24: Energy spectra](spectra.md)
 
--   :material-check-all:{ .lg .middle } **24/24 Validation Tests**
+-   :material-check-all:{ .lg .middle } **25/25 Validation Tests**
 
     ---
 
@@ -94,6 +94,26 @@ hide:
     [:octicons-arrow-right-24: Stopping power](stopping_power.md)
 
 </div>
+
+---
+
+## Performance benchmark
+
+Measured at 1 million particles on the same hardware (Apple M4 laptop GPU):
+
+<div class="perf-table" markdown>
+
+|  | prad (adaptive dt) | PlasmaPy (CPU) | Speedup |
+|---|---|---|---|
+| **1M-particle run** | **0.148 s** | 4,920 s | **≈ 33,000×** |
+
+</div>
+
+prad uses a three-phase adaptive timestep: large dt in vacuum, Larmor-constrained dt inside the field.
+At 1M particles with fixed dt = 0.2 ps (same as PlasmaPy), prad is still **2,180× faster**.
+Both timings are measured on the same hardware; no extrapolation.
+
+[Full benchmark methodology :octicons-arrow-right-24:](benchmark.md)
 
 ---
 
@@ -200,13 +220,13 @@ path-integrated field topology — no paraxial assumptions.
 
 ## Why this tool?
 
-**Speed that changes what's practical.** The full-orbit Boris integrator runs 10⁶ particles
-in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. In a matched
-simplified particle-tracing test (10,000 particles, uniform field, single core), prad is
-**214× faster** than a CPU Boris implementation via PlasmaPy, with GPU utilisation
-increasing further at larger particle counts. That gap makes workflows practical that
-previously required paraxial shortcuts: broad parameter sweeps, interactive geometry design,
-comparison of field topologies, and large synthetic dataset generation for ML inverse solvers.
+**Speed that changes what's practical.** In a measured 1M-particle benchmark on the same
+hardware, prad completes in 0.148 s (adaptive timestep) versus 4,920 s for PlasmaPy — a
+**33,000× speedup** at the particle count scientists actually use. With a fixed timestep
+matching PlasmaPy's dt = 0.2 ps, prad is still **2,180× faster**. Both results are measured;
+no extrapolation. That gap makes workflows practical that previously required paraxial
+shortcuts: broad parameter sweeps, interactive geometry design, comparison of field
+topologies, and large synthetic dataset generation for ML inverse solvers.
 
 **No approximations.** Every fast alternative uses the paraxial approximation — integrating
 the field kick along an unperturbed straight-line trajectory. In the strong-field regimes
