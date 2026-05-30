@@ -1183,6 +1183,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#test-25-binary-opaque-absorber" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test 25 — Binary opaque absorber
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1805,6 +1816,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#test-25-binary-opaque-absorber" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test 25 — Binary opaque absorber
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2355,6 +2377,22 @@ no-op: std(KE) / mean(KE) &lt; 10⁻⁴.</p>
 <figcaption>Test 24 — parallel beam, Bz = 1 T, no density block. Deflected spot; exit KE exactly equals input energy confirming the Bethe-Bloch path is inactive in vacuum.</figcaption>
 </figure>
 <hr />
+<h3 id="test-25-binary-opaque-absorber">Test 25 — Binary opaque absorber<a class="headerlink" href="#test-25-binary-opaque-absorber" title="Permanent link">&para;</a></h3>
+<p>A dense slab (ρ = 5 g/cm³, 10 mm thick) with <code>mode = "opaque"</code> and threshold 0.1 g/cm³
+must absorb every particle — zero detector hits, all N counted as absorbed in
+<code>metadata.json → diagnostics.n_absorbed</code>. A second run with a thin slab (ρ = 0.001 g/cm³,
+CSDA mode) must produce hits, confirming the code path is inactive at low density.</p>
+<p><strong>Result:</strong> 0 hits / N absorbed (opaque run); hits &gt; 0 (CSDA run). Both pass.</p>
+<p>The radiograph below shows the opaque absorber applied to a shaped mask — a wire mesh
+(5 mm pitch, 1 mm wires) placed upstream of a z-pinch field. Left: undeflected reference
+grid (no field). Right: grid distorted by the integrated z-pinch B field. This reproduces
+the experimental fiducial mesh technique used on real RCF detectors.</p>
+<figure>
+<p><img alt="Test 25 — fiducial mesh radiograph" src="../images/validation/t25_mesh_radiograph.png" />
+  </p>
+<figcaption>Test 25 — opaque absorber mode. Left: 5 mm wire mesh, no field — regular grid shadow. Right: same mesh through z-pinch field — grid deflected by path-integrated B, revealing the pinch structure. 1M particles, 14.7 MeV parallel beam.</figcaption>
+</figure>
+<hr />
 <h2 id="tolerances">Tolerances<a class="headerlink" href="#tolerances" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2455,6 +2493,24 @@ no-op: std(KE) / mean(KE) &lt; 10⁻⁴.</p>
 <td>ρL equivalence</td>
 <td>&lt; 3% relative</td>
 <td>Should be exact in CSDA; tolerance covers timestep discretisation</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Opaque: hits</td>
+<td>== 0</td>
+<td>All particles absorbed before reaching detector</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Opaque: n_absorbed</td>
+<td>== N</td>
+<td>Completion counter must equal particle count</td>
+</tr>
+<tr>
+<td>25</td>
+<td>CSDA thin slab: hits</td>
+<td>&gt; 0</td>
+<td>Low-density slab must be transparent</td>
 </tr>
 </tbody>
 </table>

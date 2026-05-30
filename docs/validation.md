@@ -453,6 +453,27 @@ Result: std/mean = 0.00 × 10⁰ — exact conservation, bit-identical across al
 
 ---
 
+### Test 25 — Binary opaque absorber
+
+A dense slab (ρ = 5 g/cm³, 10 mm thick) with `mode = "opaque"` and threshold 0.1 g/cm³
+must absorb every particle — zero detector hits, all N counted as absorbed in
+`metadata.json → diagnostics.n_absorbed`. A second run with a thin slab (ρ = 0.001 g/cm³,
+CSDA mode) must produce hits, confirming the code path is inactive at low density.
+
+**Result:** 0 hits / N absorbed (opaque run); hits > 0 (CSDA run). Both pass.
+
+The radiograph below shows the opaque absorber applied to a shaped mask — a wire mesh
+(5 mm pitch, 1 mm wires) placed upstream of a z-pinch field. Left: undeflected reference
+grid (no field). Right: grid distorted by the integrated z-pinch B field. This reproduces
+the experimental fiducial mesh technique used on real RCF detectors.
+
+<figure markdown>
+  ![Test 25 — fiducial mesh radiograph](images/validation/t25_mesh_radiograph.png)
+  <figcaption>Test 25 — opaque absorber mode. Left: 5 mm wire mesh, no field — regular grid shadow. Right: same mesh through z-pinch field — grid deflected by path-integrated B, revealing the pinch structure. 1M particles, 14.7 MeV parallel beam.</figcaption>
+</figure>
+
+---
+
 ## Tolerances
 
 | Test(s) | Quantity | Tolerance | Rationale |
@@ -472,6 +493,9 @@ Result: std/mean = 0.00 × 10⁰ — exact conservation, bit-identical across al
 | 22 | Compositing cross-coupling | < 5% relative | Expected cross-coupling ~0.02% at these parameters |
 | 23 | Individual ΔE vs analytic | < 5% relative | Same discretisation as test 16 |
 | 23 | ρL equivalence | < 3% relative | Should be exact in CSDA; tolerance covers timestep discretisation |
+| 25 | Opaque: hits | == 0 | All particles absorbed before reaching detector |
+| 25 | Opaque: n_absorbed | == N | Completion counter must equal particle count |
+| 25 | CSDA thin slab: hits | > 0 | Low-density slab must be transparent |
 
 ---
 
