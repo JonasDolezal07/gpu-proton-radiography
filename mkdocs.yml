@@ -48,7 +48,7 @@ nav:
     - Stopping Power: stopping_power.md
     - Limitations: limitations.md
   - Validation & Performance:
-    - Validation (24/24): validation.md
+    - Validation: validation.md
     - Numerical Robustness: convergence.md
     - Benchmarks: benchmark.md
   - Reference:
