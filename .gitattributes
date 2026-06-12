@@ -1,0 +1,7 @@
+# Keep GitHub language stats honest: the engine is Rust + GLSL.
+# site/ is mkdocs build output; docs/ and paper/ are prose and figures.
+site/** linguist-generated
+docs/** linguist-documentation
+paper/** linguist-documentation
+benchmarks/plots/** linguist-documentation
+benchmarks/results/** linguist-documentation

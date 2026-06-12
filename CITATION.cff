@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use prad in published work, please cite it using the metadata below."
 type: software
 title: "prad: GPU-accelerated relativistic proton radiography"
-version: 0.3.1
-date-released: "2026-05-21"
+version: 0.4.0
+date-released: "2026-05-28"
 license: MIT
 repository-code: https://github.com/JonasDolezal07/gpu-proton-radiography
 url: https://jonasdolezal07.github.io/gpu-proton-radiography/

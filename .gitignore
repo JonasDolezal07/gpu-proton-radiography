@@ -41,13 +41,5 @@ data/magpie/*.bfld
 # ── Diagnostic outputs (one-off verification, not tracked) ────────────────────
 diag_canonical.csv
 
-# ── LaTeX build artifacts ─────────────────────────────────────────────────────
-paper/*.aux
-paper/*.bbl
-paper/*.blg
-paper/*.fdb_latexmk
-paper/*.fls
-paper/*.log
-paper/*.out
-paper/*.spl
-paper/*.synctex.gz
+# ── Paper — source lives on Overleaf, not in git ──────────────────────────────
+paper/

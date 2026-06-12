@@ -4,37 +4,106 @@
 
 **prad is a GPU-accelerated proton-radiography forward model for laser-plasma and HEDP experiments.**
 
-Given a measured or simulated electromagnetic field, prad traces a synthetic proton beam
-through it and produces a synthetic radiograph — the pattern of proton hits on the detector —
-for direct comparison with experimental RCF or image-plate data.
-
-It runs the full **relativistic Boris** orbit on the GPU. No paraxial approximation,
-no non-relativistic shortcuts. 10⁶ particles end-to-end in under 2 seconds on a laptop GPU.
+Given a measured or simulated electromagnetic field, prad traces a synthetic proton beam through it
+and produces a synthetic radiograph — the pattern of proton hits on the detector — for direct
+comparison with experimental RCF or image-plate data. It runs the full **relativistic Boris** orbit,
+no paraxial approximation, and is **≈33,000× faster than CPU tracing** in a measured 1M-particle
+head-to-head against PlasmaPy on the same hardware.
 
 ```
-✓ 16/16 physics validation tests passing
+✓ 25/25 physics validation tests passing (t01–t25)
+✓ Trajectory-level agreement with PlasmaPy's CPU Boris pusher
 ✓ Reproducible, self-documenting run directories
 ✓ CLI + GUI workflows
 ✓ Python API (pip install prad)
 ✓ Re-render without re-tracing particles
 ```
 
-## New in v0.4.0
+---
 
-- **Arbitrary source/detector geometry** — detector normal and up vectors are fully configurable; Gram-Schmidt basis construction in the shader handles any orientation (test 13)
-- **Per-hit binary export** (`counts/hits.bin`) — every detector hit recorded as `(y_mm, z_mm, energy_MeV)`; enables energy-resolved radiographs and post-hoc material inference
-- **Adaptive timestep** — large dt in vacuum, Larmor-constrained dt inside the field; 5–20× speedup with no physics change (test 15)
-- **Superimposed field grids** — stack any number of `.bfld` files at load time via `[[field.extra_b]]` TOML blocks; CPU-side resampling, no shader changes (test 14)
-- **Bethe-Bloch CSDA energy loss** — relativistic stopping power from a 256-entry GPU lookup table; scalar density grid (`.dens` format); material presets (water, CH₂, Be, Al, H); 0.7% agreement with NIST PSTAR at 14.7 MeV (test 16)
+## Quick start
+
+| Dependency | Purpose | Install |
+|---|---|---|
+| Rust (stable) | Build the engine | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
+| `glslangValidator` | GLSL → SPIR-V shader compilation | `brew install glslang` |
+| MoltenVK (macOS) | Vulkan over Metal | `brew install molten-vk` |
+| Python 3.9+ | Validation suite, Python API | system or `pyenv` |
+
+```bash
+# Build (also compiles shaders via build.rs)
+cd rust && cargo build --release && cd ..
+
+# Scaffold a working deck from a preset
+./rust/target/release/proton_tracer init zpinch -o my_run.toml
+
+# Inspect resolved geometry before running
+./rust/target/release/proton_tracer explain my_run.toml
+
+# Run — produces a self-contained output directory
+./rust/target/release/proton_tracer run my_run.toml -o runs/zpinch_01
+```
+
+**macOS / MoltenVK** — set these before running:
+```bash
+export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
+```
+
+See [docs/quickstart.md](docs/quickstart.md) for the full install walkthrough.
 
 ---
 
-## Tested platforms
+## Validation
 
-| Platform | GPU | Backend | Status |
-|---|---|---|---|
-| macOS Apple Silicon | Apple M4 | MoltenVK/Vulkan | Validation suite passing; ~9 B steps/s peak |
-| Ubuntu 22.04 Linux | NVIDIA RTX 4090 | NVIDIA Vulkan 1.3.277 | Validation suite passing; ~34 B steps/s peak |
+```bash
+python3 validate.py           # uses existing binary
+python3 validate.py --build   # build first, then validate
+```
+
+25 physics tests covering electromagnetic deflection (analytic Larmor radius, E×B velocity
+selector, relativistic energy conservation to machine precision), all source geometries and
+energy spectra, arbitrary detector orientation, geometry invariance under world-frame rotation,
+field compositing and linearity, adaptive timestepping, per-hit export consistency, and
+Bethe-Bloch CSDA energy loss (0.7% vs NIST PSTAR). Trajectory-level physics agreement with
+PlasmaPy's CPU Boris pusher is verified separately — see [docs/benchmark.md](docs/benchmark.md).
+
+<details>
+<summary>Latest run — Apple M4, macOS 15, MoltenVK (2026-06-12): <strong>25/25 PASS</strong></summary>
+
+```
+  test1_regression                     PASS
+  test2_zero_fields                    PASS
+  test3_uniform_E                      PASS
+  test4_B_energy_conservation          PASS
+  test5_pencil_tilted                  PASS
+  test6_point_full_cone                PASS
+  test7_disk_spatial_spread            PASS
+  test8_energy_spread                  PASS
+  test9_blur_conservation              PASS
+  test10_poisson_reproducibility       PASS
+  test11_exponential_spectrum          PASS
+  test12_relativistic_60mev            PASS
+  test13_tilted_geometry               PASS
+  test14_superimposed_fields           PASS
+  test15_adaptive_dt                   PASS
+  test16_bethe_bloch                   PASS
+  test17_analytic_hit                  PASS
+  test18_larmor_radius                 PASS
+  test19_exb_velocity_selector         PASS
+  test20_hits_bin_rebinning            PASS
+  test21_geometry_invariance           PASS
+  test22_field_compositing_linearity   PASS
+  test23_density_scaling               PASS
+  test24_vacuum_regression             PASS
+  test25_opaque_absorber               PASS
+  ──────────────────────────────────────────
+  25/25 PASS
+```
+
+</details>
+
+See [docs/validation.md](docs/validation.md) for per-test descriptions and tolerances.
 
 ---
 
@@ -59,13 +128,12 @@ Deck parameters, run status, and the 3D radiograph — all in one view.
 
 ## Why this tool
 
-**Speed that changes what's practical.** The full-orbit Boris integrator runs 10⁶ particles
-in under 2 seconds on a laptop GPU and under 0.5 seconds on an RTX 4090. In a matched
-simplified particle-tracing test (10,000 particles, uniform field, single core), prad is
-**214× faster** than a CPU Boris implementation via PlasmaPy — and GPU utilisation increases
-further at larger particle counts. That gap makes workflows practical that previously weren't:
-broad parameter sweeps, interactive geometry design, comparison of field topologies, synthetic
-dataset generation for ML inverse solvers.
+**Speed that changes what's practical.** In a measured head-to-head against PlasmaPy's CPU
+Boris pusher (uniform field, same laptop, both timed — no extrapolation), prad is
+**≈2,180× faster at 1M particles with a matched fixed timestep**, and **≈33,000× faster**
+with its default adaptive timestep (0.148 s vs 4,920 s). That gap makes workflows practical
+that previously weren't: broad parameter sweeps, interactive geometry design, comparison of
+field topologies, synthetic dataset generation for ML inverse solvers.
 
 **No approximations.** Every fast alternative uses the paraxial approximation — it integrates
 the field kick along a straight reference trajectory. That's fine for weak fields, but in the
@@ -83,43 +151,13 @@ the command line in one command.
 
 ---
 
-## Prerequisites
+## New in v0.4.0
 
-| Dependency | Purpose | Install |
-|---|---|---|
-| Rust (stable) | Build the engine | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
-| `glslangValidator` | GLSL → SPIR-V shader compilation | `brew install glslang` |
-| MoltenVK (macOS) | Vulkan over Metal | `brew install molten-vk` |
-| Python 3.9+ | Validation suite, Python API | system or `pyenv` |
-
----
-
-## Quick start
-
-```bash
-# Build (also compiles shaders via build.rs)
-cd rust && cargo build --release && cd ..
-
-# Scaffold a working deck from a preset
-./rust/target/release/proton_tracer init zpinch -o my_run.toml
-
-# Inspect resolved geometry before running
-./rust/target/release/proton_tracer explain my_run.toml
-
-# Schema check
-./rust/target/release/proton_tracer validate my_run.toml
-
-# Run — produces a self-contained output directory
-./rust/target/release/proton_tracer run my_run.toml -o runs/zpinch_01
-```
-
-**macOS / MoltenVK** — set these before running:
-```bash
-export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
-export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
-```
-
-See [docs/quickstart.md](docs/quickstart.md) for the full install walkthrough.
+- **Arbitrary source/detector geometry** — detector normal and up vectors are fully configurable; Gram-Schmidt basis construction in the shader handles any orientation (test 13)
+- **Per-hit binary export** (`counts/hits.bin`) — every detector hit recorded as `(y_mm, z_mm, energy_MeV)`; enables energy-resolved radiographs and post-hoc material inference
+- **Adaptive timestep** — large dt in vacuum, Larmor-constrained dt inside the field; 5–20× speedup with no physics change (test 15)
+- **Superimposed field grids** — stack any number of `.bfld` files at load time via `[[field.extra_b]]` TOML blocks; CPU-side resampling, no shader changes (test 14)
+- **Bethe-Bloch CSDA energy loss** — relativistic stopping power from a 256-entry GPU lookup table; scalar density grid (`.dens` format); material presets (water, CH₂, Be, Al, H); 0.7% agreement with NIST PSTAR at 14.7 MeV (test 16)
 
 ---
 
@@ -249,7 +287,22 @@ Output: `runs/sweep_001/` with one run directory per point and a live `sweep_man
 
 ## Performance
 
-Measured on Apple M4 (prad v0.4.0):
+**vs PlasmaPy** — measured head-to-head on the same hardware (uniform Bz = 1 T, 14.7 MeV
+protons, Apple M4; both tracers timed at every point, no extrapolation). With a matched fixed
+timestep (dt = 0.2 ps, identical physics) prad is **≈2,180× faster at 1M particles**. With
+prad's default three-phase adaptive timestep — large dt in vacuum, Larmor-constrained dt
+inside the field — the measured gap is:
+
+| N | prad (adaptive dt) | PlasmaPy (measured) | Speedup |
+|---|---|---|---|
+| 100,000 | 0.076 s | 425 s | **≈ 5,600×** |
+| 500,000 | 0.114 s | 2,332 s | **≈ 20,400×** |
+| 1,000,000 | 0.148 s | 4,920 s | **≈ 33,000×** |
+
+This comparison isolates the forward particle-tracing step only; PlasmaPy is a broader
+plasma-physics ecosystem and is not being replaced by prad.
+
+Fixed-dt wall times per field preset (Apple M4, prad v0.4.0):
 
 | Field | 100,000 particles | 1,000,000 particles |
 |---|---|---|
@@ -260,17 +313,6 @@ Measured on Apple M4 (prad v0.4.0):
 
 Peak step throughput: **9.0 B steps/s**.
 
-**vs PlasmaPy** — in a matched simplified uniform-field particle-tracing benchmark
-(10,000 particles, uniform Bz = 1 T, same geometry), prad's GPU backend is
-214× faster than a single-core CPU Boris implementation via PlasmaPy. This comparison
-isolates the forward particle-tracing step only; PlasmaPy is a broader plasma-physics
-ecosystem and is not being replaced by prad.
-
-| | PlasmaPy (CPU) | prad (GPU) |
-|---|---|---|
-| Wall time (10,000 particles) | 42.8 s | 0.20 s |
-| Measured speedup | — | **214×** |
-
 Additional Linux/NVIDIA validation on an RTX 4090 reached ~34 B particle-steps/s
 on the benchmark configuration, corresponding to roughly ~2 M particles/s for
 the tested step budget. See `benchmarks/validation/nvidia_rtx4090_ubuntu2204.txt`.
@@ -279,43 +321,12 @@ See [docs/benchmark.md](docs/benchmark.md) to reproduce these numbers.
 
 ---
 
-## Validation
+## Tested platforms
 
-```bash
-python3 validate.py           # uses existing binary
-python3 validate.py --build   # build first, then validate
-```
-
-16 physics tests: B-only regression, zero-field straight-line projection, uniform E-field
-deflection (sign and magnitude), relativistic Boris energy conservation (14.7000 MeV
-recovered to sub-eV accuracy), pencil/point/disk source geometry, Gaussian energy spread,
-exponential/TNSA spectrum (mean KE ≈ T, hard cutoff enforced), Gaussian blur, Poisson noise
-reproducibility, 60 MeV relativistic momentum initialisation (γ ≈ 1.064), tilted geometry
-(arbitrary detector orientation), superimposed field grids, adaptive timestep (Δmean_y = 0.73 mm
-at ~20× speedup), and Bethe-Bloch CSDA energy loss (0.7% vs NIST PSTAR).
-
-Latest run — Apple M4, macOS 15, MoltenVK (2026-05-28):
-
-```
-  test1_regression                     PASS   (999,189 hits)
-  test2_zero_fields                    PASS   (mean_y = +0.018 mm, mean_z = +0.011 mm)
-  test3_uniform_E                      PASS
-  test4_B_energy_conservation          PASS   (KE = 14.7000 MeV, std/mean = 1.2×10⁻¹⁶)
-  test5_pencil_tilted                  PASS   (mean_y = +7.333 mm, expected +7.333 mm)
-  test6_point_full_cone                PASS   (hit fraction = 1.0000)
-  test7_disk_spatial_spread            PASS   (std_y = 15.005 mm, expected 15.000 mm)
-  test8_energy_spread                  PASS   (spread = 5.00%, target 5.0%)
-  test9_blur_conservation              PASS   (count conserved; σ widens from 0 → 6.09 px)
-  test10_poisson_reproducibility       PASS
-  test11_exponential_spectrum          PASS   (mean = 3.54 MeV ≈ T = 3.0 MeV, cutoff = 40 MeV)
-  test12_relativistic_60mev            PASS   (mean = 60.0000 MeV, rel_std = 2.4×10⁻¹⁶)
-  test13_tilted_geometry               PASS   (std_y = 74.91 mm, expected 75.0 mm)
-  test14_superimposed_fields           PASS   (std/mean = 6.5×10⁻⁸)
-  test15_adaptive_dt                   PASS   (Δmean_y = 0.73 mm at ~20× speedup)
-  test16_bethe_bloch                   PASS   (rel_err = 0.007, tol 0.05)
-  ──────────────────────────────────────────
-  16/16 PASS
-```
+| Platform | GPU | Backend | Status |
+|---|---|---|---|
+| macOS Apple Silicon | Apple M4 | MoltenVK/Vulkan | Validation suite passing; ~9 B steps/s peak |
+| Ubuntu 22.04 Linux | NVIDIA RTX 4090 | NVIDIA Vulkan 1.3.277 | Validation suite passing; ~34 B steps/s peak |
 
 ---
 
@@ -336,7 +347,7 @@ Latest run — Apple M4, macOS 15, MoltenVK (2026-05-28):
 | [docs/rendering.md](docs/rendering.md) | Counts → PNG pipeline, re-render without GPU |
 | [docs/sweeps.md](docs/sweeps.md) | Parameter sweeps, syntax, sweep manifest |
 | [docs/benchmark.md](docs/benchmark.md) | Throughput scaling, physics sanity cases, PlasmaPy comparison |
-| [docs/validation.md](docs/validation.md) | Physics test descriptions and tolerances (16 tests) |
+| [docs/validation.md](docs/validation.md) | Physics test descriptions and tolerances (25 tests) |
 | [docs/convergence.md](docs/convergence.md) | Numerical robustness and convergence studies |
 | [docs/gui.md](docs/gui.md) | Deck launcher workflow |
 | [docs/limitations.md](docs/limitations.md) | Honest constraints and known gaps |
