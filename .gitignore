@@ -43,3 +43,9 @@ diag_canonical.csv
 
 # ── Paper — source lives on Overleaf, not in git ──────────────────────────────
 paper/
+
+# ── Claude Code / agent working files — local only, do not push ───────────────
+CLAUDE.md
+PLAN.md
+AGENT_LOG.md
+NOTES_FOR_JONAS.md

@@ -24,3 +24,12 @@ include = ["prad*"]
 
 [tool.setuptools.package-data]
 prad = ["py.typed", "bin/*"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "gpu: test requires the release binary and a working Vulkan device",
+    "slow: test takes more than ~10 s to run",
+]
