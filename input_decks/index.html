@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1608,8 +1608,8 @@ Legacy JSON configs are still accepted but deprecated — prefer TOML for all ne
 <h2 id="full-schema">Full schema<a class="headerlink" href="#full-schema" title="Permanent link">&para;</a></h2>
 <h3 id="field"><code>[field]</code><a class="headerlink" href="#field" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[field]</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/instabilities/zpinch.bfld&quot;</span><span class="w">   </span><span class="c1"># path to .bfld file (relative to deck)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">e_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/e_field.bfld&quot;</span><span class="w">              </span><span class="c1"># optional separate E-field file</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/instabilities/zpinch.bfld"</span><span class="w">   </span><span class="c1"># path to .bfld file (relative to deck)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">e_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/e_field.bfld"</span><span class="w">              </span><span class="c1"># optional separate E-field file</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="w">                             </span><span class="c1"># multiplicative scale on B (default 1.0)</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">scale_E</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="w">                             </span><span class="c1"># multiplicative scale on E (default 0.0)</span>
 </code></pre></div>
@@ -1621,16 +1621,16 @@ strength without modifying the field file, or to disable one component entirely 
 interpolation, zero outside its bounds) onto the primary grid before the GPU sees the data
 — no shader or Vulkan changes are required.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[field]</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/background.bfld&quot;</span><span class="w">      </span><span class="c1"># primary (defines the grid that the GPU sees)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/background.bfld"</span><span class="w">      </span><span class="c1"># primary (defines the grid that the GPU sees)</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">[[field.extra_b]]</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/insert_coil.bfld&quot;</span><span class="w">     </span><span class="c1"># resampled onto primary grid at load time</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/insert_coil.bfld"</span><span class="w">     </span><span class="c1"># resampled onto primary grid at load time</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w">                      </span><span class="c1"># independent per-field scale factor</span>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">scale_E</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">[[field.extra_b]]</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/external_solenoid.bfld&quot;</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/external_solenoid.bfld"</span>
 <a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0</span>
 </code></pre></div>
 <p>Rules:
@@ -1643,7 +1643,7 @@ interpolation, zero outside its bounds) onto the primary grid before the GPU see
 <h3 id="source"><code>[source]</code><a class="headerlink" href="#source" title="Permanent link">&para;</a></h3>
 <p>All source types share the same table, discriminated by <code>type</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[source]</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;parallel&quot;</span><span class="w">           </span><span class="c1"># parallel | disk | point | pencil</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"parallel"</span><span class="w">           </span><span class="c1"># parallel | disk | point | pencil</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">n_particles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100000</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">energy_MeV</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">14.7</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">energy_spread_percent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="w">   </span><span class="c1"># Gaussian σ = energy_MeV × energy_spread_percent / 100 (default 0)</span>
@@ -1680,7 +1680,7 @@ interpolation, zero outside its bounds) onto the primary grid before the GPU see
 </code></pre></div>
 <h3 id="numerics"><code>[numerics]</code><a class="headerlink" href="#numerics" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[numerics]</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">integrator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;boris&quot;</span><span class="w">    </span><span class="c1"># only boris is implemented</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">integrator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"boris"</span><span class="w">    </span><span class="c1"># only boris is implemented</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">dt_ps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="w">             </span><span class="c1"># time step in picoseconds</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">max_steps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20000</span><span class="w">       </span><span class="c1"># hard cap — simulation ends when all particles exit or hit</span>
 </code></pre></div>
@@ -1689,8 +1689,8 @@ with strong fields that increase path length, raise this. <code>explain</code> w
 is likely insufficient.</p>
 <h3 id="render"><code>[render]</code><a class="headerlink" href="#render" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[render]</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">scale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;log&quot;</span><span class="w">       </span><span class="c1"># log | linear | sqrt</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">colormap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;rcf&quot;</span><span class="w">    </span><span class="c1"># rcf | scientific | grayscale | hot | inverted</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">scale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"log"</span><span class="w">       </span><span class="c1"># log | linear | sqrt</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">colormap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"rcf"</span><span class="w">    </span><span class="c1"># rcf | scientific | grayscale | hot | inverted</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">exposure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="w">      </span><span class="c1"># multiplicative brightness</span>
 </code></pre></div>
 <p>These control the PNG produced during <code>run</code>. The underlying count data is always saved
@@ -1706,8 +1706,8 @@ re-running the GPU simulation.</p>
 <p>All four default to true. Set to false to skip writing specific outputs.</p>
 <h3 id="density-optional"><code>[density]</code> (optional)<a class="headerlink" href="#density-optional" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[density]</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/plasma.dens&quot;</span><span class="w">     </span><span class="c1"># path to .dens density grid file (relative to deck)</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">material</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;water&quot;</span><span class="w">            </span><span class="c1"># material preset: water | plastic | beryllium | aluminum | hydrogen</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/plasma.dens"</span><span class="w">     </span><span class="c1"># path to .dens density grid file (relative to deck)</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">material</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"water"</span><span class="w">            </span><span class="c1"># material preset: water | plastic | beryllium | aluminum | hydrogen</span>
 </code></pre></div>
 <p>Enables continuous-slowing-down approximation (CSDA) energy loss via the Bethe-Bloch formula.
 Each Boris step looks up the local density, computes <code>dE = S(KE) × ρ × |v|·dt</code>, and reduces the
@@ -1715,7 +1715,7 @@ particle momentum accordingly.  Direction is unchanged; only the speed is reduce
 <p>When <code>[density]</code> is absent the simulation is energy-conserving (pure EM deflection).</p>
 <h4 id="density-file-format-dens">Density file format (<code>.dens</code>)<a class="headerlink" href="#density-file-format-dens" title="Permanent link">&para;</a></h4>
 <p>64-byte binary header + scalar f32 grid, C-contiguous (x outermost, z innermost):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>magic &quot;DENS&quot;  (4 bytes)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>magic "DENS"  (4 bytes)
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>version u32   (currently 1)
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>nx, ny, nz    (u32 × 3)
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>x_min, x_max, y_min, y_max, z_min, z_max  (f32 × 6, metres)
@@ -1729,16 +1729,16 @@ need to cover the full simulation volume.</p>
 absorber: any particle entering a voxel above the threshold is immediately removed from the
 simulation (not recorded as a detector hit).</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">[density]</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/target.dens&quot;</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;opaque&quot;</span><span class="w">                  </span><span class="c1"># &quot;csda&quot; (default) or &quot;opaque&quot;</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/target.dens"</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"opaque"</span><span class="w">                  </span><span class="c1"># "csda" (default) or "opaque"</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">opaque_threshold_g_cm3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1</span><span class="w">    </span><span class="c1"># threshold [g/cm³]; default 0.1</span>
 </code></pre></div>
 <p><code>material</code>, <code>z_over_a</code>, and <code>i_ev</code> are ignored in opaque mode. This is the right choice for
 solid targets or mesh grids where geometric shadowing is the effect of interest.</p>
 <h4 id="custom-material">Custom material<a class="headerlink" href="#custom-material" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[density]</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/plasma.dens&quot;</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">material</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;custom&quot;</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/plasma.dens"</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">material</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"custom"</span>
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">z_over_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w">                </span><span class="c1"># effective Z/A</span>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">i_ev</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">75.0</span><span class="w">                   </span><span class="c1"># mean excitation energy [eV]</span>
 </code></pre></div>
@@ -1931,10 +1931,10 @@ than nested TOML tables.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

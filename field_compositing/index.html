@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../images/logo.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1469,16 +1469,16 @@ where $N$ is the number of voxels in the respective grid.</p>
 <hr />
 <h2 id="toml-syntax">TOML syntax<a class="headerlink" href="#toml-syntax" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[field]</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/background.bfld&quot;</span><span class="w">   </span><span class="c1"># primary — defines the GPU grid</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/background.bfld"</span><span class="w">   </span><span class="c1"># primary — defines the GPU grid</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">[[field.extra_b]]</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/plasma_insert.bfld&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/plasma_insert.bfld"</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">scale_E</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">[[field.extra_b]]</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/external_solenoid.bfld&quot;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/external_solenoid.bfld"</span>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0</span>
 </code></pre></div>
 <p>The <code>[[field.extra_b]]</code> syntax is a TOML array-of-tables — add as many blocks as needed.</p>
@@ -1537,7 +1537,7 @@ keeping a fixed background:</p>
 <p>Or use a sweep:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># sweep.toml</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">[[sweep]]</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;field.extra_b[0].scale_B&quot;</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"field.extra_b[0].scale_B"</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">values</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="mf">0.25</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.75</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">]</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>proton_tracer<span class="w"> </span>sweep<span class="w"> </span>deck.toml<span class="w"> </span>sweep.toml<span class="w"> </span>-o<span class="w"> </span>runs/amplitude_scan/
@@ -1545,12 +1545,12 @@ keeping a fixed background:</p>
 <hr />
 <h2 id="worked-example-z-pinch-instability-in-an-axial-guide-field">Worked example: z-pinch instability in an axial guide field<a class="headerlink" href="#worked-example-z-pinch-instability-in-an-axial-guide-field" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[field]</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/instabilities/zpinch.bfld&quot;</span><span class="w">  </span><span class="c1"># MHD simulation output</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/instabilities/zpinch.bfld"</span><span class="w">  </span><span class="c1"># MHD simulation output</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">[[field.extra_b]]</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/guide_field_Bx.bfld&quot;</span><span class="w">        </span><span class="c1"># uniform axial Bx from external coil</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w">                               </span><span class="c1"># 50% of coil&#39;s nominal amplitude</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">path</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s2">"data/guide_field_Bx.bfld"</span><span class="w">        </span><span class="c1"># uniform axial Bx from external coil</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">scale_B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w">                               </span><span class="c1"># 50% of coil's nominal amplitude</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">validate</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_bfld</span>   <span class="c1"># or your own writer</span>
@@ -1560,7 +1560,7 @@ keeping a fixed background:</p>
 <a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">B_guide</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>   <span class="c1"># Bx component</span>
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.06</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.06</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.06</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">)</span>   <span class="c1"># same extent as zpinch field</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">write_bfld</span><span class="p">(</span><span class="s2">&quot;data/guide_field_Bx.bfld&quot;</span><span class="p">,</span> <span class="n">B_guide</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">write_bfld</span><span class="p">(</span><span class="s2">"data/guide_field_Bx.bfld"</span><span class="p">,</span> <span class="n">B_guide</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="generating-extra-fields">Generating extra fields<a class="headerlink" href="#generating-extra-fields" title="Permanent link">&para;</a></h2>
@@ -1572,15 +1572,15 @@ keeping a fixed background:</p>
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">version</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">E</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">E</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">xmn</span><span class="p">,</span> <span class="n">xmx</span><span class="p">,</span> <span class="n">ymn</span><span class="p">,</span> <span class="n">ymx</span><span class="p">,</span> <span class="n">zmn</span><span class="p">,</span> <span class="n">zmx</span> <span class="o">=</span> <span class="n">bounds</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;BFLD&quot;</span><span class="p">)</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;I&quot;</span><span class="p">,</span> <span class="n">version</span><span class="p">))</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;III&quot;</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">))</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&lt;6f&quot;</span><span class="p">,</span> <span class="n">xmn</span><span class="p">,</span> <span class="n">xmx</span><span class="p">,</span> <span class="n">ymn</span><span class="p">,</span> <span class="n">ymx</span><span class="p">,</span> <span class="n">zmn</span><span class="p">,</span> <span class="n">zmx</span><span class="p">))</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;&lt;f4&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"BFLD"</span><span class="p">)</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">"&lt;I"</span><span class="p">,</span> <span class="n">version</span><span class="p">))</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">"&lt;III"</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">))</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">"&lt;6f"</span><span class="p">,</span> <span class="n">xmn</span><span class="p">,</span> <span class="n">xmx</span><span class="p">,</span> <span class="n">ymn</span><span class="p">,</span> <span class="n">ymx</span><span class="p">,</span> <span class="n">zmn</span><span class="p">,</span> <span class="n">zmx</span><span class="p">))</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"</span><span class="se">\x00</span><span class="s2">"</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"&lt;f4"</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
 <a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">E</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;&lt;f4&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">E</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"&lt;f4"</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
 </code></pre></div>
 <p><strong>MHD simulation output</strong> — convert your simulation's field array into a <code>.bfld</code> using the same writer, ensuring the bounds are in metres and the data is in Tesla.</p>
 <p><strong>Resampling from a coarser grid</strong> — the compositing step handles different resolutions automatically; no manual interpolation is required before writing.</p>
@@ -1728,10 +1728,10 @@ use a flat <code>field_path</code> key and do not support compositing.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
