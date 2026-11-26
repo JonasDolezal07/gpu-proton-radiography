@@ -13,7 +13,7 @@ use crate::run_dir::{RunDir, RunDiagnostics};
 use crate::dt_schedule::DtSchedule;
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
-const MAX_DETECTOR_HITS: usize = 1_000_000;
+const MAX_DETECTOR_HITS: usize = 100_000_000;
 const DETECTOR_RESOLUTION: u32 = 1024;
 const STEPS_PER_FRAME: u32 = 100;  // Total simulation steps per render frame
 const STEPS_PER_DISPATCH: u32 = 100;  // Steps batched per GPU dispatch (keeps particles in registers)

@@ -30,8 +30,8 @@ impl ParticleData {
     pub fn generate(config: &SimSourceConfig) -> Result<Self> {
         let n = config.n_particles as usize;
 
-        // Seeded RNG for energy sampling. Spatial/angular still uses rand_f32() (non-seeded).
-        let mut energy_rng: rand::rngs::StdRng = match config.seed {
+        // Seeded RNG for all sampling (energy, position, angle) — ensures reproducibility.
+        let mut rng: rand::rngs::StdRng = match config.seed {
             Some(s) => rand::rngs::StdRng::seed_from_u64(s),
             None    => rand::rngs::StdRng::from_entropy(),
         };
@@ -73,17 +73,17 @@ impl ParticleData {
                 let cos_spread = spread.cos();
 
                 for _ in 0..n {
-                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
+                    let spd = sample_u(&energy_spec, &mut rng, mono_u);
                     // Position: uniform disk
-                    let phi = rand_f32() * std::f32::consts::TAU;
-                    let r   = radius * rand_f32().sqrt();
+                    let phi = rng.gen::<f32>() * std::f32::consts::TAU;
+                    let r   = radius * rng.gen::<f32>().sqrt();
                     let pos = center + perp1 * r * phi.cos() + perp2 * r * phi.sin();
 
                     // Direction: uniform solid-angle cone of half-angle spread.
                     // When spread == 0, cos_psi == 1 and sin_psi == 0, reducing to dir.
                     let vel = if spread > 0.0 {
-                        let az      = rand_f32() * std::f32::consts::TAU;
-                        let cos_psi = 1.0 - rand_f32() * (1.0 - cos_spread);
+                        let az      = rng.gen::<f32>() * std::f32::consts::TAU;
+                        let cos_psi = 1.0 - rng.gen::<f32>() * (1.0 - cos_spread);
                         let sin_psi = (1.0 - cos_psi * cos_psi).max(0.0).sqrt();
                         let v_dir   = dir * cos_psi
                             + perp1 * sin_psi * az.cos()
@@ -106,7 +106,7 @@ impl ParticleData {
                 let pos = Vec3::from(*position_m);
                 let dir = Vec3::from(*direction).normalize();
                 for _ in 0..n {
-                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
+                    let spd = sample_u(&energy_spec, &mut rng, mono_u);
                     particles.push(Particle {
                         position:  pos.to_array(),
                         step_count: 0,
@@ -131,16 +131,16 @@ impl ParticleData {
                 let perp2 = dir.cross(perp1);
 
                 for _ in 0..n {
-                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
+                    let spd = sample_u(&energy_spec, &mut rng, mono_u);
                     // Position: uniform disk in the plane perpendicular to dir.
-                    let phi = rand_f32() * std::f32::consts::TAU;
-                    let r   = radius * rand_f32().sqrt();
+                    let phi = rng.gen::<f32>() * std::f32::consts::TAU;
+                    let r   = radius * rng.gen::<f32>().sqrt();
                     let pos = center + perp1 * r * phi.cos() + perp2 * r * phi.sin();
 
                     // Direction: uniform solid-angle cone.
-                    let az      = rand_f32() * std::f32::consts::TAU;
+                    let az      = rng.gen::<f32>() * std::f32::consts::TAU;
                     let cos_psi = if half > 0.0 {
-                        1.0 - rand_f32() * (1.0 - cos_half)
+                        1.0 - rng.gen::<f32>() * (1.0 - cos_half)
                     } else {
                         1.0
                     };
@@ -172,10 +172,10 @@ impl ParticleData {
                 let perp2 = dir.cross(perp1);
 
                 for _ in 0..n {
-                    let spd = sample_u(&energy_spec, &mut energy_rng, mono_u);
-                    let az      = rand_f32() * std::f32::consts::TAU;
+                    let spd = sample_u(&energy_spec, &mut rng, mono_u);
+                    let az      = rng.gen::<f32>() * std::f32::consts::TAU;
                     let cos_psi = if half > 0.0 {
-                        1.0 - rand_f32() * (1.0 - cos_half)
+                        1.0 - rng.gen::<f32>() * (1.0 - cos_half)
                     } else {
                         1.0
                     };
@@ -251,18 +251,6 @@ fn sample_u(
         }
     };
     proton_momentum_per_mass_from_mev(e_mev) as f32
-}
-
-fn rand_f32() -> f32 {
-    use std::collections::hash_map::RandomState;
-    use std::hash::{BuildHasher, Hasher};
-
-    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-
-    let state = RandomState::new();
-    let mut hasher = state.build_hasher();
-    hasher.write_u64(COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
-    (hasher.finish() as f32) / (u64::MAX as f32)
 }
 
 fn sort_particles_by_morton(particles: &mut [Particle]) {
